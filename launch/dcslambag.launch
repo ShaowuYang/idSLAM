@@ -1,0 +1,45 @@
+<launch>
+
+  <!-- nodelet manager process -->
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager" output="screen"
+        args="manager" />
+
+  <!-- dual monocular slam nodelet -->
+  <node pkg="nodelet" type="nodelet" name="dualmono_nodelet" output="screen"
+	args="load dcslam/dcslamnodelet nodelet_manager" >
+        <param name="usingdualslam" type="bool" value="true" />
+        <param name="sendvisual" type="bool" value="true" />
+        <param name="show_debug_image" type="bool" value="false" />
+        <param name="write_pos" type="bool" value="true" />
+        <param name="use_artificial_ini" type="bool" value="true" />
+        <param name="ini_method" type="string" value="one_circle" />
+        <param name="use_ekf" type="bool" value="false" />
+        <param name="flying" type="bool" value="true" />
+
+        <param name="trackingpad" type="bool" value="false" />
+        
+        <param name="image" type="string" value="/downward/camera/image_raw" />
+	<param name="imagesec" type="string" value="/forward/camera/image_raw" />
+	<param name="cam_imu_file" type="string" value="$(find dcslam)/data/parameter_wrt.txt" />
+        <param name="cam_sec_imu_file" type="string" value="$(find dcslam)/data/cam1cam2_0209.txt" />
+        <param name="ref_img_path" type="string" value="$(find dcslam)/data/refpattern12.jpg" />>
+        <!--param name="ref_img_path" type="string" value="$(find dcslam)/data/box212.jpg" /-->
+
+        <param name="settings_file" type="string" value="$(find dcslam)/data/settings-dualmono.cfg" />
+        <param name="camera_type" type="string" value="Polynomial"/>
+        <param name="camera_file" type="string" value="$(find dcslam)/data/firefly-90deg.xml" />
+        <param name="camerasec_type" type="string" value="Polynomial"/>
+        <param name="camerasec_file" type="string" value="$(find dcslam)/data/firefly-90deg_sec.xml" />
+	<param name="calib_file" type="string" value="$(find dcslam)/data/firefly_sec.yaml"/>
+        <param name="vocabulary_file" type="string" value="$(find dcslam)/data/indoor_voc.yml.gz"/>
+        <param name="save_keyframes" type="bool" value="false"/>
+        <param name="close_loops" type="bool" value="true"/>
+	<param name="pub_backend_map" type="bool" value="false"/>
+
+	<!--param name="camera_file" type="string" value="$(env HOME)/data/lab/calib.xml" />-->
+	<!--param name="camera_file" type="string" value="$(env HOME)/data/flight1/calib/calib.xml" /-->
+  </node>
+
+  <node pkg="rosbag" type="play" name="play" output="screen" args="-s 10 -r 0.5 /home/yangs/localhome/bags/dcslam/dcslam4.bag"/>
+
+</launch>

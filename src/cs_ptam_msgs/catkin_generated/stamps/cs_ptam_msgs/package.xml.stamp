@@ -1,0 +1,21 @@
+<package>
+  <name>cs_ptam_msgs</name>
+  <version>0.0.1</version>
+  <description>
+    PTAM Messages
+  </description>
+  
+  <maintainer email="sebastian.scherer@uni-tuebingen.de">Sebastian Scherer</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>message_generation</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+
+  <run_depend>message_runtime</run_depend>
+
+</package>
+
+
+

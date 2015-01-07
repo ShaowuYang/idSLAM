@@ -1,0 +1,15 @@
+<launch>
+
+  <include file="$(find sparsestereo)/launch/sparsestereo_quad.launch" />
+
+  <node pkg="ptam" type="stereo_ptam_node" name="ptam" output="screen">
+    <!--<param name="show_debug_image" type="bool" value="true" />-->
+	<param name="show_debug_image" type="bool" value="false" />
+    <param name="settings_file" type="string" value="$(find ptam)/data/settings-stereo.cfg" />
+    <param name="camera_type" type="string" value="Polynomial" />
+    
+	<!-- <param name="camera_file" type="string" value="$(find ptam)/data/stereo-poly.xml" /> -->
+	<!--<param name="camera_file" type="string" value="$(env HOME)/data/lab/calib.xml" />-->
+	<param name="camera_file" type="string" value="$(env HOME)/data/flight1/calib/calib.xml" />
+  </node>
+</launch>

@@ -1,0 +1,7 @@
+set(_CATKIN_CURRENT_PACKAGE "cs_ptam_msgs")
+set(cs_ptam_msgs_MAINTAINER "Sebastian Scherer <sebastian.scherer@uni-tuebingen.de>")
+set(cs_ptam_msgs_DEPRECATED "")
+set(cs_ptam_msgs_VERSION "0.0.1")
+set(cs_ptam_msgs_BUILD_DEPENDS "message_generation" "sensor_msgs")
+set(cs_ptam_msgs_RUN_DEPENDS "message_runtime")
+set(cs_ptam_msgs_BUILDTOOL_DEPENDS "catkin")

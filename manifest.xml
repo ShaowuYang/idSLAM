@@ -1,0 +1,34 @@
+<package>
+  <description brief="dcslam">
+
+     idslam
+
+  </description>
+  <author>yang</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/</url>
+
+  <build_depend>cmake_modules</build_depend>
+  <depend package="nodelet"/>
+  <depend package="cv_bridge"/>
+  <rosdep name="bullet"/>
+  <rosdep name="opencv2"/>
+  <rosdep name="eigen3"/>
+  <rosdep name="pcl"/>
+  <depend package="image_geometry"/>
+  <depend package="image_transport"/>
+  <depend package="message_filters"/>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+  <depend package="tf"/>
+  <depend package="visualization_msgs"/>
+
+  <rosdep name="gtest"/>
+
+  <export>
+    <nodelet plugin="${prefix}/nodelet_idslam.xml" />
+  </export>
+</package>
+
+

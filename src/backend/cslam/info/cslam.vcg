@@ -1,0 +1,37 @@
+Background\ ColorB=0.972549
+Background\ ColorG=0.843137
+Background\ ColorR=0.635294
+Camera\ Config=-1.0848 4.72356 14.7281 -1.03054 1.36285 6.26358
+Camera\ Type=rviz::OrbitViewController
+Fixed\ Frame=/cslam
+Marker.Enabled=0
+Marker.Marker\ Topic=/cslam/points
+Marker.Queue\ Size=100
+Marker2.Enabled=1
+Marker2.Marker\ Topic=/cslam/edges
+Marker2.Queue\ Size=100
+Marker2.map=1
+Marker3.Enabled=1
+Marker3.Marker\ Topic=/cslam/keyframes
+Marker3.Queue\ Size=100
+Marker3.map=1
+Property\ Grid\ Splitter=891,78
+Property\ Grid\ State=expanded=.Global Options,.Global Status,Marker.Enabled,Marker2.Enabled,Marker3.Enabled,Marker3.Namespaces;splitterratio=0.5
+QMainWindow=000000ff00000000fd00000003000000000000011d0000041bfc0200000001fb000000100044006900730070006c006100790073010000001d0000041b000000ee00ffffff000000010000013100000307fc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073000000001d000000d90000006700fffffffb0000000a00560069006500770073000000001d00000307000000bb00fffffffb0000001200530065006c0065006300740069006f006e000000001d000002e30000006700ffffff000000030000039f0000003efc0100000001fb0000000800540069006d006501000000000000039f000002bf00ffffff0000027c0000041b00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+Target\ Frame=<Fixed Frame>
+Tool\ 2D\ Nav\ GoalTopic=/move_base_simple/goal
+Tool\ 2D\ Pose\ EstimateTopic=initialpose
+[Display0]
+ClassName=rviz::MarkerDisplay
+Name=Marker
+[Display1]
+ClassName=rviz::MarkerDisplay
+Name=Marker2
+[Display2]
+ClassName=rviz::MarkerDisplay
+Name=Marker3
+[Window]
+Height=1184
+Width=943
+X=-21
+Y=0

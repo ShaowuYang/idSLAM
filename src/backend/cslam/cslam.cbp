@@ -1,0 +1,861 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+   <FileVersion major="1" minor="6" />
+   <Project>
+      <Option title="cslam" />
+      <Option makefile_is_custom="1" />
+      <Option compiler="gcc" />
+      <Option virtualFolders="CMake Files\;CMake Files\src\;CMake Files\src\backend\;CMake Files\src\backend\cslam\;CMake Files\src\backend\cslam\cmake\;CMake Files\src\backend\cslam\tools\;CMake Files\src\backend\cslam\registration\;CMake Files\src\backend\cslam\matching\;CMake Files\src\backend\cslam\loops\;CMake Files\src\backend\cslam\slam\;CMake Files\src\backend\cslam\cs_geometry\;CMake Files\src\ptam\;CMake Files\src\tools\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\..\;CMake Files\..\..\..\..\..\opt\;CMake Files\..\..\..\..\..\opt\ros\;CMake Files\..\..\..\..\..\opt\ros\hydro\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\core\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\core\rosbuild\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\rosunit\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\rosunit\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\platform\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\test\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\tools\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\..\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\env-hooks\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslib\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslib\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslang\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslang\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\genmsg\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\genmsg\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\gencpp\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\gencpp\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\genlisp\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\genlisp\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\genpy\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\genpy\cmake\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslisp\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslisp\rosbuild\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roscpp\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\roscpp\rosbuild\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\rospy\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\rospy\rosbuild\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\eigen\;CMake Files\..\..\..\..\..\opt\ros\hydro\share\eigen\cmake\;CMake Files\..\..\..\..\..\usr\;CMake Files\..\..\..\..\..\usr\share\;CMake Files\..\..\..\..\..\usr\share\pcl-1.7\;CMake Files\..\..\..\..\..\usr\lib\;CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\;CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\CMake\;CMake Files\..\..\..\..\..\usr\src\;CMake Files\..\..\..\..\..\usr\src\gtest\;CMake Files\..\..\..\..\..\usr\src\gtest\cmake\;CMake Files\..\ScaViSLAM\;CMake Files\..\ScaViSLAM\EXTERNAL\;CMake Files\..\ScaViSLAM\EXTERNAL\Sophus\;CMake Files\..\ScaViSLAM\EXTERNAL\Sophus\svs_build\;CMake Files\catkin\;CMake Files\catkin\catkin_generated\;CMake Files\catkin\catkin_generated\version\;CMake Files\catkin_generated\;CMake Files\test\;" />
+      <Build>
+      <Target title="all">
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam" />
+         <Option type="4" />
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 all" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="backend">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libbackend.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+            <Add directory="/usr/include" />
+            <Add directory="/usr/include/eigen3" />
+            <Add directory="/usr/include/suitesparse" />
+            <Add directory="/usr/local/include" />
+            <Add directory="/usr/local/include/DBoW2/DVision" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 backend" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="backend/fast">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libbackend.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+            <Add directory="/usr/include" />
+            <Add directory="/usr/include/eigen3" />
+            <Add directory="/usr/include/suitesparse" />
+            <Add directory="/usr/local/include" />
+            <Add directory="/usr/local/include/DBoW2/DVision" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 backend/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_tools">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_tools.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/tools" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 cslam_tools" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_tools/fast">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_tools.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/tools" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 cslam_tools/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_reg">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_reg.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 cslam_reg" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_reg/fast">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_reg.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 cslam_reg/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_matching">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_matching.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/matching" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 cslam_matching" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_matching/fast">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_matching.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/matching" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 cslam_matching/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_loops">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_loops.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/loops" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 cslam_loops" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_loops/fast">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_loops.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/loops" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 cslam_loops/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_slam">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_slam.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 cslam_slam" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cslam_slam/fast">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcslam_slam.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 cslam_slam/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cs_geometry">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcs_geometry.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+            <Add directory="/usr/include" />
+            <Add directory="/usr/include/eigen3" />
+            <Add directory="/usr/include/ni" />
+            <Add directory="/usr/include/pcl-1.7" />
+            <Add directory="/usr/include/vtk-5.8" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 cs_geometry" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="cs_geometry/fast">
+         <Option output="/home/yangs/localhome/git/dcslam/lib/libcs_geometry.so" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry" />
+         <Option object_output="./" />
+         <Option type="3" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DCVD_HAVE_XMMINTRIN" />
+            <Add directory="/home/yangs/localhome/git/dcslam/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/msg_gen/cpp/include" />
+            <Add directory="/home/yangs/localhome/git/dcslam/srv_gen/cpp/include" />
+            <Add directory="/opt/ros/hydro/include" />
+            <Add directory="/opt/ros/hydro/include/opencv" />
+            <Add directory="/usr/include" />
+            <Add directory="/usr/include/eigen3" />
+            <Add directory="/usr/include/ni" />
+            <Add directory="/usr/include/pcl-1.7" />
+            <Add directory="/usr/include/vtk-5.8" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 cs_geometry/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      </Build>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/backend.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Camera.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/FivePointSolver.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Math.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/PointClouds.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/TrivariatePolynomials.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/LoopDetector.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/BruteForceMatcher.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Registrator3P.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Registrator5P.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/RegistratorBAPTAM.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/RegistratorKFs.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/RegistratorSIM3.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Keyframe.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/PGOptimizer.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/PlaneEdge.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/SLAMSystem.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Profiler.cpp">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/backend.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Camera.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/FivePointSolver.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/Math.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/PointClouds.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/TrivariatePolynomials.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/LoopDetector.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/BruteForceMatcher.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Registrator3P.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/Registrator5P.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/RegistratorBAPTAM.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/RegistratorKFs.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/RegistratorSIM3.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/Keyframe.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/PGOptimizer.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/PlaneEdge.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/SLAMSystem.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/Profiler.h">
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindDBoW2.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindEigen.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindG2O.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindSuiteSparse.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindEigen.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindDBoW2.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindEigen.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindG2O.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindSuiteSparse.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cmake/FindEigen.cmake">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\tools\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/tools/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\tools\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\registration\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/registration/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\registration\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\matching\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/matching/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\matching\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\loops\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/loops/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\loops\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\slam\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/slam/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\slam\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cs_geometry\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/backend/cslam/cs_geometry/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\backend\cslam\cs_geometry\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/ptam/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\ptam\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/src/tools/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\src\tools\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/OpenCV/OpenCVConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\OpenCV\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/ros/core/rosbuild/rosbuild.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\core\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/ros/core/rosbuild/private.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\core\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/ros/core/rosbuild/public.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\core\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/ros/core/rosbuild/ProcessorCount.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\core\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/ros/core/rosbuild/rosconfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\ros\core\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/rosunit/cmake/rosunitConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\rosunit\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/rosunit/cmake/rosunitConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\rosunit\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/rosunit/cmake/rosunit-extras.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\rosunit\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkinConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkinConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/all.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/assert.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_add_env_hooks.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_destinations.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_generate_environment.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_metapackage.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_package.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_package_xml.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_workspace.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/debug_message.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/em_expand.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/python.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/empy.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/find_program_required.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/legacy.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/list_append_unique.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/list_insert_in_workspace_order.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/parse_arguments.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/safe_execute_process.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/stamp.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkin_python_setup.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/interrogate_setup_dot_py.py">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkinConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/catkinConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/platform/lsb.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\platform\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/platform/ubuntu.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\platform\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/platform/windows.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\platform\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/test/tests.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\test\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/test/catkin_download_test_data.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\test\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/test/download_test_data.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\test\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/test/gtest.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\test\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/test/nosetests.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\test\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/tools/doxygen.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\tools\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/tools/libraries.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\tools\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/tools/rt.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\tools\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/../package.xml">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\..\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/_setup_util.py.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/env.sh.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/setup.bash.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/setup.sh.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/setup.zsh.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/rosinstall.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/_setup_util.py.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/env.sh.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/setup.bash.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/setup.sh.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/setup.zsh.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/rosinstall.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/generate_cached_setup.py.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/templates/env.sh.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\templates\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/catkin/cmake/env-hooks/05.catkin-test-results.sh.develspace.in">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\catkin\cmake\env-hooks\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/roslib/cmake/roslibConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslib\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/roslib/cmake/roslibConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslib\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/roslib/cmake/roslib-extras.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslib\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/roslang/cmake/roslang.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslang\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genmsg/cmake/genmsgConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genmsg\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genmsg/cmake/genmsgConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genmsg\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genmsg/cmake/genmsg-extras.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genmsg\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genmsg/cmake/genmsgConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genmsg\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genmsg/cmake/genmsgConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genmsg\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/gencpp/cmake/gencppConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\gencpp\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/gencpp/cmake/gencppConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\gencpp\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/gencpp/cmake/gencpp-extras.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\gencpp\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genlisp/cmake/genlispConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genlisp\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genlisp/cmake/genlispConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genlisp\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genlisp/cmake/genlisp-extras.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genlisp\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genpy/cmake/genpyConfig-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genpy\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genpy/cmake/genpyConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genpy\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/genpy/cmake/genpy-extras.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\genpy\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/roslisp/rosbuild/roslisp.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\roslisp\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/roscpp/rosbuild/roscpp.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\roscpp\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/rospy/rosbuild/rospy.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\rospy\rosbuild\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/eigen/cmake/eigen-config-version.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\eigen\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../opt/ros/hydro/share/eigen/cmake/eigen-config.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\opt\ros\hydro\share\eigen\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/share/pcl-1.7/PCLConfigVersion.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\share\pcl-1.7\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/share/pcl-1.7/PCLConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\share\pcl-1.7\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/share/pcl-1.7/PCLConfigVersion.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\share\pcl-1.7\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/share/pcl-1.7/PCLConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\share\pcl-1.7\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKConfigVersion.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKConfigQt.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKTargets.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKTargets-debug.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/UseVTK.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKConfigVersion.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKConfig.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKConfigQt.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKTargets.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/VTKTargets-debug.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/UseVTK.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/CMake/vtkMakeInstantiator.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\CMake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/lib/vtk-5.8/CMake/vtkMakeInstantiator.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\lib\vtk-5.8\CMake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/src/gtest/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\src\gtest\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/src/gtest/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\src\gtest\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/src/gtest/cmake/internal_utils.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\src\gtest\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../../../../../usr/src/gtest/cmake/internal_utils.cmake">
+          <Option virtualFolder="CMake Files\..\..\..\..\..\usr\src\gtest\cmake\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../ScaViSLAM/EXTERNAL/Sophus/svs_build/SophusConfig.cmake">
+          <Option virtualFolder="CMake Files\..\ScaViSLAM\EXTERNAL\Sophus\svs_build\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../ScaViSLAM/EXTERNAL/Sophus/svs_build/SophusConfig.cmake">
+          <Option virtualFolder="CMake Files\..\ScaViSLAM\EXTERNAL\Sophus\svs_build\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../ScaViSLAM/EXTERNAL/Sophus/svs_build/SophusConfig.cmake">
+          <Option virtualFolder="CMake Files\..\ScaViSLAM\EXTERNAL\Sophus\svs_build\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/../ScaViSLAM/EXTERNAL/Sophus/svs_build/SophusConfig.cmake">
+          <Option virtualFolder="CMake Files\..\ScaViSLAM\EXTERNAL\Sophus\svs_build\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/catkin/catkin_generated/version/package.cmake">
+          <Option virtualFolder="CMake Files\catkin\catkin_generated\version\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/catkin_generated/ordered_paths.cmake">
+          <Option virtualFolder="CMake Files\catkin_generated\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/catkin_generated/ordered_paths.cmake">
+          <Option virtualFolder="CMake Files\catkin_generated\" />
+      </Unit>
+      <Unit filename="/home/yangs/localhome/git/dcslam/test/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\test\" />
+      </Unit>
+   </Project>
+</CodeBlocks_project_file>
