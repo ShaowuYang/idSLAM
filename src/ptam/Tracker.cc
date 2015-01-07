@@ -338,6 +338,7 @@ void Tracker::TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Imag
 // use multiple rgb images, for RGB-D SLAM using multi-kinect with a backend for PGO
 void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB, std::vector<CVD::Image<uint16_t> > &imFrameD, bool isBgr)
 {
+    assert(imFrameRGB.size() == imFrameD.size());
     mMessageForUser.str("");   // Wipe the user message clean
 
     CVD::Image<CVD::byte> imFrame;
