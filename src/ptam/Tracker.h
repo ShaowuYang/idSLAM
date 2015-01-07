@@ -58,7 +58,7 @@ public:
   void TrackFrame(CVD::Image<CVD::byte> &imFrame, CVD::Image<CVD::byte> &imFramesec);
   void TrackFrame(CVD::Image<CVD::byte> &imFrame, CVD::Image<uint16_t> &imFrameD);
   void TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Image<uint16_t> &imFrameD, bool isBgr = false);
-  void TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB, std::vector<CVD::Image<uint16_t> > &imFrameD, bool isBgr = false);
+  void TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB, std::vector<CVD::Image<uint16_t> > &imFrameD, std::vector<int> adcamIndex, bool isBgr = false);
   void TrackFrame(CVD::Image<CVD::byte> &imFrame, const sensor_msgs::PointCloud& points);
 
   const CameraModel& GetCamera() const { return *mCamera; }
@@ -125,13 +125,13 @@ public:
 
 protected:
   boost::shared_ptr<KeyFrame> mCurrentKF;            // The current working frame as a keyframe struct
-  boost::shared_ptr<KeyFrame> mCurrentKFsec;            // The current working frame as a keyframe struct
+  boost::shared_ptr<KeyFrame> mCurrentKFsec[AddCamNumber];            // The current working frame as a keyframe struct
 
   // The major components to which the tracker needs access:
   Map &mMap;                      // The map, consisting of points and keyframes
   MapMaker &mMapMaker;            // The class which maintains the map
   std::auto_ptr<CameraModel> mCamera;             // Projection model
-  std::auto_ptr<CameraModel> mCameraSec;             // Projection model of the second camera
+  std::vector<std::auto_ptr<CameraModel> > mCameraSec;             // Projection model of the second camera
                                   // transformation w.r.t the master camera need to be counted.
   Relocaliser mRelocaliser;       // Relocalisation module
 
@@ -190,9 +190,9 @@ protected:
   int mnLastKeyFrameDropped;      // Counter of last keyframe inserted.
   int mnKeyFrames;                // Number of keyframes inserted.
   // aslo the kfs from the second camera
-  int mnFramesec;                    // Frames processed since last reset
-  int mnLastKeyFrameDroppedsec;      // Counter of last keyframe inserted.
-  int mnKeyFramessec;                // Number of keyframes inserted.
+  int mnFramesec[AddCamNumber];                    // Frames processed since last reset
+  int mnLastKeyFrameDroppedsec[AddCamNumber];      // Counter of last keyframe inserted.
+  int mnKeyFramessec[AddCamNumber];                // Number of keyframes inserted.
 
   WLS<6> wls; // Weighted least square solver
   WLS<12> wls2; // Weighted least square solver when included cam2cam calibration error
@@ -215,8 +215,8 @@ protected:
   void CalcSBIRotation();
   Vector<6> mv6SBIRot;
   // second image sbi should be calc seperately
-  SmallBlurryImage *mpSBILastFramesec;
-  SmallBlurryImage *mpSBIThisFramesec;
+  SmallBlurryImage * mpSBILastFramesec[CamNumber];
+  SmallBlurryImage * mpSBIThisFramesec[CamNumber];
   Vector<6> mv6SBIRotSec;
   Vector<6> mv6SBIRotDual;// the final estimation from dual sbi
   bool mbUseSBIInit;
@@ -233,7 +233,7 @@ protected:
   
   // Common tracking methods
   void initNewFrame();
-  void initNewFrame_sec();
+  void initNewFrame_sec( int camIndex);
   bool trackMap();
   bool trackMapDual();
   void processGUIEvents();

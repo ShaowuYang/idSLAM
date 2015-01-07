@@ -30,7 +30,6 @@ using namespace ptam;
 // to the other classes..
 Tracker::Tracker(Map &m, MapMaker &mm) :
     mCurrentKF(new KeyFrame()),
-    mCurrentKFsec(new KeyFrame()),
     mMap(m),
     mMapMaker(mm),
     mCamera(CameraModel::CreateCamera()),
@@ -38,15 +37,20 @@ Tracker::Tracker(Map &m, MapMaker &mm) :
     mRelocaliser(mMap)
 {
     mCurrentKF->bFixed = false;
-    mCurrentKFsec->bFixed = false;
+    for (int i = 0; i < AddCamNumber; i ++){
+        mCurrentKFsec[i] = new KeyFrame();
+        mCurrentKFsec[i]->bFixed = false;
+    }
     GUI.RegisterCommand("Reset", GUICommandCallBack, this);
     GUI.RegisterCommand("KeyPress", GUICommandCallBack, this);
     GUI.RegisterCommand("PokeTracker", GUICommandCallBack, this);
 
     mpSBILastFrame = NULL;
     mpSBIThisFrame = NULL;
-    mpSBILastFramesec = NULL;
-    mpSBIThisFramesec = NULL;
+    for (int i = 0; i < AddCamNumber; i ++){
+        mpSBILastFramesec[i] = NULL;
+        mpSBIThisFramesec[i] = NULL;
+    }
 
     // Most of the initialisation is done in Reset()
     Reset();
@@ -104,15 +108,17 @@ void Tracker::Reset()
     mnLastKeyFrameDropped = -20;
     mnFrame=0;
     mnKeyFrames=0;
-    mnLastKeyFrameDroppedsec = -20;
-    mnFramesec=0;
-    mnKeyFramessec=0;
     mv6CameraVelocity = Zeros;
     mv6CameraVelocitysec = Zeros;
     mbJustRecoveredSoUseCoarse = false;
     mUsingDualImg = false;
     mUseDualshould = false;
     debugmarkLoopDetected = false;
+    for (int i = 0; i < AddCamNumber; i ++){
+        mnLastKeyFrameDroppedsec[i] = -20;
+        mnFramesec[i]=0;
+        mnKeyFramessec[i]=0;
+    }
 
     // Tell the MapMaker to reset itself..
     // this may take some time, since the mapmaker thread may have to wait
@@ -336,33 +342,61 @@ void Tracker::TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Imag
 };
 
 // use multiple rgb images, for RGB-D SLAM using multi-kinect with a backend for PGO
-void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB, std::vector<CVD::Image<uint16_t> > &imFrameD, bool isBgr)
+void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB, std::vector<CVD::Image<uint16_t> > &imFrameD, std::vector<int> adcamIndex, bool isBgr)
 {
-    assert(imFrameRGB.size() == imFrameD.size());
+    assert((imFrameRGB.size() == imFrameD.size())
+           && (imFrameRGB.size() == (adcamIndex.size() + 1))
+           && (imFrameRGB.size() > 0));
     mMessageForUser.str("");   // Wipe the user message clean
 
+    // Add the main camera data
     CVD::Image<CVD::byte> imFrame;
     imFrame.resize(imFrameRGB.size());
-    CVD::convert_image(imFrameRGB,imFrame);
+    CVD::convert_image(imFrameRGB[0],imFrame);
     UpdateImageSize(imFrame.size());
-
     // Take the input video image, and convert it into the tracker's keyframe struct
     // This does things like generate the image pyramid and find FAST corners
     mCurrentKF->mMeasurements.clear();
-    mCurrentKF->MakeKeyFrame(imFrame,imFrameD,mCamera.get());
+    mCurrentKF->MakeKeyFrame(imFrame,imFrameD[0],mCamera.get());
     mCurrentKF->rgbIsBgr_ = isBgr;
-
     // Add depth and rgb image to the keyframe
-    mCurrentKF->rgbImage.resize(imFrameRGB.size());
-    mCurrentKF->depthImage.resize(imFrameD.size());
-    copy(imFrameRGB, mCurrentKF->rgbImage);
-    copy(imFrameD, mCurrentKF->depthImage);
+    mCurrentKF->rgbImage.resize(imFrameRGB[0].size());
+    mCurrentKF->depthImage.resize(imFrameD[0].size());
+    copy(imFrameRGB[0], mCurrentKF->rgbImage);
+    copy(imFrameD[0], mCurrentKF->depthImage);
 
     initNewFrame();
+
+    // And data from other cameras. Correctly correspond the camera index
+    for (int i = 1; i < imFrameRGB.size(); i ++) {
+        CVD::Image<CVD::byte> imFrame;
+        imFrame.resize(imFrameRGB[i].size());
+        CVD::convert_image(imFrameRGB[i],imFrame);
+
+        // Take the input video image, and convert it into the tracker's keyframe struct
+        // This does things like generate the image pyramid and find FAST corners
+        mCurrentKFsec[adcamIndex[i - 1]]->mMeasurements.clear();
+        mCurrentKFsec[adcamIndex[i - 1]]->MakeKeyFrame(imFrame,imFrameD[i],mCameraSec[adcamIndex[i - 1]].get());
+        mCurrentKFsec[adcamIndex[i - 1]]->rgbIsBgr_ = isBgr;
+
+        // Add depth and rgb image to the keyframe
+        mCurrentKFsec[adcamIndex[i - 1]]->rgbImage.resize(imFrameRGB[i].size());
+        mCurrentKFsec[adcamIndex[i - 1]]->depthImage.resize(imFrameD[i].size());
+        copy(imFrameRGB[i], mCurrentKFsec[adcamIndex[i - 1]]->rgbImage);
+        copy(imFrameD[i], mCurrentKFsec[adcamIndex[i - 1]]->depthImage);
+
+        initNewFrame_sec(adcamIndex[i - 1]);
+    }
+
     if(!trackMap()) {
         // If there is no map, try to make one.
-        mMapMaker.InitFromRGBD(*mCurrentKF);
-        mnKeyFrames = 1;
+        if (adcamIndex.size() < AddCamNumber)
+            continue;
+        else if (mMapMaker.InitFromRGBD(*mCurrentKF, mCurrentKFsec)){
+            mnKeyFrames = 1;
+            for (int i = 0; i < AddCamNumber; i ++)
+                mnKeyFramessec[i] = 1;
+        }
     }
 
     processGUIEvents();
@@ -410,25 +444,23 @@ void Tracker::initNewFrame() {
     // From now on we only use the keyframe struct!
     mnFrame++;
 }
-void Tracker::initNewFrame_sec() {
+void Tracker::initNewFrame_sec(int camIndex) {
     // Update the small images for the rotation estimator
     static gvar3<double> gvdSBIBlur("Tracker.RotationEstimatorBlur", 0.75, SILENT);
-    static gvar3<int> gvnUseSBI("Tracker.UseRotationEstimator", 1, SILENT);
-    mbUseSBIInit = *gvnUseSBI;
-    if(!mpSBIThisFramesec)
+    if (!mpSBIThisFramesec[camIndex])
     {
-        mpSBIThisFramesec = new SmallBlurryImage(*mCurrentKFsec, *gvdSBIBlur);
-        mpSBILastFramesec = new SmallBlurryImage(*mCurrentKFsec, *gvdSBIBlur);
+        mpSBIThisFramesec[camIndex] = new SmallBlurryImage(*mCurrentKFsec[camIndex], *gvdSBIBlur);
+        mpSBILastFramesec[camIndex] = new SmallBlurryImage(*mCurrentKFsec[camIndex], *gvdSBIBlur);
     }
     else
     {
-        delete  mpSBILastFramesec;
-        mpSBILastFramesec = mpSBIThisFramesec;
-        mpSBIThisFramesec = new SmallBlurryImage(*mCurrentKFsec, *gvdSBIBlur);
+        delete  mpSBILastFramesec[camIndex];
+        mpSBILastFramesec[camIndex] = mpSBIThisFramesec[camIndex];
+        mpSBIThisFramesec[camIndex] = new SmallBlurryImage(*mCurrentKFsec[camIndex], *gvdSBIBlur);
     }
 
     // From now on we only use the keyframe struct!
-    mnFramesec++;
+    mnFramesec[camIndex]++;
 }
 // If there is a map, try to track the map. Otherwise return false
 bool Tracker::trackMap() {
