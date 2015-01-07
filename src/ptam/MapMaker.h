@@ -198,7 +198,7 @@ protected:
   std::vector<std::pair<boost::shared_ptr<KeyFrame>, boost::shared_ptr<MapPoint> > > mvFailureQueue; // Queue of failed observations to re-find
   std::queue<boost::shared_ptr<MapPoint> > mqNewQueue;   // Queue of newly-made map points to re-find in other KeyFrames
   // second img
-  std::vector<boost::shared_ptr<KeyFrame> > mvpKeyFrameQueueSec;  // Queue of keyframes from the tracker waiting to be processed
+  std::vector<boost::shared_ptr<KeyFrame> > mvpKeyFrameQueueSec[AddCamNumber];  // Queue of keyframes from the tracker waiting to be processed
 
   double mdWiggleScale;  // Metric distance between the first two KeyFrames (copied from GVar)
                          // This sets the scale of the map

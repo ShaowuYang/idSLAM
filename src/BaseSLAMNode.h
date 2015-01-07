@@ -96,7 +96,7 @@ protected:
     std::ofstream pos_stream_;
     TooN::SE3<> camPose4pub;// Tcw for pubish
 
-    bool isdualcam; // using multiple cameras?
+    bool isdualcam; // using multiple cameras? Abusing "dual" in this project
     bool rgbIsBgr_; // are we working with bgr images?
 };
 } // namespace

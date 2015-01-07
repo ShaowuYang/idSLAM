@@ -547,23 +547,38 @@ public:
         // TODO: pass IMU attitude information to the ini module
         ros::Time time1 = ros::Time::now();
 
-
-        if (!cursecimg_good)
-        {
+        if (!isdualcam) {
             if (!depth_msg)
                 tracker_->TrackFrame(frameBW_);
             else
                 tracker_->TrackFrame(frameRGB_, frameDepth_, rgbIsBgr_);
+        } else
+        {
+            std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > RGBimages;
+            std::vector<CVD::Image<uint16_t> > DepthImages;
+            std::vector<int> adcamIndex;
+            RGBimages.push_back(frameRGB_);
+            DepthImages.push_back(frameDepth_);
+
+            if (cursecimg_good) {
+                RGBimages.push_back(frameRGB_sec);
+                DepthImages.push_back(frameDepth_sec);
+                adcamIndex.push_back(0);
+            }
+            if (curthirdimg_good) {
+                RGBimages.push_back(frameRGB_third);
+                DepthImages.push_back(frameDepth_third);
+                adcamIndex.push_back(1);
+            }
+
+            tracker_->TrackFrame(RGBimages, DepthImages, adcamIndex);
         }
-        else
-            tracker_->TrackFrame(frameBW_, frameBW_sec);
 
         if (!isFinishIniPTAMwithcircle){
             camPoselast = tracker_->GetCurrentPose();
             camPosethis = camPoselast;
             camPose4pub = camPoselast;
-        }
-        else{
+        } else{
             camPosethis = tracker_->GetCurrentPose();
             camPose4pub = camPosethis;
         }
@@ -581,7 +596,6 @@ public:
                         (camPosethis.get_translation()-camPoselast.get_translation()))>0.5))
         {
             isPTAMshouldstop = true;
-//            return;
             // camposelast keep still, just publish it
             camPose4pub = camPoselast;
         }
@@ -633,37 +647,55 @@ public:
             }
         }
         cout << "Main image callback done." << endl;
-//        isviconcall = false;
     }
 
 private:
     void convertImage(const sensor_msgs::ImageConstPtr& img_msg, int camnum = 1) {
         // convert image message to CVD image
         ImageRef img_size(img_msg->width,img_msg->height);
-        if (img_msg->encoding.compare("rgb8") == 0) {
-            memcpy(frameRGB_.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
-//            CVD::convert_image(frameRGB_,frameBW_);
-            rgbIsBgr_ = false;
-        } else if (img_msg->encoding.compare("bgr8") == 0){
-            memcpy(frameRGB_.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
-//            CVD::convert_image(frameRGB_,frameBW_);
-            rgbIsBgr_ = true;
+        if (img_msg->encoding.compare("rgb8") == 0 || img_msg->encoding.compare("bgr8") == 0) {
+            switch (camnum){
+            case 0:
+                memcpy(frameRGB_.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
+                break;
+            case 1:
+                memcpy(frameRGB_sec.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
+                break;
+            case 2:
+                memcpy(frameRGB_third.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
+                break;
+            }
+
+            if (img_msg->encoding.compare("rgb8") == 0)
+                rgbIsBgr_ = false;
+            else
+                rgbIsBgr_ = true;
         } else if (img_msg->encoding.compare("mono8") == 0) {
             switch (camnum){
-            case 1:
+            case 0:
                 memcpy(frameBW_.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
                 CVD::convert_image(frameBW_,frameRGB_);
                 break;
-            case 2:
+            case 1:
                 memcpy(frameBW_sec.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
                 CVD::convert_image(frameBW_sec,frameRGB_sec);
                 break;
             }
 
         } else if (img_msg->encoding.compare("16UC1") == 0){
-            memcpy(frameDepth_.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
-            cv::Mat depth_cv(480, 640, CV_16UC1, frameDepth_.data());
-            cv::imwrite("depth.jpg", depth_cv);
+            switch (camnum) {
+            case 3:
+                memcpy(frameDepth_.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
+                break;
+            case 4:
+                memcpy(frameDepth_sec.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
+                break;
+            case 5:
+                memcpy(frameDepth_third.data(),&(img_msg->data[0]),img_msg->step*img_size.y);
+                break;
+            }
+            // cv::Mat depth_cv(480, 640, CV_16UC1, frameDepth_.data());
+            // cv::imwrite("depth.jpg", depth_cv);
         } else {
             std::cerr << "error: ignoring image of unknown encoding: " << img_msg->encoding << std::endl;
             return;
@@ -676,7 +708,6 @@ private:
         SE3<> camPose = roboPose;//tracker_->GetCurrentPose().inverse();
 
         if (write_pos_) {//write_pos_
-//            geometry_msgs::PoseStampedPtr pose(new geometry_msgs::PoseStamped);
             btMatrix3x3 R(btScalar(camPose.get_rotation().get_matrix()(0,0)), btScalar(camPose.get_rotation().get_matrix()(0,1)), btScalar(camPose.get_rotation().get_matrix()(0,2)),
                           btScalar(camPose.get_rotation().get_matrix()(1,0)), btScalar(camPose.get_rotation().get_matrix()(1,1)), btScalar(camPose.get_rotation().get_matrix()(1,2)),
                           btScalar(camPose.get_rotation().get_matrix()(2,0)), btScalar(camPose.get_rotation().get_matrix()(2,1)), btScalar(camPose.get_rotation().get_matrix()(2,2)));
@@ -714,8 +745,6 @@ private:
             }
 
             if (pos_log_.is_open()){
-
-//                pos_log_ << msgtime.toSec() << " "
                 pos_log_ <<msgtime.toSec() << " "  // for offline debuge
                            << camPose.get_translation()[0] <<  " "
                            << camPose.get_translation()[1] <<  " "
@@ -729,14 +758,6 @@ private:
                 pos_log_ << roll1 << " " << pitch1 << " " << yaw1 << "\n";
                 pos_log_ << quat.w << " " << quat.x << " " << quat.y << " " << quat.z << "\n";
             }
-
-//            if (timecost.is_open() && tracker_->timecost_vo){
-
-////                pos_log_ << msgtime.toSec() << " "
-//                timecost <<msgtime.toSec() << " "
-//                           << tracker_->timecost_vo <<  " "
-//                           << "\n";
-//            }
         }
     }
 
@@ -793,7 +814,6 @@ private:
     ros::Publisher cam_marker_pub_sec;// for dual camera image
 
     geometry_msgs::TransformStamped vicon_state;
-//    pximu::AttitudeData attitude_data_;
     geometry_msgs::PoseWithCovarianceStamped pose_predicted_ekf_state_;
     SE3<> PoseEKF_wi;
     SO3<> orientation_ekf_;
@@ -816,9 +836,9 @@ private:
     boost::mutex secondcamlock;
     boost::mutex thirdcamlock;
 
-    CVD::Image<CVD::Rgb<CVD::byte> > frameRGB_,frameRGB_sec;
+    CVD::Image<CVD::Rgb<CVD::byte> > frameRGB_,frameRGB_sec, frameRGB_third;
     CVD::Image<CVD::byte> frameBW_, frameBW_sec;
-    CVD::Image<uint16_t> frameDepth_;
+    CVD::Image<uint16_t> frameDepth_, frameDepth_sec, frameDepth_third;
 
     bool secondimgcame;// dual camera case
     bool thirdimgcame;
