@@ -165,7 +165,7 @@ struct KeyFrame
 
   bool bComplete; // true if this KF is completely initialized
                   // false otherwise, i.e. MakeKeyFrame_Rest still needs to be called
-  bool bCompletesec;
+  bool bNewsec; /// a new kf from additional cameras? useful when handling losing images from some cameras of the multi-cam system
   // for landing pad detection
   bool islandingpadDetected;
   std::vector<cv::Point> mPadCorners;// image coordinate of the 4 landing pad corners

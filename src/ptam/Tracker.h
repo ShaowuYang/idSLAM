@@ -58,6 +58,13 @@ public:
   void TrackFrame(CVD::Image<CVD::byte> &imFrame, CVD::Image<CVD::byte> &imFramesec);
   void TrackFrame(CVD::Image<CVD::byte> &imFrame, CVD::Image<uint16_t> &imFrameD);
   void TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Image<uint16_t> &imFrameD, bool isBgr = false);
+  ///
+  /// \brief TrackFrame
+  /// \param imFrameRGB     a list of images from multiple cameras, maybe incomplete
+  /// \param imFrameD       the depth image
+  /// \param adcamIndex     handle incomplete cases, record the camera indexes of input images from the additional cameras
+  /// \param isBgr
+  ///
   void TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB, std::vector<CVD::Image<uint16_t> > &imFrameD, std::vector<int> adcamIndex, bool isBgr = false);
   void TrackFrame(CVD::Image<CVD::byte> &imFrame, const sensor_msgs::PointCloud& points);
 
@@ -109,8 +116,8 @@ public:
   TooN::Vector<3> iniPadCameraPoseWorld;// camera pose when the landing pad is first detected
   TooN::Vector<3> finishPadCameraPoseWorld;// camera pose when the landing pad is last detected
 
-  ///////////// using dual img ////////////
-  bool mUsingDualImg;
+  ///////////// using multiple imgs ////////////
+  bool mUsingDualImg; /// abusing "dual", which means multiple now
   bool mUseDualshould;
   void Load_Cam1FromCam2 (const SE3<> cam1fromcam2){
       mse3Cam1FromCam2 = cam1fromcam2;
@@ -126,6 +133,7 @@ public:
 protected:
   boost::shared_ptr<KeyFrame> mCurrentKF;            // The current working frame as a keyframe struct
   boost::shared_ptr<KeyFrame> mCurrentKFsec[AddCamNumber];            // The current working frame as a keyframe struct
+                                                            /// abusing "second" in this project, which means all those additional cameras
 
   // The major components to which the tracker needs access:
   Map &mMap;                      // The map, consisting of points and keyframes

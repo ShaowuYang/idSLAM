@@ -86,7 +86,8 @@ void MapMaker::Reset()
     while(!mqNewQueue.empty()) mqNewQueue.pop();
     mMap.vpKeyFrames.clear(); // TODO: actually erase old keyframes
     mvpKeyFrameQueue.clear(); // TODO: actually erase old keyframes
-    mvpKeyFrameQueueSec.clear(); // TODO: actually erase old keyframes
+    for (int i = 0; i < AddCamNumber; i ++)
+        mvpKeyFrameQueueSec[i].clear(); // TODO: actually erase old keyframes
     mbBundleRunning = false;
     mbBundleConverged_Full = true;
     mbBundleConverged_Recent = true;
@@ -2733,7 +2734,7 @@ bool MapMaker::AddKeyFrame(KeyFrame &k)
         }
         else
         {
-            mvpKeyFrameQueueSec.push_back(pK);
+            mvpKeyFrameQueueSec[0].push_back(pK);
         }
         return true;
     } else {
@@ -2758,11 +2759,11 @@ bool MapMaker::AddKeyFrameDual(KeyFrame &k, KeyFrame &ksec)
         pK->mAssociateKeyframe = true;
         pKsec->mAssociateKeyframe = true;
         mvpKeyFrameQueue.push_back(pK);
-        mvpKeyFrameQueueSec.push_back(pKsec);
+        mvpKeyFrameQueueSec[0].push_back(pKsec);
         // label its associated kf from the master camera with associated.
         // which is the lated kf added to the mvpKeyFrameQueue
-        mvpKeyFrameQueue[mvpKeyFrameQueue.size()-1]->nAssociatedKf = mvpKeyFrameQueueSec.size()-1;
-        mvpKeyFrameQueueSec[mvpKeyFrameQueueSec.size()-1]->nAssociatedKf = mvpKeyFrameQueue.size()-1;
+        mvpKeyFrameQueue[mvpKeyFrameQueue.size()-1]->nAssociatedKf = mvpKeyFrameQueueSec[0].size()-1;
+        mvpKeyFrameQueueSec[0][mvpKeyFrameQueueSec[0].size()-1]->nAssociatedKf = mvpKeyFrameQueue.size()-1;
         return true;
     } else {
         return false;
@@ -2772,25 +2773,22 @@ bool MapMaker::AddKeyFrameDual(KeyFrame &k, KeyFrame &ksec)
 
 bool MapMaker::AddKeyFrameDual(KeyFrame &ksec)
 {
-    boost::mutex::scoped_lock lock(MappingEnabledMut);
-    if (mbMappingEnabled) {
-        if (!ksec.nSourceCamera)
-        {
-            cerr << "Keyframes identity error!!!" << endl;
-            return false;
-        }
+    assert(ksec.nSourceCamera > 0);
 
-        boost::shared_ptr<KeyFrame> pKsec(new KeyFrame);
-        *pKsec = ksec;
-        pKsec->mAssociateKeyframe = true;
-        mvpKeyFrameQueueSec.push_back(pKsec);
-        // label its associated kf from the master camera with associated.
-        // which is the lated kf added to the mvpKeyFrameQueue
-        mvpKeyFrameQueueSec[mvpKeyFrameQueueSec.size()-1]->nAssociatedKf = mvpKeyFrameQueue.size()-1;
-        return true;
-    } else {
+    boost::mutex::scoped_lock lock(MappingEnabledMut);
+    if (!mbMappingEnabled)
         return false;
-    }
+
+    boost::shared_ptr<KeyFrame> pKsec(new KeyFrame);
+    *pKsec = ksec;
+    int adcamIndex = ksec.nSourceCamera - 1;
+    pKsec->mAssociateKeyframe = true;
+    mvpKeyFrameQueueSec[adcamIndex].push_back(pKsec);
+    // label its associated kf from the master camera with associated.
+    // which is the lated kf added to the mvpKeyFrameQueue
+    mvpKeyFrameQueueSec[adcamIndex][mvpKeyFrameQueueSec[adcamIndex].size()-1]->nAssociatedKf = mvpKeyFrameQueue.size()-1;
+
+    return true;
 }
 
 // Mapmaker's code to handle incoming key-frames.

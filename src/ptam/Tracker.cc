@@ -342,7 +342,9 @@ void Tracker::TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Imag
 };
 
 // use multiple rgb images, for RGB-D SLAM using multi-kinect with a backend for PGO
-void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB, std::vector<CVD::Image<uint16_t> > &imFrameD, std::vector<int> adcamIndex, bool isBgr)
+void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrameRGB,
+                         std::vector<CVD::Image<uint16_t> > &imFrameD,
+                         std::vector<int> adcamIndex, bool isBgr)
 {
     assert((imFrameRGB.size() == imFrameD.size())
            && (imFrameRGB.size() == (adcamIndex.size() + 1))
@@ -369,25 +371,28 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
     initNewFrame();
 
     // And data from other cameras. Correctly correspond the camera index
-    for (int i = 1; i < imFrameRGB.size(); i ++) {
+    for (int i = 0; i < AddCamNumber; i ++)
+        mCurrentKFsec[i]->bNewsec = false;
+    for (int i = 0; i < adcamIndex.size(); i ++) {
         CVD::Image<CVD::byte> imFrame;
         imFrame.resize(imFrameRGB[i].size());
         CVD::convert_image(imFrameRGB[i],imFrame);
 
         // Take the input video image, and convert it into the tracker's keyframe struct
         // This does things like generate the image pyramid and find FAST corners
-        mCurrentKFsec[adcamIndex[i - 1]]->mMeasurements.clear();
-        mCurrentKFsec[adcamIndex[i - 1]]->MakeKeyFrame(imFrame,imFrameD[i],mCameraSec[adcamIndex[i - 1]].get());
-        mCurrentKFsec[adcamIndex[i - 1]]->rgbIsBgr_ = isBgr;
-        mCurrentKF->nSourceCamera = i;
+        mCurrentKFsec[adcamIndex[i]]->mMeasurements.clear();
+        mCurrentKFsec[adcamIndex[i]]->MakeKeyFrame(imFrame,imFrameD[i],mCameraSec[adcamIndex[i]].get());
+        mCurrentKFsec[adcamIndex[i]]->rgbIsBgr_ = isBgr;
+        mCurrentKFsec[adcamIndex[i]]->nSourceCamera = adcamIndex[i] + 1; // mCameraSec begin with 0, while nSourceCamera begin with 1!
 
         // Add depth and rgb image to the keyframe
-        mCurrentKFsec[adcamIndex[i - 1]]->rgbImage.resize(imFrameRGB[i].size());
-        mCurrentKFsec[adcamIndex[i - 1]]->depthImage.resize(imFrameD[i].size());
-        copy(imFrameRGB[i], mCurrentKFsec[adcamIndex[i - 1]]->rgbImage);
-        copy(imFrameD[i], mCurrentKFsec[adcamIndex[i - 1]]->depthImage);
+        mCurrentKFsec[adcamIndex[i]]->rgbImage.resize(imFrameRGB[i + 1].size());
+        mCurrentKFsec[adcamIndex[i]]->depthImage.resize(imFrameD[i + 1].size());
+        copy(imFrameRGB[i + 1], mCurrentKFsec[adcamIndex[i]]->rgbImage);
+        copy(imFrameD[i + 1], mCurrentKFsec[adcamIndex[i]]->depthImage);
 
-        initNewFrame_sec(adcamIndex[i - 1]);
+        initNewFrame_sec(adcamIndex[i]);
+        mCurrentKFsec[adcamIndex[i]]->bNewsec = true;
     }
 
     if(!trackMapDual()) {
@@ -2316,10 +2321,12 @@ void Tracker::AddNewKeyFrame()
     } // else: mapmaker chose to ignore this keyframe, e.g. because mapping is disabled
     if (mUsingDualImg)
         for (int i = 0; i < AddCamNumber; i ++) {
-            if (mMapMaker.AddKeyFrameDual(*mCurrentKFsec)){
+            if (!mCurrentKFsec[i]->bNewsec)
+                continue;
+
+            if (mMapMaker.AddKeyFrameDual(*mCurrentKFsec[i])){
                 mnLastKeyFrameDropped = mnFrame;
-                mnKeyFrames++;
-                mnKeyFramessec++;
+                mnKeyFramessec[i]++;
             }
         }
 }
