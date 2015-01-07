@@ -1,0 +1,6 @@
+<launch>
+
+  <node pkg="dmslam" type="cameras_calib" name="cameras_calib" output="screen" >
+	<param name="cam_imu_file" type="string" value="$(find dmslam)/data/cameras_wrt.txt" />
+  </node>
+</launch>

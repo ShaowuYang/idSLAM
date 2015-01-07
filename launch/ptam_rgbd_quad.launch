@@ -1,0 +1,15 @@
+<launch>
+  <include file="openni_node.launch" /> 
+  <node pkg="tf" type="static_transform_publisher" name="world_to_ptam_world" args="0 0 0 0.5606   -0.5606    0.4310   -0.4310 /world /ptam_world 50" />
+
+  <node pkg="tf" type="static_transform_publisher" name="cam_to_quad" args="0 0 0 0.5606   -0.5606    0.4310   0.4310 /ptam_camera /base_link 50" />
+
+  <node pkg="ptam" type="rgbd_ptam_node" name="ptam" output="screen">
+    <remap from="rgb" to="/camera/rgb/image_color" />
+    <remap from="depth" to="/camera/depth/image_raw" />
+    <param name="_show_debug_image" type="bool" value="false" />
+    <param name="settings_file" type="string" value="$(find ptam)/data/settings-kinect.cfg" />
+    <param name="camera_type" type="string" value="Polynomial" />
+    <param name="camera_file" type="string" value="$(find ptam)/data/kinect-poly.xml" />
+  </node>
+</launch>

@@ -1,0 +1,22 @@
+image_width: 640
+image_height: 480
+camera_name: openni
+camera_matrix:
+   rows: 3
+   cols: 3
+   data: [ 523.728222,   0.000000, 319.592962, 
+0.000000, 523.848040,  235.863889,  
+0.000000, 0.000000, 1.000000]
+distortion_coefficients:
+   rows: 1
+   cols: 5
+   data: [ -0.422494,   0.174461,   0.001263,   0.000371,   0.000000]
+rectification_matrix:
+   rows: 3
+   cols: 3
+   data: [ 1., 0., 0., 0., 1., 0., 0., 0., 1. ]
+projection_matrix:
+   rows: 3
+   cols: 4
+   data: [ 523.728222,   0.000000, 319.592962, 
+0.000000, 523.848040,  235.863889, 0., 0., 0., 0.0, 0.0, 1.00000000 ]

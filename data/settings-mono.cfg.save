@@ -1,0 +1,38 @@
+// This file is parsed by the PTAM executable
+// Put any custom gvars settings you want in here
+
+TrackerMEstimator="Tukey"
+BundleMEstimator="Tukey"
+Bundler.Use3D=0
+Bundler.UseDepth=1
+MapMaker.AddPoints3D=0       // add points based on 3d information (depth)
+MapMaker.AddPointsEpipolar=1 // add points based on epipolar search
+MapMaker.LinearDist=0.5
+MapMaker.AngularDist=0.3
+MapMaker.WriteFrames=0 // save frame poses to disk after global BA
+
+//Tracker.CoarseMin=20
+//Tracker.CoarseMax=200
+Tracker.CoarseRange=50        // range in pixels in which to search for map points for in coarse mode
+Tracker.FineRange=10          // same in fine mode
+Tracker.UseDepth=0            // Use depth deviation for tracking?
+Tracker.Use3D=0               // Use 3D position deviation for trackign?
+Tracker.CoarseMinVelocity=0.1 // Velocity at which to switch to coarse mode
+Tracker.TrackingQualityGoodRatio=0.25 // Fraction of visible map points that needs to be found for quality to be GOOD
+Tracker.TrackingQualityGoodTotal=1000 // OR: number of visible map points that need to be found
+Tracker.TrackingQualityLostRatio=0.10 // Fraction at which we consider ourselves lost
+Tracker.MaxPatchesPerFrame = 4000 // Max number of map points considered.  default: 1000
+Tracker.MinKeyFrameInterval = 10 // Do not add a keyframe if there was another keyframe within this interval already. default: 20
+
+Tracker.MaxPoseDiff = 0.5 // Max translation difference between two successive frames.
+Tracker.MaxAngularDiff = 15 // in degree
+//Tracker.UseSimpleKF = true // Use simple kalman filter?
+
+Tracker.PadDetectMinFrameRate = 5  // min frame rate of landing pad detection, used to control detection in mapmaker
+Tracker.PadDetectMaxFrameRate = 10 // max frame rate of landing pad detection, used to control addframe in tracker 
+Tracker.RefimgPath = "data/refpattern12.jpg"
+// The following line loads the camera parameters saved by CameraCalibrator
+Camera.Type="Polynomial"
+Camera.File="firefly-90deg.xml"
+//Camera.Type="ATAN"
+//Camera.File="kinect-atan.cfg"

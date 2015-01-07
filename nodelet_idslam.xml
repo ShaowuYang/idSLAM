@@ -1,0 +1,7 @@
+<library path="lib/libidslamnodelet">
+  <class name="idSLAM/idslamnodelet" type="idslamnodelet" base_class_type="nodelet::Nodelet">
+  <description>
+  This is my nodelet for monocular indoor slam.
+  </description>
+  </class>
+</library>
