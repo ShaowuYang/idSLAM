@@ -379,7 +379,7 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
         mCurrentKFsec[adcamIndex[i - 1]]->mMeasurements.clear();
         mCurrentKFsec[adcamIndex[i - 1]]->MakeKeyFrame(imFrame,imFrameD[i],mCameraSec[adcamIndex[i - 1]].get());
         mCurrentKFsec[adcamIndex[i - 1]]->rgbIsBgr_ = isBgr;
-        mCurrentKF->nSourceCamera = i;
+        mCurrentKFsec[adcamIndex[i - 1]]->nSourceCamera = i;
 
         // Add depth and rgb image to the keyframe
         mCurrentKFsec[adcamIndex[i - 1]]->rgbImage.resize(imFrameRGB[i].size());
