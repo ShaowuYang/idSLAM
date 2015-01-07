@@ -110,7 +110,7 @@ public:
   //////////////////////////////////////////////////////////////////
 
   void Load_Cam2FromCam1 (const SE3<> cam2fromcam1){
-      mse3Cam2FromCam1 = cam2fromcam1;
+      mse3Cam2FromCam1[0] = cam2fromcam1;
   }
 
   void registerErasedAllCallback(ErasedAllCbFunction const &cb) { mMap.erasedAllCallback = cb; }
@@ -137,7 +137,7 @@ protected:
   
   Map &mMap;               // The map // in this full slam system, this will be only the local map handled by ptam
   std::auto_ptr<CameraModel> mCamera;      // Same as the tracker's camera: N.B. not a reference variable!
-  std::auto_ptr<CameraModel> mCameraSec;             // Projection model of the second camera
+  std::auto_ptr<CameraModel> mCameraSec[AddCamNumber];             // Projection model of the second camera
   virtual void run();      // The MapMaker thread code lives here
 
 //  Map &mGMap;               // the global map of the slam system, handled by the backend, accessed by ptam.
@@ -262,7 +262,7 @@ protected:
   int nNegative;
   ofstream pos_log_;
 
-  SE3<> mse3Cam2FromCam1;
+  SE3<> mse3Cam2FromCam1[AddCamNumber];
   bool bInputStopped; // no more image input
   bool bFullBAfinished; // full BA refinement to the full map has finished;
   bool bStopForFullBA; // robot stopping to do full ba

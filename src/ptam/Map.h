@@ -19,6 +19,7 @@
 #include <cvd/image.h>
 #include <boost/thread.hpp>
 #include <boost/smart_ptr.hpp>
+#include "CameraModel.h"
 
 namespace ptam{
 struct MapPoint;
@@ -47,7 +48,7 @@ struct Map
   
   std::vector<boost::shared_ptr<MapPoint> > vpPoints;
   std::vector<boost::shared_ptr<KeyFrame> > vpKeyFrames;
-  std::vector<boost::shared_ptr<KeyFrame> > vpKeyFramessec;
+  std::vector<boost::shared_ptr<KeyFrame> > vpKeyFramessec[AddCamNumber];
 
   bool bGood;
 
