@@ -177,7 +177,7 @@ protected:
 
   SE3<> mse3StartPos;               // What the camera pose was at the start of the frame.
   Vector<6> mv6CameraVelocity;    // Motion model
-  Vector<6> mv6CameraVelocitysec;    // Motion model for the second cam
+  Vector<6> mv6CameraVelocitysec[AddCamNumber];    // Motion model for the second cam
   double mdVelocityMagnitude;     // Used to decide on coarse tracking
   double mdMSDScaledVelocityMagnitude; // Velocity magnitude scaled by relative scene depth.
   bool mbDidCoarse;               // Did tracking use the coarse tracking stage?
@@ -215,9 +215,9 @@ protected:
   void CalcSBIRotation();
   Vector<6> mv6SBIRot;
   // second image sbi should be calc seperately
-  SmallBlurryImage * mpSBILastFramesec[CamNumber];
-  SmallBlurryImage * mpSBIThisFramesec[CamNumber];
-  Vector<6> mv6SBIRotSec;
+  SmallBlurryImage * mpSBILastFramesec[AddCamNumber];
+  SmallBlurryImage * mpSBIThisFramesec[AddCamNumber];
+  Vector<6> mv6SBIRotSec[AddCamNumber];
   Vector<6> mv6SBIRotDual;// the final estimation from dual sbi
   bool mbUseSBIInit;
   

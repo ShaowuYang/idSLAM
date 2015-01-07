@@ -2770,6 +2770,29 @@ bool MapMaker::AddKeyFrameDual(KeyFrame &k, KeyFrame &ksec)
 //    lock.unlock();
 }
 
+bool MapMaker::AddKeyFrameDual(KeyFrame &ksec)
+{
+    boost::mutex::scoped_lock lock(MappingEnabledMut);
+    if (mbMappingEnabled) {
+        if (!ksec.nSourceCamera)
+        {
+            cerr << "Keyframes identity error!!!" << endl;
+            return false;
+        }
+
+        boost::shared_ptr<KeyFrame> pKsec(new KeyFrame);
+        *pKsec = ksec;
+        pKsec->mAssociateKeyframe = true;
+        mvpKeyFrameQueueSec.push_back(pKsec);
+        // label its associated kf from the master camera with associated.
+        // which is the lated kf added to the mvpKeyFrameQueue
+        mvpKeyFrameQueueSec[mvpKeyFrameQueueSec.size()-1]->nAssociatedKf = mvpKeyFrameQueue.size()-1;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 // Mapmaker's code to handle incoming key-frames.
 // for dual camera case, kfs from two cameras are added separately,
 // but those keyframes from the two cameras should be paired, except the initialised one
