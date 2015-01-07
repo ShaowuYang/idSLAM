@@ -740,6 +740,106 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, const TooN::SE3<> &worldPos)
     return true;
 }
 
+// Init the SLAM system using multiple kinects
+bool MapMaker::InitFromRGBD(KeyFrame &kf, KeyFrame* adkfs, const TooN::SE3<> &worldPos)
+{
+    // write access: unique lock
+    boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
+
+    mdWiggleScale = 0.1;
+    mCamera->SetImageSize(kf.aLevels[0].im.size());
+
+    // need to copy this keyframe
+    boost::shared_ptr<KeyFrame> pkFirst(new KeyFrame());
+    *pkFirst = kf;
+    pkFirst->SBI = kf.SBI;
+    pkFirst->bFixed = true;
+    pkFirst->se3CfromW = worldPos;
+
+    // Construct map from key points
+    PatchFinder finder;
+    int lcount[LEVELS];
+    double dSumDepth = 0.0;
+    double dSumDepthSquared = 0.0;
+    int nMeas = 0;
+    for(unsigned int l = 0; l < 1; l++) {
+        lcount[l] = 0;
+        Level& lev = kf.aLevels[l];
+        const int nLevelScale = LevelScale(l);
+
+        for (unsigned int i = 0; i < lev.vMaxCorners.size(); i++)
+        {
+            double depth = lev.vMaxCornersDepth[i];
+            // only consider corners with valid 3d position estimates
+            if ((depth <= 0.0) || (depth > 4.0))
+                continue;
+
+            boost::shared_ptr<MapPoint> p(new MapPoint());
+
+            // Patch source stuff:
+            p->pPatchSourceKF = pkFirst;
+            p->nSourceLevel = l;
+            p->v3Normal_NC = makeVector( 0,0,-1);
+            p->irCenter = lev.vMaxCorners[i];
+            ImageRef irCenterl0 = LevelZeroPosIR(p->irCenter,l);
+            p->v3Center_NC = unproject(mCamera->UnProject(irCenterl0));
+            p->v3OneDownFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(0,nLevelScale)));
+            p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
+
+            Vector<3> v3CamPos = p->v3Center_NC*depth;// Xc
+            p->v3WorldPos = v3CamPos;// Xc
+            p->v3SourceKFfromeWorld = pkFirst->se3CfromW;
+            p->v3RelativePos = pkFirst->se3CfromW * p->v3WorldPos;
+
+            normalize(p->v3Center_NC);
+            normalize(p->v3OneDownFromCenter_NC);
+            normalize(p->v3OneRightFromCenter_NC);
+            dSumDepth += depth;
+            dSumDepthSquared += depth*depth;
+            p->RefreshPixelVectors();
+            // Do sub-pixel alignment on the same image
+            finder.MakeTemplateCoarseNoWarp(*p);
+            finder.MakeSubPixTemplate();
+            finder.SetSubPixPos(vec(p->irCenter));
+            //bool bGood = finder.IterateSubPixToConvergence(*pkFirst,10);
+            //        if(!bGood)
+            //          {
+            //            delete p; continue;
+            //          }
+
+
+            mMap.vpPoints.push_back(p);
+
+            // Construct first measurement and insert into relevant DB:
+            Measurement mFirst;
+            mFirst.nLevel = l;
+            mFirst.Source = Measurement::SRC_ROOT;
+            //            assert(l == 0);
+            mFirst.v2RootPos = vec(irCenterl0); // wrt pyramid level 0
+            mFirst.bSubPix = true;
+            mFirst.dDepth = depth;
+            pkFirst->mMeasurements[p] = mFirst;
+            p->MMData.sMeasurementKFs.insert(pkFirst);
+            lcount[l]++;
+        }
+    }
+
+    pkFirst->dSceneDepthMean = dSumDepth / nMeas;
+    pkFirst->dSceneDepthSigma = sqrt((dSumDepthSquared / nMeas) - (pkFirst->dSceneDepthMean) * (pkFirst->dSceneDepthMean));
+
+    RefreshSceneDepth(pkFirst);
+    pkFirst->id = 0;
+
+    mMap.vpKeyFrames.push_back(pkFirst);
+    mMap.bGood = true;
+
+    lock.unlock();
+
+    cout << "  MapMaker: made initial map from RGBD frame with " << mMap.vpPoints.size() << " points." << endl;
+    cout << "map points on levels: " << lcount[0] << ", " << lcount[1] << ", " << lcount[2] << ", " << lcount[3] << std::endl;
+    return true;
+}
+
 // InitFromStereo() generates the initial match from two keyframes
 // and a vector of image correspondences. Uses the 
 bool MapMaker::InitFromStereo(KeyFrame &kF,
