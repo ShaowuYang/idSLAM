@@ -134,12 +134,12 @@ protected:
   boost::shared_ptr<KeyFrame> mCurrentKF;            // The current working frame as a keyframe struct
   boost::shared_ptr<KeyFrame> mCurrentKFsec[AddCamNumber];            // The current working frame as a keyframe struct
                                                             /// abusing "second" in this project, which means all those additional cameras
-
+  std::vector<int> ActiveAdCamIndex; /// active cameras used in this frame
   // The major components to which the tracker needs access:
   Map &mMap;                      // The map, consisting of points and keyframes
   MapMaker &mMapMaker;            // The class which maintains the map
   std::auto_ptr<CameraModel> mCamera;             // Projection model
-  std::vector<std::auto_ptr<CameraModel> > mCameraSec;             // Projection model of the second camera
+  std::auto_ptr<CameraModel> mCameraSec[AddCamNumber];             // Projection model of the second camera
                                   // transformation w.r.t the master camera need to be counted.
   Relocaliser mRelocaliser;       // Relocalisation module
 
@@ -179,8 +179,8 @@ protected:
                bool debug = false); // Updates pose from found points. Also update camera-to-camera calibration error
 
   SE3<> mse3CamFromWorld;           // Camera pose: this is what the tracker updates every frame.
-  SE3<> mse3CamFromWorldsec;           // Camera pose: this is what the tracker updates every frame.
-  SE3<> mse3Cam1FromCam2;           // second camera pose in the master camera frames
+  SE3<> mse3CamFromWorldsec[AddCamNumber];           // Camera pose: this is what the tracker updates every frame.
+  SE3<> mse3Cam1FromCam2[AddCamNumber];           // second camera pose in the master camera frames
   Vector<6> mv6cam2fromcam1Error;   // the error of calibrated cam21 transform
 
   SE3<> mse3StartPos;               // What the camera pose was at the start of the frame.
