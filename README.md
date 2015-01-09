@@ -1,9 +1,11 @@
 idSLAM
 ======
 
-A SLAM system using multiple Kinects for indoor applications
+A SLAM system using multiple Kinects for indoor applications. It modifies the PTAM (http://www.robots.ox.ac.uk/~gk/PTAM/) 
+system to be able to integrate measurements from multiple Kinects. Furthermore an efficient back-end for loop closing is implemented 
+to form a full SLAM system, integrated with the above midfied PTAM system.
 
-This work is based on the previous work described in the following papers:
+This work is an extension to the previous work described in the following papers:
 
 [1]	Shaowu Yang, Sebastian A. Scherer, and Andreas Zell. Robust onboard visual SLAM for autonomous MAVs. 
     In 2014 International Conference on Intelligent Autonomous Systems (IAS-13), Padova, Italy, July 2014. 
@@ -16,3 +18,11 @@ This work is based on the previous work described in the following papers:
 
 [4] Georg Klein and David Murray. Parallel tracking and mapping for small AR workspaces. 
     In Proc. Sixth IEEE and ACM International Symposium on Mixed and Augmented Reality (ISMAR’07), Nara, Japan, November 2007.
+
+The following third-party libraries are used in this system:
+
+1. Third-party libraries used in PTAM: TooN, libCVD, Gvars3
+
+2. DBoW2 (http://webdiis.unizar.es/~dorian/index.php?p=32)
+
+3. g2o (http://openslam.org/g2o.html)

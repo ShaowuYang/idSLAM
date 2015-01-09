@@ -96,7 +96,7 @@ void Bundle::AddMeas(int nCam, int nPoint, Vector<2> v2Pos, double dSigmaSquared
     mvPoints[nPoint].sCameras.insert(nCam);
     Meas2d* m = new Meas2d(nPoint, nCam, v2Pos, dSigmaSquared);
     if (nCamnum)
-        m->nSourceCamera = 1;
+        m->nSourceCamera = nCamnum;
     if (nCamnum&&mAssociated)
         m->mAssociated = true;
     else
@@ -114,7 +114,7 @@ void Bundle::AddMeas(int nCam, int nPoint, Vector<3> v3Pos, double dSigmaSquared
     mvPoints[nPoint].sCameras.insert(nCam);
     Meas3d* m = new Meas3d(nPoint, nCam, v3Pos, dSigmaSquared);
     if (nCamnum)
-        m->nSourceCamera = 1;
+        m->nSourceCamera = nCamnum;
     mMeasList.push_back(m);
 }
 
@@ -127,7 +127,7 @@ void Bundle::AddMeas(int nCam, int nPoint, double dDepth, double dSigmaSquared, 
     mvPoints[nPoint].sCameras.insert(nCam);
     MeasDepth* m = new MeasDepth(nPoint, nCam, dDepth, dSigmaSquared);
     if (nCamnum)
-        m->nSourceCamera = 1;
+        m->nSourceCamera = nCamnum;
     mMeasList.push_back(m);
 }
 
@@ -221,7 +221,7 @@ bool Bundle::Do_LM_Step(bool *pbAbortSignal)
         if (!(*itr)->nSourceCamera)
             meas->ProjectAndFindSquaredError(mvPoints,mvCameras,mCamera.get());
         else
-            meas->ProjectAndFindSquaredError(mvPoints,mvCameras,mCameraSec.get());
+            meas->ProjectAndFindSquaredError(mvPoints,mvCameras,mCameraSec[(*itr)->nSourceCamera-1].get());
 
         if(!meas->bBad)
             vdErrorSquared.push_back(meas->dErrorSquared);

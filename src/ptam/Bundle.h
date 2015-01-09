@@ -435,8 +435,8 @@ public:
   std::vector<std::pair<int,int> > GetOutlierMeasurements();  // Measurements flagged as outliers
   std::set<int> GetOutliers();                                // Points flagged as outliers
   
-  void Load_Cam2FromCam1 (const SE3<> cam2fromcam1){
-      mse3Cam2FromCam1 = cam2fromcam1;
+  void Load_Cam2FromCam1 (const SE3<> cam2fromcam1, int adcamIndex){
+      mse3Cam2FromCam1[adcamIndex] = cam2fromcam1;
   }
 protected:
 
@@ -474,7 +474,7 @@ protected:
   bool *mpbAbortSignal;
 
   // DUAL camera BA
-  SE3<> mse3Cam2FromCam1;
+  SE3<> mse3Cam2FromCam1[AddCamNumber];
 };
 
 
