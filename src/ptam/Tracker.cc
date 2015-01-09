@@ -662,18 +662,6 @@ bool Tracker::trackMapDual() {
 
     tracking_map = true;
 
-    // yang, should we do landing object detection here? if so, add the current keyframe and its pose to mapmaker
-    // so that the detection does not need to be in real-time
-    // this should be decided based on both time interval and distance interval(dis the camera travels)
-    double time_now = ros::Time::now().toSec();
-    static gvar3<double> gvnPadDetectFrameRate("Tracker.PadDetectMaxFrameRate", 10, SILENT);
-    if ((mTrackingQuality == GOOD) && !mMapMaker.isFinishPadDetection && istrackPad
-            && (time_now - time_last_detect.toSec()) > 1.0/(*gvnPadDetectFrameRate))
-    {
-        if (mMapMaker.AddObjectDetectionFrame(*mCurrentKF))
-            time_last_detect = ros::Time::now();
-    }
-
     return true;
 }
 
@@ -695,25 +683,34 @@ void Tracker::processGUIEvents() {
 bool Tracker::AttemptRecovery()
 {
     cout << "Try to recorver..." << endl;
-    bool bRelocGood;
-    bool usesec = true;
-    if (!usesec)
+    bool bRelocGood = false;
+    bool bRelocGoodsec = false;
+    int nAdCamGoodnum = 0;
+
+    /// TODO: use multi image to relocalize the system
 //        bRelocGood = mRelocaliser.AttemptRecoveryDual(*mCurrentKF, *mCurrentKFsec);
-        bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKF);
-    else
-        bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKFsec);
-    if(!bRelocGood){
+    bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKF);
+    /// using only one other kf for reloc, after the main camera kf failed
+    if (!bRelocGood && mUsingDualImg)
+        for (int i = 0; i < AddCamNumber; i ++){
+            if (bRelocGoodsec)
+                break;
+            if (mCurrentKFsec[i]->bNewsec)
+                bRelocGoodsec = mRelocaliser.AttemptRecovery(*mCurrentKFsec[i]);
+            nAdCamGoodnum = i;
+        }
+    if(!bRelocGood && !bRelocGoodsec){
         cout << "Recovering failed." << endl;
         return false;
     }
 
     SE3<> se3Best = mRelocaliser.BestPose();
-    if (usesec)
-        se3Best = mse3Cam1FromCam2 * se3Best;
-    mse3CamFromWorld = mse3StartPos = se3Best;
-    mse3CamFromWorldPub = mse3StartPos = se3Best;
+    if (bRelocGoodsec)
+        se3Best = mse3Cam1FromCam2[nAdCamGoodnum] * se3Best;
+    mse3CamFromWorld = se3Best; mse3StartPos = se3Best;
+    mse3CamFromWorldPub = se3Best; mse3StartPos = se3Best;
     for (int i = 0; i < AddCamNumber; i ++)
-        mse3CamFromWorldsec[i] = mse3Cam1FromCam2[i].inverse()*se3Best;
+        mse3CamFromWorldsec[i] = mse3Cam1FromCam2[i].inverse()*mse3CamFromWorld;
     mv6CameraVelocity = Zeros;
     mbJustRecoveredSoUseCoarse = true;
     cout << "Recovering seems to be success." << endl;
@@ -1823,7 +1820,7 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
         if (!vTD[i]->nSourceCamera)
             bFound = Finder.FindPatchCoarse(ir(TD.v2Image), *mCurrentKF, nRange);
         else// search on the second image
-            bFound = Finder.FindPatchCoarse(ir(TD.v2Image), *mCurrentKFsec, nRange);
+            bFound = Finder.FindPatchCoarse(ir(TD.v2Image), *mCurrentKFsec[vTD[i]->nSourceCamera - 1], nRange);
         TD.bSearched = true;
         if(!bFound)
         {
@@ -1851,7 +1848,7 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
             if (!vTD[i]->nSourceCamera)
                 bSubPixConverges = Finder.IterateSubPixToConvergence(*mCurrentKF, nSubPixIts);
             else
-                bSubPixConverges = Finder.IterateSubPixToConvergence(*mCurrentKFsec, nSubPixIts);
+                bSubPixConverges = Finder.IterateSubPixToConvergence(*mCurrentKFsec[vTD[i]->nSourceCamera - 1], nSubPixIts);
             if(!bSubPixConverges)
             { // If subpix doesn't converge, the patch location is probably very dubious!
                 TD.bFound = false;
@@ -1871,7 +1868,7 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
             if (!vTD[i]->nSourceCamera)
                 TD.v3Found = TD.dFoundDepth*unproject(mCamera->UnProject(ir(TD.v2Found)));
             else
-                TD.v3Found = TD.dFoundDepth*unproject(mCameraSec->UnProject(ir(TD.v2Found)));
+                TD.v3Found = TD.dFoundDepth*unproject(mCameraSec[vTD[i]->nSourceCamera - 1]->UnProject(ir(TD.v2Found)));
 
             if (*gvnUseDepthTracking == 1 || *gvnUse3DTracking == 1) {
                 static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
