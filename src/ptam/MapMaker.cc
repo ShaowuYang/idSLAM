@@ -87,7 +87,10 @@ void MapMaker::Reset()
     mMap.vpKeyFrames.clear(); // TODO: actually erase old keyframes
     mvpKeyFrameQueue.clear(); // TODO: actually erase old keyframes
     for (int i = 0; i < AddCamNumber; i ++)
+    {
         mvpKeyFrameQueueSec[i].clear(); // TODO: actually erase old keyframes
+        secKFid[i] = 0;
+    }
     mbBundleRunning = false;
     mbBundleConverged_Full = true;
     mbBundleConverged_Recent = true;
@@ -235,7 +238,6 @@ void MapMaker::run()
             // only the front camera are used in the backend,
             // which can give a wider useful view in practice.
             // convert the keyframe type first.
-//            if (mMap.vpKeyFramessec.size() >= *maxKeyFrames)
             if (*doingfullSLAM){
                 if (mMap.vpKeyFrames.size() > 1)
                     sendEdgesCallback(mMap.vpKeyFrames, *maxKeyFrames);//
@@ -268,7 +270,7 @@ void MapMaker::run()
 
             CHECK_RESET;
             // do object detection?
-            double time_now = ros::Time::now().toSec();
+            /*double time_now = ros::Time::now().toSec();
             static gvar3<double> gvnPadDetectFrameRate("MapMaker.PadDetectMinFrameRate", 5, SILENT);
             if (!isFinishPadDetection && (time_now - mLandingPad->time_last_detect.toSec()) > 1.0/(*gvnPadDetectFrameRate)
                     && !nullObject_keyframe &&
@@ -283,11 +285,11 @@ void MapMaker::run()
                 lock.unlock();
                 mLandingPad->time_last_detect = ros::Time::now();
                 nullObject_keyframe = true;
-            }
+            }*/
 
             cout << "Done LBA related staff." << endl;
         }
-        else if (!isFinishPadDetection && !nullObject_keyframe &&
+        /*else if (!isFinishPadDetection && !nullObject_keyframe &&
                  mObject_keyframe.se3CfromW.inverse().get_translation()[2]>*gvnPadDetectMinHeight){// do object detection, locate the coarse pose of the object in the map
             boost::unique_lock<boost::mutex> lock(object_keyframeMut);
 
@@ -301,7 +303,7 @@ void MapMaker::run()
 
             if (nNegative)
                 ROS_INFO("POSITIVE VS NEGATIVE detection: %d, %d, %f", nPositive, nNegative, (double)nPositive/(nPositive+nNegative));
-        }
+        }*/
 
         if (isObject_detected && !nullTracking_frame){
             boost::unique_lock<boost::mutex>  lock(tracking_frameMut);
@@ -421,10 +423,11 @@ void MapMaker::HandleBadPoints()
     // write access: unique lock
     boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
 
+    int nCam = mMap.vpPoints[i]->nSourceCamera;
     for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
         if(mMap.vpPoints[i]->bBad)
         {
-            if (!mMap.vpPoints[i]->nSourceCamera){
+            if (!nCam){
                 for(unsigned int j=0; j<mMap.vpKeyFrames.size(); j++)
                 {
                     KeyFrame &k = *mMap.vpKeyFrames[j];
@@ -433,9 +436,9 @@ void MapMaker::HandleBadPoints()
                 }
             }
             else{
-                for(unsigned int j=0; j<mMap.vpKeyFramessec.size(); j++)
+                for(unsigned int j=0; j<mMap.vpKeyFramessec[nCam - 1].size(); j++)
                 {
-                    KeyFrame &k = *mMap.vpKeyFramessec[j];
+                    KeyFrame &k = *mMap.vpKeyFramessec[nCam - 1][j];
                     if(k.mMeasurements.count(mMap.vpPoints[i]))
                         k.mMeasurements.erase(mMap.vpPoints[i]);
                 }
@@ -919,6 +922,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
 
         RefreshSceneDepth(pkFirst);
         pkFirst->id = 0;
+        secKFid[i] ++;
 
         mMap.vpKeyFramessec[i].push_back(pkFirst);
     }
@@ -1507,7 +1511,7 @@ void MapMaker::AddSomeMapPoints(int nLevel, int nCam)
     else
     {
         kSrc = mMap.vpKeyFramessec[mMap.vpKeyFramessec.size() - 1];
-        kTarget = ClosestKeyFrame(kSrc,0.1, 1);
+        kTarget = ClosestKeyFrame(kSrc,0.1);
     }
     static gvar3<double> gvnmindistxy("MapMaker.mindistxy", 0.1, SILENT);
     SE3<> c12 = kSrc->se3CfromW * kTarget->se3CfromW.inverse();
@@ -2815,28 +2819,37 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
     bool neednewkf = true;
     bool neednewkfsec = true;
     bool usingDualimg = true;
-    boost::shared_ptr<KeyFrame> pK, pK2;
+    boost::shared_ptr<KeyFrame> pK, pK2[AddCamNumber];
 
     // force directly add kfs from the two cams together if there's association! <= check based on both kfs
     // then the association number would match each kf's own number
-    if (mvpKeyFrameQueueSec.size()== 0)
-        usingDualimg = false;
+    /// TODO: allow individual additional kfs to be added, as I tried and abondoned before. This can improve the robustness of the system
+    int nKfmin = mvpKeyFrameQueue.size();
+    for (int i = 0; i < AddCamNumber; i ++){
+        if (mvpKeyFrameQueueSec.size()== 0)
+            usingDualimg = false;
+        else if (mvpKeyFrameQueueSec[i].size() < nKfmin)
+            nKfmin = mvpKeyFrameQueueSec[i].size();
+    }
 
-    for (int i = 0; i < mvpKeyFrameQueue.size(); i ++){
+    for (int i = 0; i < nKfmin; i ++){
         pK = mvpKeyFrameQueue[0];
         mvpKeyFrameQueue.erase(mvpKeyFrameQueue.begin());
         cout << "current kf and existing kfs: " << pK->id << ", " << mMap.vpKeyFrames[mMap.vpKeyFrames.size()-1]->id << endl;
-        if (i!=0)
+        if (i != 0) /// in this case, not likely to add it
             neednewkf = NeedNewKeyFrame(pK);
         cout << "need new kf from first cam?: " << neednewkf << endl;
 
+        /// Add kfs whenever one of the kfs should be added
         if (usingDualimg){
-            pK2 = mvpKeyFrameQueueSec[0];
-            mvpKeyFrameQueueSec.erase(mvpKeyFrameQueueSec.begin());
-            if (i!=0 && mMap.vpKeyFramessec.size()>0)
-                neednewkfsec = NeedNewKeyFrame(pK2, 1);
-            else
-                neednewkfsec = true;
+            for (int cn = 0; cn < AddCamNumber; cn ++){
+                pK2[cn] = mvpKeyFrameQueueSec[cn][0];
+                mvpKeyFrameQueueSec[cn].erase(mvpKeyFrameQueueSec[cn].begin());
+                if (i != 0 && mMap.vpKeyFramessec[cn].size()>0)
+                    neednewkfsec = NeedNewKeyFrame(pK2[cn]);
+                else
+                    neednewkfsec = true;
+            }
         }
         else
             neednewkfsec = false;
@@ -2853,8 +2866,9 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
             // in dcslam system, the association number is useless
             if (usingDualimg){
 //                assert(mMap.vpKeyFrames.size() == mMap.vpKeyFramessec.size());
-                pK->nAssociatedKf = mMap.vpKeyFramessec.size();
-                pK2->nAssociatedKf = mMap.vpKeyFrames.size();
+                pK->nAssociatedKf = mMap.vpKeyFramessec[0].size();
+                for (int cn = 0; cn < AddCamNumber; cn ++)
+                    pK2[cn]->nAssociatedKf = mMap.vpKeyFrames.size();
             }
 //            if (pK->mAssociateKeyframe){
 //                if (!pK->mAssociatedinFinalQueue){
@@ -2972,6 +2986,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
 //                mMap.vpKeyFrames[pK2->nAssociatedKf]->mAssociateKeyframe = false;
 //        }
 //    }
+
     if (!usingDualimg){
         lock.unlock();
         mbBundleConverged_Full = false;
@@ -2982,42 +2997,42 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         return;
     }
 
-    pK2->SBI = SmallBlurryImage(*pK2); // Regenerate Small Blurry Image
-    pK2->SBI.MakeJacs();
-    if (!pK2->bComplete)
-        pK2->MakeKeyFrame_Rest();
+    for (int cn = 0; cn < AddCamNumber; cn ++){
+        pK2[cn]->SBI = SmallBlurryImage(*pK2[cn]); // Regenerate Small Blurry Image
+        pK2[cn]->SBI.MakeJacs();
+        if (!pK2[cn]->bComplete)
+            pK2[cn]->MakeKeyFrame_Rest();
 
-    // try also fix the second kf, since the ini map is always accurate till now
-    if (mMap.vpKeyFramessec.size() < *gvnFixedFrameSize)
-        pK2->bFixed = true;
+        // try also fix the second kf, since the ini map is always accurate till now
+        if (mMap.vpKeyFramessec[cn].size() < *gvnFixedFrameSize)
+            pK2[cn]->bFixed = true;
 
-    // 0 or 1 depends on whether add kf when ini by circle
-    static int kfid1 = 0;
-    pK2->id = kfid1;
-    kfid1 ++;
+        // 0 or 1 depends on whether add kf when ini by circle
+        pK2[cn]->id = secKFid[cn];
+        secKFid[cn] ++;
+        mMap.vpKeyFramessec.push_back(pK2[cn]);
+        // Any measurements? Update the relevant point's measurement counter status map
+        for(meas_it it = pK2[cn]->mMeasurements.begin();
+            it!=pK2[cn]->mMeasurements.end();
+            it++)
+        {
+            it->first->MMData.sMeasurementKFs.insert(pK2[cn]);
+            it->second.Source = Measurement::SRC_TRACKER;
+        }
+        // different camera model for the second camera keyframes,
+        // mappoints should only be triangulated among those kfs from the same camera
+        if(mMap.vpKeyFramessec[cn].size() < 2)
+            return;
+        // And maybe we missed some - this now adds to the map itself, too.
+        ReFindInSingleKeyFrame(pK2[cn]);//
 
-    mMap.vpKeyFramessec.push_back(pK2);
-    // Any measurements? Update the relevant point's measurement counter status map
-    for(meas_it it = pK2->mMeasurements.begin();
-        it!=pK2->mMeasurements.end();
-        it++)
-    {
-        it->first->MMData.sMeasurementKFs.insert(pK2);
-        it->second.Source = Measurement::SRC_TRACKER;
+        cout << "Adding map points from sec cam keyframe..." << endl;
+        AddSomeMapPoints(3, cn);       // .. and add more map points by epipolar search.
+        AddSomeMapPoints(0, cn);
+        AddSomeMapPoints(1, cn);
+        AddSomeMapPoints(2, cn);
+        cout << "Added map points from sec cam keyframe..."<< mMap.vpKeyFramessec.size() << endl;
     }
-    // different camera model for the second camera keyframes,
-    // mappoints should only be triangulated among those kfs from the same camera
-    if(mMap.vpKeyFramessec.size() < 2)
-        return;
-    // And maybe we missed some - this now adds to the map itself, too.
-    ReFindInSingleKeyFrame(pK2, 1);//
-
-    cout << "Adding map points from sec cam keyframe..." << endl;
-    AddSomeMapPoints(3, 1);       // .. and add more map points by epipolar search.
-    AddSomeMapPoints(0, 1);
-    AddSomeMapPoints(1, 1);
-    AddSomeMapPoints(2, 1);
-    cout << "Added map points from sec cam keyframe..."<< mMap.vpKeyFramessec.size() << endl;
 
     mbBundleConverged_Full = false;
     mbBundleConverged_Recent = false;
@@ -3457,15 +3472,16 @@ vector<boost::shared_ptr<KeyFrame> > MapMaker::NClosestKeyFrames(boost::shared_p
     return vResult;
 }
 
-boost::shared_ptr<KeyFrame> MapMaker::ClosestKeyFrame(boost::shared_ptr<KeyFrame> k, double mindist, int nCam)
+boost::shared_ptr<KeyFrame> MapMaker::ClosestKeyFrame(boost::shared_ptr<KeyFrame> k, double mindist)
 {
+    int nCam = k->nSourceCamera;
     double dClosestDist = 9999999999.9;
     int nClosest = -1;
     int numkf = 0;
     if (!nCam)
         numkf = mMap.vpKeyFrames.size();
     else
-        numkf = mMap.vpKeyFramessec.size();
+        numkf = mMap.vpKeyFramessec[nCam - 1].size();
 //    if (!nCam)
 //        cout<< "mapping nClosest vpKeyFrames.size: " << mMap.vpKeyFrames.size()<<endl;
 //    else
@@ -3479,9 +3495,9 @@ boost::shared_ptr<KeyFrame> MapMaker::ClosestKeyFrame(boost::shared_ptr<KeyFrame
             dDist = KeyFrameDist(*k, *mMap.vpKeyFrames[i]);
         }
         else{
-            if(mMap.vpKeyFramessec[i] == k)
+            if(mMap.vpKeyFramessec[nCam - 1][i] == k)
                 continue;
-            dDist = KeyFrameDist(*k, *mMap.vpKeyFramessec[i]);
+            dDist = KeyFrameDist(*k, *mMap.vpKeyFramessec[nCam - 1][i]);
         }
         if(dDist < dClosestDist && dDist > mindist)
         {
@@ -3493,7 +3509,7 @@ boost::shared_ptr<KeyFrame> MapMaker::ClosestKeyFrame(boost::shared_ptr<KeyFrame
     if (!nCam)
         return mMap.vpKeyFrames[nClosest];
     else
-        return mMap.vpKeyFramessec[nClosest];
+        return mMap.vpKeyFramessec[nCam - 1][nClosest];
 }
 
 double MapMaker::DistToNearestKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
@@ -3506,10 +3522,10 @@ double MapMaker::DistToNearestKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
 // yang, original PTAM problem: when mapping thread is busy, it may not be able to add
 // a keyframe in time. Then tracking thread may add too many very close keyframes to the
 // waiting list, if the quadrotor flys fast.
-bool MapMaker::NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent, const int ncam)
+bool MapMaker::NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
 {
     std::cout << "calculating the closest kf... " << endl;
-    boost::shared_ptr<KeyFrame> pClosest = ClosestKeyFrame(kCurrent,0.0, ncam);
+    boost::shared_ptr<KeyFrame> pClosest = ClosestKeyFrame(kCurrent,0.0);
     std::cout << "Closest kf id: " << pClosest->id<< ", latest kfs id: " << mMap.vpKeyFrames[mMap.vpKeyFrames.size()-1]->id << endl;
 //      std::cout << "dist to closest keyframe: linear " << KeyFrameLinearDist(*kCurrent,*pClosest)
 //                << ", angular: " << KeyFrameAngularDist(*kCurrent,*pClosest) << std::endl;
@@ -3521,6 +3537,7 @@ bool MapMaker::NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent, const int n
 
     bool neednew = false;
 
+    //// TODO: distance threshold should be able to be configured from conf. file
 //    if ((kCurrent->se3CfromW.inverse().get_translation()[2]<0.3
 //         && KeyFrameDist(*kCurrent, *pClosest)>0.2)
 //            || (kCurrent->se3CfromW.inverse().get_translation()[2]<0.4
@@ -4080,7 +4097,7 @@ void MapMaker::UpdateLMapByGMap(){
                 }
             }
         }
-        else{
+        else{ /// most likely
             // make sure id matched
             assert(mMap.vpKeyFrames[i]->id == mSLAM.keyframes_[mMap.vpKeyFrames[i]->id]->id);
             // to toon se3
@@ -4109,19 +4126,24 @@ void MapMaker::UpdateLMapByGMap(){
 //        cout << "Keyframe points updated by GMAP." << "\n";
 
         // Also update their associated kfs. other first cam kfs without association from the second cam (now cannot happen), should be updated according to their neighbores!
+        /// TODO: whether we want to associate additional kfs with first cam together or individually?
         if (mMap.vpKeyFrames[i]->mAssociateKeyframe){// kfs from the second cam
-            SE3<> kfpos = mMap.vpKeyFramessec[mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW;
-            mMap.vpKeyFramessec[mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW = mse3Cam2FromCam1[0]*mMap.vpKeyFrames[i]->se3CfromW;
-//            cout << mMap.vpKeyFrames[i]->se3CfromW << endl;
-//            assert(mMap.vpKeyFramessec[i]->nAssociatedKf == i);
-            // and update its map points
-            for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
-                // TODO: if RBA, update the relative pose for full slam, careful about its source kf, which may be either fixed or adjusted.
-                // TODO: update the scale if pgo in SIM3
-                boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
-                if((vpPoint->nSourceCamera==1) && (mMap.vpKeyFramessec[mMap.vpKeyFrames[i]->nAssociatedKf] == vpPoint->pPatchSourceKF.lock())){
-                    Vector<3> rpos = kfpos * vpPoint->v3WorldPos;
-                    vpPoint->v3WorldPos = mMap.vpKeyFramessec[mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW.inverse() * rpos;
+            for (int cn = 0; cn < AddCamNumber; cn ++){
+                if (mMap.vpKeyFramessec[cn].size() <= mMap.vpKeyFrames[i]->nAssociatedKf)
+                    continue;
+                SE3<> kfpos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW;
+                mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW = mse3Cam2FromCam1[cn]*mMap.vpKeyFrames[i]->se3CfromW;
+                //            cout << mMap.vpKeyFrames[i]->se3CfromW << endl;
+                //            assert(mMap.vpKeyFramessec[i]->nAssociatedKf == i);
+                // and update its map points
+                for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
+                    // TODO: if RBA, update the relative pose for full slam, careful about its source kf, which may be either fixed or adjusted.
+                    // TODO: update the scale if pgo in SIM3
+                    boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
+                    if((vpPoint->nSourceCamera == (cn + 1)) && (mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf] == vpPoint->pPatchSourceKF.lock())){
+                        Vector<3> rpos = kfpos * vpPoint->v3WorldPos;
+                        vpPoint->v3WorldPos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW.inverse() * rpos;
+                    }
                 }
             }
         }
@@ -4149,8 +4171,9 @@ void MapMaker::UpdateWaitingList(){
 // was never searched for in a keyframe in the first place. This operates
 // much like the tracker! So most of the code looks just like in 
 // TrackerData.h.
-bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<MapPoint> p, int nCam)
+bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<MapPoint> p)
 {
+    int nCam= k->nSourceCamera;
     // abort if either a measurement is already in the map, or we've
     // decided that this point-kf combo is beyond redemption
     if(p->MMData.sMeasurementKFs.count(k)
@@ -4171,7 +4194,7 @@ bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<Ma
     }
     Vector<2> v2ImPlane = project(v3Cam);
     if (nCam){
-        if( v2ImPlane* v2ImPlane > mCameraSec->LargestRadiusInImage() * mCameraSec->LargestRadiusInImage())
+        if( v2ImPlane* v2ImPlane > mCameraSec[nCam - 1]->LargestRadiusInImage() * mCameraSec[nCam - 1]->LargestRadiusInImage())
         {
             p->MMData.sNeverRetryKFs.insert(k);
             return false;
@@ -4186,8 +4209,8 @@ bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<Ma
     Vector<2> v2Image;
     if (nCam)
     {
-        v2Image = mCameraSec->Project(v2ImPlane);
-        if(mCameraSec->Invalid())
+        v2Image = mCameraSec[nCam - 1]->Project(v2ImPlane);
+        if(mCameraSec[nCam - 1]->Invalid())
         {
             p->MMData.sNeverRetryKFs.insert(k);
             return false;
@@ -4212,7 +4235,7 @@ bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<Ma
 
     Matrix<2> m2CamDerivs;
     if (nCam)
-        m2CamDerivs = mCameraSec->GetProjectionDerivs();
+        m2CamDerivs = mCameraSec[nCam - 1]->GetProjectionDerivs();
     else
         m2CamDerivs = mCamera->GetProjectionDerivs();
     Finder.MakeTemplateCoarse(*p, k->se3CfromW, m2CamDerivs);
@@ -4260,8 +4283,9 @@ bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<Ma
 
 // A general data-association update for a single keyframe
 // Do this on a new key-frame when it's passed in by the tracker
-int MapMaker::ReFindInSingleKeyFrame(boost::shared_ptr<KeyFrame> k, int nCam)
+int MapMaker::ReFindInSingleKeyFrame(boost::shared_ptr<KeyFrame> k)
 {
+    int nCam = k->nSourceCamera;
     vector<boost::shared_ptr<MapPoint> > vToFind;
     for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
     {
@@ -4272,7 +4296,7 @@ int MapMaker::ReFindInSingleKeyFrame(boost::shared_ptr<KeyFrame> k, int nCam)
 
     int nFoundNow = 0;
     for(unsigned int i=0; i<vToFind.size(); i++)
-        if(ReFind_Common(k, vToFind[i], nCam))
+        if(ReFind_Common(k, vToFind[i]))
             nFoundNow++;
 
     return nFoundNow;
@@ -4287,8 +4311,12 @@ void MapMaker::ReFindNewlyMade()
         return;
     int nFound = 0;
     int nBad = 0;
+    bool nullkfsecs = true;
+    for (int i = 0; i < AddCamNumber; i ++)
+        if (mvpKeyFrameQueueSec[i].size())
+            nullkfsecs = false;
     while(!mqNewQueue.empty() && mvpKeyFrameQueue.size() == 0
-          && mvpKeyFrameQueueSec.size() == 0)
+          && nullkfsecs)
     {
         boost::shared_ptr<MapPoint> pNew = mqNewQueue.front();
         mqNewQueue.pop();
@@ -4302,10 +4330,11 @@ void MapMaker::ReFindNewlyMade()
                 if(ReFind_Common(mMap.vpKeyFrames[i], pNew))
                     nFound++;
         }
-        else// the second camera
-            for(unsigned int i=0; i<mMap.vpKeyFramessec.size(); i++)
-                if(ReFind_Common(mMap.vpKeyFramessec[i], pNew, 1))
+        else { // the second camera
+            for(unsigned int i=0; i<mMap.vpKeyFramessec[pNew->nSourceCamera - 1].size(); i++)
+                if(ReFind_Common(mMap.vpKeyFramessec[pNew->nSourceCamera - 1][i], pNew))
                     nFound++;
+        }
     }
 };
 
@@ -4318,16 +4347,8 @@ void MapMaker::ReFindFromFailureQueue()
     vector<pair<boost::shared_ptr<KeyFrame>, boost::shared_ptr<MapPoint> > >::iterator it;
     int nFound=0;
     for(it = mvFailureQueue.begin(); it!=mvFailureQueue.end(); it++)
-    {
-        if (!it->second->nSourceCamera)
-        {
-            if(ReFind_Common(it->first, it->second))
-                nFound++;
-        }
-        else if(ReFind_Common(it->first, it->second, 1))
+        if(ReFind_Common(it->first, it->second))
             nFound++;
-    }
-
     mvFailureQueue.erase(mvFailureQueue.begin(), it);
 };
 

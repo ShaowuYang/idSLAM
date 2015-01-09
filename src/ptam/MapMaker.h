@@ -67,7 +67,7 @@ public:
   void RequestReset();   // Request that the we reset. Called by the tracker.
   bool ResetDone();      // Returns true if the has been done.
   int  QueueSize() { return mvpKeyFrameQueue.size() ;} // How many KFs in the queue waiting to be added?
-  bool NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent, const int ncam=0);            // Is it a good camera pose to add another KeyFrame?
+  bool NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent);            // Is it a good camera pose to add another KeyFrame?
   bool IsDistanceToNearestKeyFrameExcessive(boost::shared_ptr<KeyFrame> kCurrent);  // Is the camera far away from the nearest KeyFrame (i.e. maybe lost?)
 
   void EnableMapping();
@@ -169,11 +169,11 @@ protected:
   void BundleAdjustAllsec(); // ba for all kfs from two camera.
 
   // Data association functions:
-  int ReFindInSingleKeyFrame(boost::shared_ptr<KeyFrame> k, int nCam = 0);
+  int ReFindInSingleKeyFrame(boost::shared_ptr<KeyFrame> k);
   void ReFindFromFailureQueue();
   void ReFindNewlyMade();
   void ReFindAll();
-  bool ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<MapPoint> p, int nCam=0);
+  bool ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<MapPoint> p);
   void SubPixelRefineMatches(KeyFrame &k, int nLevel);
   
   // General Maintenance/Utility:
@@ -183,7 +183,7 @@ protected:
   double KeyFrameDist(KeyFrame &k1, KeyFrame &k2);
   double KeyFrameLinearDist(KeyFrame &k1, KeyFrame &k2);
   double KeyFrameAngularDist(KeyFrame &k1, KeyFrame &k2);
-  boost::shared_ptr<KeyFrame> ClosestKeyFrame(boost::shared_ptr<KeyFrame> k, double mindist = 0.0, int nCam=0);// for dual camera case, add cam number param
+  boost::shared_ptr<KeyFrame> ClosestKeyFrame(boost::shared_ptr<KeyFrame> k, double mindist = 0.0);// for dual camera case, add cam number param
   std::vector<boost::shared_ptr<KeyFrame> > NClosestKeyFrames(boost::shared_ptr<KeyFrame> k, unsigned int N, int nCam = 0);
   void RefreshSceneDepth(boost::shared_ptr<KeyFrame> pKF);
 
@@ -267,6 +267,8 @@ protected:
   bool bInputStopped; // no more image input
   bool bFullBAfinished; // full BA refinement to the full map has finished;
   bool bStopForFullBA; // robot stopping to do full ba
+
+  int secKFid[AddCamNumber];
 };
 } // namespace
 

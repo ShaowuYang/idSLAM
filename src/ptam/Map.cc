@@ -63,7 +63,8 @@ void Map::EraseOldKeyFrames(bool performLock) {
     // in dual camera case, the association number should also be corrected
     // keep all necceceary second cam kfs for the back end,
     // so the first cam kf may be more than maxKeyFrames
-    while(vpKeyFramessec.size() > *maxKeyFrames) {// Erase oldest keyframes
+    for (int cn = 0; cn < AddCamNumber; cn ++)
+        while(vpKeyFramessec[cn].size() > *maxKeyFrames) {// Erase oldest keyframes
 
         // Erase dependent points if they can not be observed by the new keyframes
         // (all recent maxKeyFrames kfs)which are not to be removed now, and keep those can be observed, and
@@ -71,19 +72,19 @@ void Map::EraseOldKeyFrames(bool performLock) {
         // this requires each map point to record all kfs measuring it, to speed up the search
         for(int i = vpPoints.size()-1; i >= 0; i--) {
             boost::shared_ptr<MapPoint> vpPoint = vpPoints[i];
-            if((vpPoint->nSourceCamera==1) && (vpKeyFramessec.front() == vpPoint->pPatchSourceKF.lock())){
+            if((vpPoint->nSourceCamera == cn) && (vpKeyFramessec[cn].front() == vpPoint->pPatchSourceKF.lock())){
                 bool obsable = false;
-                int kfnum = std::min(*maxKeyFrames, (int)vpKeyFramessec.size());
+                int kfnum = std::min(*maxKeyFrames, (int)vpKeyFramessec[cn].size());
                 // if cannot be observed by kept kfs, remove it, otherwise keep it
                 for (int j = kfnum-1; j > 0; j-- ){
-                    if(vpPoint->MMData.sMeasurementKFs.count(vpKeyFramessec[j])){
+                    if(vpPoint->MMData.sMeasurementKFs.count(vpKeyFramessec[cn][j])){
                         obsable = true;
 
                         // update all info useful related to this point
-                        vpPoint->pPatchSourceKF = vpKeyFramessec[j];
-                        vpPoint->v3SourceKFfromeWorld = vpKeyFramessec[j]->se3CfromW;
-                        vpPoint->v3RelativePos = vpKeyFramessec[j]->se3CfromW * vpPoint->v3WorldPos;
-                        for(meas_it jiter = vpKeyFramessec[j]->mMeasurements.begin(); jiter!= vpKeyFramessec[j]->mMeasurements.end(); jiter++)
+                        vpPoint->pPatchSourceKF = vpKeyFramessec[cn][j];
+                        vpPoint->v3SourceKFfromeWorld = vpKeyFramessec[cn][j]->se3CfromW;
+                        vpPoint->v3RelativePos = vpKeyFramessec[cn][j]->se3CfromW * vpPoint->v3WorldPos;
+                        for(meas_it jiter = vpKeyFramessec[cn][j]->mMeasurements.begin(); jiter!= vpKeyFramessec[cn][j]->mMeasurements.end(); jiter++)
                             if (vpPoint == jiter->first){// if this operation not allowed, use: set
                                 vpPoint->nSourceLevel = jiter->second.nLevel;
 
@@ -99,7 +100,7 @@ void Map::EraseOldKeyFrames(bool performLock) {
 
                         // erase the measurementKF info for this point
                         if(vpPoint->MMData.sMeasurementKFs.count(vpKeyFrames[0]))
-                            vpPoint->MMData.sMeasurementKFs.erase(vpKeyFramessec[0]);
+                            vpPoint->MMData.sMeasurementKFs.erase(vpKeyFramessec[cn][0]);
 
                         break;
                     }
@@ -110,15 +111,15 @@ void Map::EraseOldKeyFrames(bool performLock) {
         }
 
         // remove or adjust kf association in multi-camera case if appliable
-        if (vpKeyFramessec[0]->mAssociateKeyframe)
-            vpKeyFrames[vpKeyFramessec[0]->nAssociatedKf]->mAssociateKeyframe = false;
+        if (vpKeyFramessec[cn][0]->mAssociateKeyframe)
+            vpKeyFrames[vpKeyFramessec[cn][0]->nAssociatedKf]->mAssociateKeyframe = false;
         // and other kfs of the first cam
         for (int i = 0; i < vpKeyFrames.size(); i ++)
             if ( vpKeyFrames[i]->mAssociateKeyframe)
                 vpKeyFrames[i]->nAssociatedKf --;
 
-        vpKeyFramessec.erase(vpKeyFramessec.begin());
-        std::cout<<"!!Sec cam keyframes removed!" << vpKeyFramessec.size() << "\n";
+        vpKeyFramessec[cn].erase(vpKeyFramessec[cn].begin());
+        std::cout<<"!!Sec cam keyframes removed!" << vpKeyFramessec[cn].size() << "\n";
     }
 
     while(vpKeyFrames.size() > *maxKeyFrames) {// Erase oldest keyframe
@@ -166,12 +167,14 @@ void Map::EraseOldKeyFrames(bool performLock) {
 
         // remove kf association in multi-camera case if appliable
         if (vpKeyFrames[0]->mAssociateKeyframe){
-            vpKeyFramessec[vpKeyFrames[0]->nAssociatedKf]->mAssociateKeyframe = false;
+            for (int cn = 0; cn < AddCamNumber; cn ++)
+                vpKeyFramessec[cn][vpKeyFrames[0]->nAssociatedKf]->mAssociateKeyframe = false;
         }
         // and other kfs of the first cam
-        for (int i = 0; i < vpKeyFramessec.size(); i ++)
-            if ( vpKeyFramessec[i]->mAssociateKeyframe)
-                vpKeyFramessec[i]->nAssociatedKf --;
+        for (int cn = 0; cn < AddCamNumber; cn ++)
+            for (int i = 0; i < vpKeyFramessec[cn].size(); i ++)
+            if ( vpKeyFramessec[cn][i]->mAssociateKeyframe)
+                vpKeyFramessec[cn][i]->nAssociatedKf --;
 
         vpKeyFrames.erase(vpKeyFrames.begin());
         std::cout<<"!First cam keyframes removed!" << vpKeyFrames.size() << "\n";

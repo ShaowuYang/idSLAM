@@ -1,11 +1,11 @@
-idSLAM
+idSLAM (InDoorSLAM)
 ======
 
-A SLAM system using multiple Kinects for indoor applications. It modifies the PTAM (http://www.robots.ox.ac.uk/~gk/PTAM/) 
+A SLAM system using multiple Kinects for indoor applications. It modifies the PTAM [4](http://www.robots.ox.ac.uk/~gk/PTAM/) 
 system to be able to integrate measurements from multiple Kinects. Furthermore an efficient back-end for loop closing is implemented 
 to form a full SLAM system, integrated with the above midfied PTAM system.
 
-This work is an extension to the previous work described in the following papers:
+This work is an extension to previous work described in [1, 2, 3].
 
 [1]	Shaowu Yang, Sebastian A. Scherer, and Andreas Zell. Robust onboard visual SLAM for autonomous MAVs. 
     In 2014 International Conference on Intelligent Autonomous Systems (IAS-13), Padova, Italy, July 2014. 
