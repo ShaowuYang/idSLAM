@@ -42,14 +42,14 @@ bool Relocaliser::AttemptRecovery(KeyFrame &kCurrent)
       mse3Best = SmallBlurryImage::SE3fromSE2(mse2, mCamera.get()) * se3KeyFramePos;
   }else
   {
-      pair<SE2<>, double> result_pair = kCurrent.SBI.IteratePosRelToTarget(mMap.vpKeyFramessec[mnBest2]->SBI, 6);
+      pair<SE2<>, double> result_pair = kCurrent.SBI.IteratePosRelToTarget(mMap.vpKeyFramessec[kCurrent.nSourceCamera - 1][mnBest2]->SBI, 6);
       mse2sec = result_pair.first;
       dScore =result_pair.second;
       cout << "Make an attempt of recovering pose." << endl;
 
-      SE3<> se3KeyFramePos = mMap.vpKeyFramessec[mnBest2]->se3CfromW;
+      SE3<> se3KeyFramePos = mMap.vpKeyFramessec[kCurrent.nSourceCamera - 1][mnBest2]->se3CfromW;
       // SE3fromSE2 will set the corret image size for the camera, so no need to call CameraModel::SetImageSize()
-      mse3Best = SmallBlurryImage::SE3fromSE2(mse2sec, mCameraSec.get()) * se3KeyFramePos;
+      mse3Best = SmallBlurryImage::SE3fromSE2(mse2sec, mCameraSec[kCurrent.nSourceCamera - 1].get()) * se3KeyFramePos;
   }
   if(dScore < GV2.GetDouble("Reloc2.MaxScore", 9e6, SILENT))
     return true;
@@ -110,15 +110,16 @@ void Relocaliser::ScoreKFs(KeyFrame &kCurrent)
               mnBest = i;
           }
       }
-  }else
+  } else
   {
+      int ncamIndex = kCurrent.nSourceCamera - 1;
       mdBestScore2 = 99999999999999.9;
       mnBest2 = -1;
 
-      for(unsigned int i=mMap.vpKeyFramessec.size()-1; i>=max((int)mMap.vpKeyFramessec.size()-4, 0); i--)
+      for(unsigned int i=mMap.vpKeyFramessec[ncamIndex].size()-1; i>=max((int)mMap.vpKeyFramessec[ncamIndex].size()-4, 0); i--)
         {
           // yang, only relocalise around recent 4 kfs
-            double dSSD = kCurrent.SBI.ZMSSD(mMap.vpKeyFramessec[i]->SBI);
+            double dSSD = kCurrent.SBI.ZMSSD(mMap.vpKeyFramessec[ncamIndex][i]->SBI);
             if(dSSD < mdBestScore2)
             {
                 mdBestScore2 = dSSD;
