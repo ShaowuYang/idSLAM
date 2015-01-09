@@ -2771,7 +2771,7 @@ bool MapMaker::AddKeyFrameDual(KeyFrame &k, KeyFrame &ksec)
 //    lock.unlock();
 }
 
-bool MapMaker::AddKeyFrameDual(KeyFrame &ksec)
+bool MapMaker::AddKeyFrameSec(KeyFrame &ksec)
 {
     assert(ksec.nSourceCamera > 0);
 
@@ -3427,6 +3427,7 @@ double MapMaker::KeyFrameAngularDist(KeyFrame &k1, KeyFrame &k2)
 vector<boost::shared_ptr<KeyFrame> > MapMaker::NClosestKeyFrames(boost::shared_ptr<KeyFrame> k, unsigned int N,
                                                                  int nCam)
 {
+    assert(k->nSourceCamera == nCam);
     vector<pair<double, boost::shared_ptr<KeyFrame> > > vKFandScores;
     if (!nCam){
         for(unsigned int i=0; i<mMap.vpKeyFrames.size(); i++)
@@ -3438,12 +3439,12 @@ vector<boost::shared_ptr<KeyFrame> > MapMaker::NClosestKeyFrames(boost::shared_p
         }
     }
     else {
-        for(unsigned int i=0; i<mMap.vpKeyFramessec.size(); i++)
+        for(unsigned int i=0; i<mMap.vpKeyFramessec[nCam-1].size(); i++)
         {
-            if(mMap.vpKeyFramessec[i] == k)
+            if(mMap.vpKeyFramessec[nCam-1][i] == k)
                 continue;
-            double dDist = KeyFrameLinearDist(*k, *mMap.vpKeyFramessec[i]);
-            vKFandScores.push_back(make_pair(dDist, mMap.vpKeyFramessec[i]));
+            double dDist = KeyFrameLinearDist(*k, *mMap.vpKeyFramessec[nCam-1][i]);
+            vKFandScores.push_back(make_pair(dDist, mMap.vpKeyFramessec[nCam-1][i]));
         }
     }
     if(N > vKFandScores.size())
@@ -3592,7 +3593,6 @@ void MapMaker::BundleAdjustAllsec()
 void MapMaker::BundleAdjustRecent()
 {
     static gvar3<int> gvnWindowSize("MapMaker.RecentWindowSize", 4, SILENT);
-//    if(mMap.vpKeyFrames.size() < std::max(*gvnWindowSize, 2+ *gvnFixedFrameSize ))
     if(mMap.vpKeyFrames.size() < *gvnWindowSize)
     { // Ignore this unless map is big enough
         mbBundleConverged_Recent = true;
@@ -3630,79 +3630,77 @@ void MapMaker::BundleAdjustRecent()
         }
     }
 
-//    int independnum = 0;
     static gvar3<int> gvnSecondCamIndependent("MapMaker.SecondCamIndependent", 0, SILENT);
     // second camera kfs, closest kfs. if associated with first cam kfs, label them, which will not be adjusted seperately
-    if (mMap.vpKeyFramessec.size() >= (unsigned int) (*gvnWindowSize)
-            && !mMap.vpKeyFramessec.back()->bFixed)
-    {
-        pkfNewest = mMap.vpKeyFramessec.back();
-        if (!pkfNewest->mAssociateKeyframe)// independent kfs. if associated, its pose will be rigidly related to the first cam pose
+    for (int cn = 0; cn < AddCamNumber; cn ++){
+        if (mMap.vpKeyFramessec[cn].size() >= (unsigned int) (*gvnWindowSize)
+                && !mMap.vpKeyFramessec[cn].back()->bFixed)
         {
-            sAdjustSet.insert(pkfNewest);  // We don't add those kfs from the second cam, even if their associated kf from first cam are not added
-//            independnum ++;
-        }
-        else // if with association
-        {
-            if (*gvnSecondCamIndependent == 0){
-                //                sAdjustSet.insert(pkfNewest);
-                //            else
-                sAssociatedSet.insert(pkfNewest);
-                if(!sAdjustSet.count(mMap.vpKeyFrames[pkfNewest->nAssociatedKf]))
-                    sAdjustSet.insert(mMap.vpKeyFrames[pkfNewest->nAssociatedKf]);
-            }
-            else{// two cameras are independent
-                sAdjustSet.insert(pkfNewest);
-                //                    sAssociatedSet.insert(pkfNewest);
-            }
-        }
-
-        if (*gvnOrderByTime == 0){
-            vector<boost::shared_ptr<KeyFrame> > vClosest = NClosestKeyFrames(pkfNewest, *gvnWindowSize, 1);
-            for(int i = 0; i < std::min(*gvnWindowSize,(int) vClosest.size()); i++)
-                if(vClosest[i]->bFixed == false){
-                    if (!vClosest[i]->mAssociateKeyframe)
-                    {
-                        sAdjustSet.insert(vClosest[i]);
-                        //                    independnum ++;
-                    }
-                    else {
-                        if (*gvnSecondCamIndependent == 0){
-                            //                sAdjustSet.insert(pkfNewest);
-                            //            else
-                            sAssociatedSet.insert(vClosest[i]);
-                            if (!sAdjustSet.count(mMap.vpKeyFrames[vClosest[i]->nAssociatedKf]))
-                                sAdjustSet.insert(mMap.vpKeyFrames[vClosest[i]->nAssociatedKf]);
-
-                        }
-                        else{
-                            sAdjustSet.insert(vClosest[i]);
-                            //                                sAssociatedSet.insert(vClosest[i]);
-                        }
-                    }
+            pkfNewest = mMap.vpKeyFramessec[cn].back();
+            if (!pkfNewest->mAssociateKeyframe)// independent kfs. if associated, its pose will be rigidly related to the first cam pose
+                sAdjustSet.insert(pkfNewest);  // We don't add those kfs from the second cam, even if their associated kf from first cam are not added
+            else /// most likely, if with association
+            {
+                if (*gvnSecondCamIndependent == 0){
+                    //                sAdjustSet.insert(pkfNewest);
+                    //            else
+                    sAssociatedSet.insert(pkfNewest);
+                    if(!sAdjustSet.count(mMap.vpKeyFrames[pkfNewest->nAssociatedKf]))
+                        sAdjustSet.insert(mMap.vpKeyFrames[pkfNewest->nAssociatedKf]);
                 }
-        }
-        else{
-            boost::shared_ptr<KeyFrame> lastkf;
-            for(int i = mMap.vpKeyFramessec.size()-2; i >=std::max((int)mMap.vpKeyFramessec.size()-*gvnWindowSize,*gvnFixedKFinLBA); i--){
-                lastkf = mMap.vpKeyFramessec[i];
-                if(lastkf->bFixed == false){
-                    if (!lastkf->mAssociateKeyframe)
-                    {
-                        sAdjustSet.insert(lastkf);
-                        //                    independnum ++;
-                    }
-                    else {
-                        if (*gvnSecondCamIndependent == 0){
-                            //                sAdjustSet.insert(pkfNewest);
-                            //            else
-                            sAssociatedSet.insert(lastkf);
-                            if (!sAdjustSet.count(mMap.vpKeyFrames[lastkf->nAssociatedKf]))
-                                sAdjustSet.insert(mMap.vpKeyFrames[lastkf->nAssociatedKf]);
+                else{// two cameras are independent
+                    sAdjustSet.insert(pkfNewest);
+                    //                    sAssociatedSet.insert(pkfNewest);
+                }
+            }
+
+            if (*gvnOrderByTime == 0){
+                vector<boost::shared_ptr<KeyFrame> > vClosest = NClosestKeyFrames(pkfNewest, *gvnWindowSize, 1);
+                for(int i = 0; i < std::min(*gvnWindowSize,(int) vClosest.size()); i++)
+                    if(vClosest[i]->bFixed == false){
+                        if (!vClosest[i]->mAssociateKeyframe)
+                        {
+                            sAdjustSet.insert(vClosest[i]);
+                            //                    independnum ++;
                         }
-                        else{
+                        else {
+                            if (*gvnSecondCamIndependent == 0){
+                                //                sAdjustSet.insert(pkfNewest);
+                                //            else
+                                sAssociatedSet.insert(vClosest[i]);
+                                if (!sAdjustSet.count(mMap.vpKeyFrames[vClosest[i]->nAssociatedKf]))
+                                    sAdjustSet.insert(mMap.vpKeyFrames[vClosest[i]->nAssociatedKf]);
+
+                            }
+                            else{
+                                sAdjustSet.insert(vClosest[i]);
+                                //                                sAssociatedSet.insert(vClosest[i]);
+                            }
+                        }
+                    }
+            }
+            else{
+                boost::shared_ptr<KeyFrame> lastkf;
+                for(int i = mMap.vpKeyFramessec[cn].size()-2; i >=std::max((int)mMap.vpKeyFramessec[cn].size()-*gvnWindowSize,*gvnFixedKFinLBA); i--){
+                    lastkf = mMap.vpKeyFramessec[cn][i];
+                    if(lastkf->bFixed == false){
+                        if (!lastkf->mAssociateKeyframe)
+                        {
                             sAdjustSet.insert(lastkf);
-                            //                                sAssociatedSet.insert(lastkf);
+                            //                    independnum ++;
+                        }
+                        else {
+                            if (*gvnSecondCamIndependent == 0){
+                                //                sAdjustSet.insert(pkfNewest);
+                                //            else
+                                sAssociatedSet.insert(lastkf);
+                                if (!sAdjustSet.count(mMap.vpKeyFrames[lastkf->nAssociatedKf]))
+                                    sAdjustSet.insert(mMap.vpKeyFrames[lastkf->nAssociatedKf]);
+                            }
+                            else{
+                                sAdjustSet.insert(lastkf);
+                                //                                sAssociatedSet.insert(lastkf);
+                            }
                         }
                     }
                 }
@@ -3770,21 +3768,22 @@ void MapMaker::BundleAdjustRecent()
             sFixedSet.insert(*it);
     }
     // and keyframes from the second camera
-    for(vector<boost::shared_ptr<KeyFrame> >::iterator it = mMap.vpKeyFramessec.begin(); it!=mMap.vpKeyFramessec.end(); it++)
-    {
-        if(sAdjustSet.count(*it) || sAssociatedSet.count(*it))
-//                || !sFixedSet.count(mMap.vpKeyFrames[(*it)->nAssociatedKf]))
-            continue;
-        bool bInclude = false;
-        for(meas_it jiter = (*it)->mMeasurements.begin(); jiter!= (*it)->mMeasurements.end(); jiter++)
-            if(sMapPoints.count(jiter->first))
-            {
-                bInclude = true;
-                break;
-            }
-        if(bInclude)
-            sFixedSet.insert(*it);
-    }
+    for (int cn = 0; cn < AddCamNumber; cn ++)
+        for(vector<boost::shared_ptr<KeyFrame> >::iterator it = mMap.vpKeyFramessec[cn].begin(); it!=mMap.vpKeyFramessec[cn].end(); it++)
+        {
+            if(sAdjustSet.count(*it) || sAssociatedSet.count(*it))
+                //                || !sFixedSet.count(mMap.vpKeyFrames[(*it)->nAssociatedKf]))
+                continue;
+            bool bInclude = false;
+            for(meas_it jiter = (*it)->mMeasurements.begin(); jiter!= (*it)->mMeasurements.end(); jiter++)
+                if(sMapPoints.count(jiter->first))
+                {
+                    bInclude = true;
+                    break;
+                }
+            if(bInclude)
+                sFixedSet.insert(*it);
+        }
     cout << "LBA prepared." << endl;
 
     BundleAdjust(sAdjustSet, sFixedSet, sMapPoints, true, sAssociatedSet);
@@ -3796,8 +3795,9 @@ void MapMaker::BundleAdjust(set<boost::shared_ptr<KeyFrame> > sAdjustSet, set<bo
     Bundle b;   // Our bundle adjuster
     mbBundleRunning = true;
     mbBundleRunningIsRecent = bRecent;
-    if (mMap.vpKeyFramessec.size())
-        b.Load_Cam2FromCam1(mse3Cam2FromCam1[0]);
+    for (int i = 0; i < AddCamNumber; i ++)
+        if (mMap.vpKeyFramessec[i].size())
+        b.Load_Cam2FromCam1(mse3Cam2FromCam1[i], i);
 
     static gvar3<int> gvnUse3D("Bundler.Use3D", 0, SILENT);
     static gvar3<int> gvnUseDepth("Bundler.UseDepth", 1, SILENT);
@@ -3869,72 +3869,78 @@ void MapMaker::BundleAdjust(set<boost::shared_ptr<KeyFrame> > sAdjustSet, set<bo
         }
     }
     // and the adjusted and fixed kfs from the second camera
-    for(unsigned int i=0; i<mMap.vpKeyFramessec.size(); i++)
-    {
-        if (mView_BundleID.count(mMap.vpKeyFramessec[i]) == 0)
-            continue;
-
-        int nKF_BundleID = mView_BundleID[mMap.vpKeyFramessec[i]];
-        for(meas_it it= mMap.vpKeyFramessec[i]->mMeasurements.begin();
-            it!= mMap.vpKeyFramessec[i]->mMeasurements.end();
-            it++)
+    for (int cn = 0; cn < AddCamNumber; cn ++){
+        if (!mMap.vpKeyFramessec[cn].size()) continue;
+        for(unsigned int i=0; i<mMap.vpKeyFramessec[cn].size(); i++)
         {
-            if(mPoint_BundleID.count(it->first) == 0)
+            if (mView_BundleID.count(mMap.vpKeyFramessec[cn][i]) == 0)
                 continue;
-            int nPoint_BundleID = mPoint_BundleID[it->first];
-            Measurement& m = it->second;
-            if (m.dDepth > 0.0) {
-                static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
-                if (*gvnUseDepth) {
-                    double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, LevelScale(m.nLevel)*LevelScale(m.nLevel), 1);
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.dDepth, dStdDepth*dStdDepth);
-                } else if (*gvnUse3D) {
-                    double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
-                    Vector<3> v3RootPos = m.dDepth*unproject(mCameraSec->UnProject(m.v2RootPos));
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, v3RootPos,dStdDepth*dStdDepth);
+
+            int nKF_BundleID = mView_BundleID[mMap.vpKeyFramessec[cn][i]];
+            for(meas_it it= mMap.vpKeyFramessec[cn][i]->mMeasurements.begin();
+                it!= mMap.vpKeyFramessec[cn][i]->mMeasurements.end();
+                it++)
+            {
+                if(mPoint_BundleID.count(it->first) == 0)
+                    continue;
+                int nPoint_BundleID = mPoint_BundleID[it->first];
+                Measurement& m = it->second;
+                if (m.dDepth > 0.0) {
+                    static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
+                    if (*gvnUseDepth) {
+                        double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, LevelScale(m.nLevel)*LevelScale(m.nLevel), cn);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.dDepth, dStdDepth*dStdDepth, cn);
+                    } else if (*gvnUse3D) {
+                        double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
+                        Vector<3> v3RootPos = m.dDepth*unproject(mCameraSec[cn]->UnProject(m.v2RootPos));
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, v3RootPos,dStdDepth*dStdDepth, cn);
+                    } else {
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn);
+                    }
                 } else {
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), 1);
+                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn);
                 }
-            } else {
-                b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), 1);
             }
         }
     }
     // finally those associated kfs from the second cam
-    for(unsigned int i=0; i<mMap.vpKeyFramessec.size(); i++)
-    {
-        if(!sAssociatedSet.count(mMap.vpKeyFramessec[i]))
-            continue;
-
-        // for these kfs, we actually assign their mappoints to the associated kfs from the first cam
-        // so when add those measurements, special care should be taken
-        // in BA, only they have to be treated differently
-        int nKF_BundleID = mView_BundleID[mMap.vpKeyFrames[mMap.vpKeyFramessec[i]->nAssociatedKf]];
-        for(meas_it it= mMap.vpKeyFramessec[i]->mMeasurements.begin();
-            it!= mMap.vpKeyFramessec[i]->mMeasurements.end();
-            it++)
+    /// in the current conf., all kfs from addcams should be here
+    for (int cn = 0; cn <AddCamNumber; cn ++){
+        for(unsigned int i=0; i<mMap.vpKeyFramessec[cn].size(); i++)
         {
-            if(mPoint_BundleID.count(it->first) == 0)
+            if(!sAssociatedSet.count(mMap.vpKeyFramessec[cn][i]))
                 continue;
-            int nPoint_BundleID = mPoint_BundleID[it->first];
-            Measurement& m = it->second;
-            if (m.dDepth > 0.0) {
-                static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
-                if (*gvnUseDepth) {
-                    double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, LevelScale(m.nLevel)*LevelScale(m.nLevel), 1);
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.dDepth, dStdDepth*dStdDepth);
-                } else if (*gvnUse3D) {
-                    double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
-                    Vector<3> v3RootPos = m.dDepth*unproject(mCameraSec->UnProject(m.v2RootPos));
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, v3RootPos,dStdDepth*dStdDepth);
-                } else {// do main change to such measurement
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), 1, true);
+
+            // for these kfs, we actually assign their mappoints to the associated kfs from the first cam
+            // so when add those measurements, special care should be taken
+            // in BA, only they have to be treated differently
+            int nKF_BundleID = mView_BundleID[mMap.vpKeyFrames[mMap.vpKeyFramessec[cn][i]->nAssociatedKf]];
+            for(meas_it it= mMap.vpKeyFramessec[cn][i]->mMeasurements.begin();
+                it!= mMap.vpKeyFramessec[cn][i]->mMeasurements.end();
+                it++)
+            {
+                if(mPoint_BundleID.count(it->first) == 0)
+                    continue;
+                int nPoint_BundleID = mPoint_BundleID[it->first];
+                Measurement& m = it->second;
+                if (m.dDepth > 0.0) {
+                    static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
+                    if (*gvnUseDepth) {
+                        double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, LevelScale(m.nLevel)*LevelScale(m.nLevel), cn);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.dDepth, dStdDepth*dStdDepth, cn);
+                    } else if (*gvnUse3D) {
+                        double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
+                        Vector<3> v3RootPos = m.dDepth*unproject(mCameraSec[cn]->UnProject(m.v2RootPos));
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, v3RootPos,dStdDepth*dStdDepth, cn);
+                    } else {// do main change to such measurement
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn, true);
+                    }
+                } else {
+                    // do main change to such measurement
+                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn, true);
                 }
-            } else {
-                // do main change to such measurement
-                b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), 1, true);
             }
         }
     }
@@ -3984,9 +3990,13 @@ void MapMaker::BundleAdjust(set<boost::shared_ptr<KeyFrame> > sAdjustSet, set<bo
 //                    mMap.vpKeyFrames[itr->first->nAssociatedKf]->se3CfromW = itr->first->se3Cam2fromCam1.inverse()*itr->first->se3CfromW;
 //                }
 //                else
-                if (!itr->first->nSourceCamera && itr->first->mAssociateKeyframe
-                        && sAssociatedSet.count(mMap.vpKeyFramessec[itr->first->nAssociatedKf]))
-                    mMap.vpKeyFramessec[itr->first->nAssociatedKf]->se3CfromW = itr->first->se3Cam2fromCam1*itr->first->se3CfromW;
+
+                /// TODO: take care of the case when itr->first->nAssociatedKf may point to different kfs from the multi-cam.
+                /// i.e. the sizes of kfs from multi-cam. may be different
+                for (int cn = 0; cn < AddCamNumber; cn ++)
+                    if (!itr->first->nSourceCamera && itr->first->mAssociateKeyframe
+                        && sAssociatedSet.count(mMap.vpKeyFramessec[cn][itr->first->nAssociatedKf]))
+                    mMap.vpKeyFramessec[cn][itr->first->nAssociatedKf]->se3CfromW = itr->first->se3Cam2fromCam1[cn]*itr->first->se3CfromW;
             }
         }
         if(bRecent)

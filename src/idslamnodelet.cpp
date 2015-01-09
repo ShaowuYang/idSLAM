@@ -2,7 +2,8 @@
 *  idslamnodelet.cpp
 *  indoor multi-RGBD-Camera SLAM
 *  Created on: Oct 5, 2014
-*  Author: Yang
+*  Author: Shaowu Yang
+*  Email: shaowu.yang@nudt.edu.cn
 *  SLAM with kinect cameras (two in our case) based on PTAM and depth constraints,
 *  working with a back end to be a full SLAM system
 */

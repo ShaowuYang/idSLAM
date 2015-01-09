@@ -2326,7 +2326,7 @@ void Tracker::AddNewKeyFrame()
             if (!mCurrentKFsec[i]->bNewsec)
                 continue;
 
-            if (mMapMaker.AddKeyFrameDual(*mCurrentKFsec[i])){
+            if (mMapMaker.AddKeyFrameSec(*mCurrentKFsec[i])){
                 mnLastKeyFrameDropped = mnFrame;
                 mnKeyFramessec[i]++;
             }

@@ -63,7 +63,7 @@ public:
   bool AddKeyFrameDual(KeyFrame &k, KeyFrame &ksec);   // Add two key-frame to the map. Called by the tracker.
                                    // Returns true if keyframe was added or false if mampaker chose to ignore it
                                    // e.g. because mapping is disabled.
-  bool AddKeyFrameDual(KeyFrame &ksec);  // Using multiple cameras
+  bool AddKeyFrameSec(KeyFrame &ksec);  /// Using multiple cameras, adding additional kfs
   void RequestReset();   // Request that the we reset. Called by the tracker.
   bool ResetDone();      // Returns true if the has been done.
   int  QueueSize() { return mvpKeyFrameQueue.size() ;} // How many KFs in the queue waiting to be added?
