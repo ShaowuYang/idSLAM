@@ -76,7 +76,7 @@ public:
   inline SE3<> GetCurrentPose() const { return mse3CamFromWorldPub;}
   inline SE3<> GetCurrentPosesec(int adcamIndex) const { return mse3CamFromWorldsec[adcamIndex];}
   const KeyFrame& GetCurrentKeyFrame() const { return *mCurrentKF; }
-  const KeyFrame& GetCurrentsecKeyFrame(int adcamIndex) const { return *mCurrentKFsec[adcamIndex]; }
+  const KeyFrame& GetCurrentsecKeyFrame(int adcamIndex = 0) const { return *mCurrentKFsec[adcamIndex]; }
   Matrix<6, 6> GetPoseCovariance() const;
 
   // Gets messages to be printed on-screen for the user.
@@ -244,7 +244,7 @@ protected:
   
   // Common tracking methods
   void initNewFrame();
-  void initNewFrame_sec( int camIndex);
+  void initNewFrame_sec( int camIndex = 0);
   bool trackMap();
   bool trackMapDual();
   void processGUIEvents();

@@ -35,8 +35,10 @@ inline void BundleTriangle_UpdateM3V_LL(Matrix<3> &m3V, Matrix<2,3> &m23B)
 Bundle::Bundle()
     : mCamera(CameraModel::CreateCamera())
 {
-    for (int i = 0; i < AddCamNumber; i ++)
-        mCameraSec[i] = CameraModel::CreateCamera(i + 1);
+    for (int i = 0; i < AddCamNumber; i ++){
+        std::auto_ptr<CameraModel> camera_temp (CameraModel::CreateCamera(i + 1));
+        mCameraSec[i] = camera_temp;
+    }
     mnCamsToUpdate = 0;
     mnStartRow = 0;
     GV3::Register(mgvnMaxIterations, "Bundle.MaxIterations", 20,  SILENT);
@@ -593,7 +595,7 @@ double Bundle::FindNewError()
         if (!meas->nSourceCamera)
             dErrorSquared = meas->EstimateNewSquaredError(v3Cam,mCamera.get());
         else
-            dErrorSquared = meas->EstimateNewSquaredError(v3Cam,mCameraSec.get());
+            dErrorSquared = meas->EstimateNewSquaredError(v3Cam,mCameraSec[meas->nSourceCamera - 1].get());
         dNewError += MEstimator::ObjectiveScore(dErrorSquared, mdSigmaSquared);
     }
     return dNewError;

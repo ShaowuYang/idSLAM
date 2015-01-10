@@ -45,7 +45,7 @@ public:
   
   // Make a map from scratch. Called by the tracker.
   bool InitFromRGBD(KeyFrame &kf, const TooN::SE3<>& worldPos = TooN::SE3<>());
-  bool InitFromRGBD(KeyFrame &kf, KeyFrame* adkfs, const TooN::SE3<>& worldPos = TooN::SE3<>());
+  bool InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, const TooN::SE3<>& worldPos = TooN::SE3<>());
 
   bool InitFromStereo(KeyFrame &kFirst, KeyFrame &kSecond, 
 		      std::vector<std::pair<CVD::ImageRef, CVD::ImageRef> > &vMatches,

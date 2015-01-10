@@ -1,5 +1,6 @@
 #include <gvars3/instances.h>
 #include <iostream>
+#include <string>
 #include "CameraModel.h"
 #include "ATANCamera.h"
 #include "PolynomialCamera.h"
@@ -20,7 +21,7 @@ CameraModel::CameraModel() {
 }
 
 CameraModel* CameraModel::CreateCamera(int camnum) {
-    if((firstCreate&&!camnum)) {
+    if((firstCreate&&!camnum) || camnum) {
         // This method might be called a lot, so we only check
         // the configuration on the first time
         string calibType;
@@ -47,8 +48,11 @@ CameraModel* CameraModel::CreateCamera(int camnum) {
                 polynomial = false;
             }
         }
-        else if (camnum){
-            int adcamIndex = camnum - 1;
+        else {
+            string adcamIndex;// = std::to_string(camnum - 1); // not working!!
+            stringstream ss;
+            ss << camnum - 1;
+            adcamIndex = ss.str();
             firstCreatesec = false;
             string camType = "Camerasec" + adcamIndex + ".Type";
             string camFile = "Camerasec" + adcamIndex + ".File";

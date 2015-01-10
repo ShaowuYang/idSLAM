@@ -37,9 +37,11 @@ Tracker::Tracker(Map &m, MapMaker &mm) :
 {
     mCurrentKF->bFixed = false;
     for (int i = 0; i < AddCamNumber; i ++){
-        mCameraSec[i] = CameraModel::CreateCamera(i + 1);
+        std::auto_ptr<CameraModel> camera_temp (CameraModel::CreateCamera(i + 1));
+        mCameraSec[i] = camera_temp;
 
-        mCurrentKFsec[i] = new KeyFrame();
+        boost::shared_ptr<KeyFrame> kf_temp (new KeyFrame());
+        mCurrentKFsec[i] = kf_temp;
         mCurrentKFsec[i]->bFixed = false;
 
         mse3CamFromWorldsec[i] = SE3<>();
@@ -357,7 +359,7 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
 
     // Add the main camera data
     CVD::Image<CVD::byte> imFrame;
-    imFrame.resize(imFrameRGB.size());
+    imFrame.resize(imFrameRGB[0].size());
     CVD::convert_image(imFrameRGB[0],imFrame);
     UpdateImageSize(imFrame.size());
     // Take the input video image, and convert it into the tracker's keyframe struct
@@ -402,9 +404,7 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
 
     if(!trackMapDual()) {
         // If there is no map, try to make one.
-        if (adcamIndex.size() < AddCamNumber)
-            continue;
-        else if (mMapMaker.InitFromRGBD(*mCurrentKF, mCurrentKFsec)){
+        if ((adcamIndex.size() == AddCamNumber) && mMapMaker.InitFromRGBD(*mCurrentKF, mCurrentKFsec)){
             mnKeyFrames = 1;
             for (int i = 0; i < AddCamNumber; i ++)
                 mnKeyFramessec[i] = 1;
@@ -631,8 +631,7 @@ bool Tracker::trackMapDual() {
             mMessageForUser << " Found:";
             for(int i=0; i<LEVELS; i++) mMessageForUser << " " << manMeasFound[i] << "/" << manMeasAttempted[i];
             //	    mMessageForUser << " Found " << mnMeasFound << " of " << mnMeasAttempted <<". (";
-            mMessageForUser << " Map: " << mMap.vpPoints.size() << "P, " << mMap.vpKeyFrames.size() << "KF"
-                                << ", and " << mMap.vpKeyFramessec.size() << "KF";
+            mMessageForUser << " Map: " << mMap.vpPoints.size() << "P, " << mMap.vpKeyFrames.size() << "KF" ;
         }
 
 
@@ -1664,7 +1663,7 @@ void Tracker::TrackMap()
     for (int cn = 0; cn < AddCamNumber; cn ++)
     {
         mCurrentKFsec[cn]->se3CfromW = posesecCamFromWorld[cn];
-        mCurrentKF->se3Cam2fromCam1 = mse3Cam1FromCam2Update[0].inverse();
+        mCurrentKF->se3Cam2fromCam1 = SE3<>();
         mCurrentKFsec[cn]->se3Cam2fromCam1 = mse3Cam1FromCam2Update[cn].inverse();
         mse3CamFromWorldsec[cn] = posesecCamFromWorld[cn];
     }
@@ -2202,7 +2201,8 @@ void Tracker::ApplyMotionModel()
     }
     mse3CamFromWorld = SE3<>::exp(v6Velocity) * mse3StartPos;
     if (mUsingDualImg)
-        mse3CamFromWorldsec[i] = SE3<>::exp(v6Velocitysec[i]) * mse3CamFromWorldsec[i];
+        for (int i = 0; i < AddCamNumber; i ++)
+            mse3CamFromWorldsec[i] = SE3<>::exp(v6Velocitysec[i]) * mse3CamFromWorldsec[i];
     //    else// trust the forward looking camera
 //        mse3CamFromWorld = (mse3Cam1FromCam2*(SE3<>::exp(v6Velocitysec))) * mse3StartPos;
 };
@@ -2286,7 +2286,7 @@ void Tracker::UpdateMotionModel()
 
     if (mUsingDualImg)
         for (int i = 0; i < AddCamNumber; i ++){
-            v6Motion = SE3<>::ln(mCurrentKF->se3Cam2fromCam1[i]*se3NewFromOld*mCurrentKF->se3Cam2fromCam1[i].inverse()); // abusing v6Motion
+            v6Motion = SE3<>::ln(mCurrentKFsec[i]->se3Cam2fromCam1*se3NewFromOld*mCurrentKFsec[i]->se3Cam2fromCam1.inverse()); // abusing v6Motion
             mv6CameraVelocitysec[i] = 0.9 * (0.5 * v6Motion + 0.5 * mv6CameraVelocitysec[i]);//0.9
         }
 }

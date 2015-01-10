@@ -246,7 +246,7 @@ public:
     }
 
     // the second camera pose in the master camera frames
-    SE3<> Load_camsec_para()
+    vector<SE3<> > Load_camsec_para()
     {
         vector<SE3<> > campara;
         ifstream cam_para_table;
@@ -592,7 +592,7 @@ public:
         ros::Time time2 = ros::Time::now();
         ros::Duration time3 = time2 - time1;
 
-        cout << tracker_->mGetMessageForUser() << endl;
+        cout << tracker_->GetMessageForUser() << endl;
 
         // ignore those too low information, useful when landing
         // also currently, when outliers happen, should stop PTAM for safty.

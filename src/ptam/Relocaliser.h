@@ -36,7 +36,7 @@ protected:
   TooN::SE2<> mse2sec;
   TooN::SE3<> mse3Best;
   std::auto_ptr<CameraModel> mCamera;
-  std::auto_ptr<CameraModel> mCameraSec;
+  std::auto_ptr<CameraModel> mCameraSec[AddCamNumber];
 };
 } // namespace
 
