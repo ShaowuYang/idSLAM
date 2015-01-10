@@ -33,8 +33,10 @@ inline void BundleTriangle_UpdateM3V_LL(Matrix<3> &m3V, Matrix<2,3> &m23B)
 
 // Constructor copies MapMaker's camera parameters
 Bundle::Bundle()
-    : mCamera(CameraModel::CreateCamera()), mCameraSec(CameraModel::CreateCamera(1))
+    : mCamera(CameraModel::CreateCamera())
 {
+    for (int i = 0; i < AddCamNumber; i ++)
+        mCameraSec[i] = CameraModel::CreateCamera(i + 1);
     mnCamsToUpdate = 0;
     mnStartRow = 0;
     GV3::Register(mgvnMaxIterations, "Bundle.MaxIterations", 20,  SILENT);

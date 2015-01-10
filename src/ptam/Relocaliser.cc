@@ -12,9 +12,10 @@ using namespace TooN;
 using namespace ptam;
 
 Relocaliser::Relocaliser(Map &map)
-  : mMap(map), mCamera(CameraModel::CreateCamera()),
-    mCameraSec(CameraModel::CreateCamera(1))
+  : mMap(map), mCamera(CameraModel::CreateCamera())
 {
+    for (int i = 0; i < AddCamNumber; i ++)
+        mCameraSec[i] = CameraModel::CreateCamera(i + 1);
 };
 
 SE3<> Relocaliser::BestPose()
