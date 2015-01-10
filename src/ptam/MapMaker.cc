@@ -1510,7 +1510,7 @@ void MapMaker::AddSomeMapPoints(int nLevel, int nCam)
     }
     else
     {
-        kSrc = mMap.vpKeyFramessec[mMap.vpKeyFramessec.size() - 1];
+        kSrc = mMap.vpKeyFramessec[nCam - 1][mMap.vpKeyFramessec.size() - 1];
         kTarget = ClosestKeyFrame(kSrc,0.1);
     }
     static gvar3<double> gvnmindistxy("MapMaker.mindistxy", 0.1, SILENT);
@@ -1534,7 +1534,7 @@ void MapMaker::AddSomeMapPoints(int nLevel, int nCam)
             //          add = 1;
         }
         else if (*gvnAddPointsEpipolar == 1){
-            AddPointEpipolar(kSrc, kTarget, nLevel, i, nCam);
+            AddPointEpipolar(kSrc, kTarget, nLevel, i);
             //          if (add == 0)
             //            cout << "ADD MAP POINTS BY EPIPOLAR SEARCH. " << endl;
             //          add = 1;
@@ -3007,7 +3007,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         if (mMap.vpKeyFramessec[cn].size() < *gvnFixedFrameSize)
             pK2[cn]->bFixed = true;
 
-        // 0 or 1 depends on whether add kf when ini by circle
+        // id depends on whether add kf when ini by circle
         pK2[cn]->id = secKFid[cn];
         secKFid[cn] ++;
         mMap.vpKeyFramessec.push_back(pK2[cn]);
@@ -3057,19 +3057,28 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
 bool MapMaker::AddPointDepth(boost::shared_ptr<KeyFrame> kSrc,
                              boost::shared_ptr<KeyFrame> kTarget,
                              int nLevel,
-                             int nCandidate,
-                             int nCam)
+                             int nCandidate
+                             )
 {
+    int nCam = kSrc->nSourceCamera;
     int nLevelScale = LevelScale(nLevel);
     Candidate &candidate = kSrc->aLevels[nLevel].vCandidates[nCandidate];
     const ImageRef& irLevelPos = candidate.irLevelPos;
     Vector<2> v2RootPos = LevelZeroPos(irLevelPos, nLevel);
 
     // project candidate into target frame
-    Vector<3> v3Unprojected = unproject(mCamera->UnProject(v2RootPos));
+    Vector<3> v3Unprojected;
+    if (!nCam)
+        v3Unprojected = unproject(mCamera->UnProject(v2RootPos));
+    else
+        v3Unprojected = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos));
     Vector<3> v3PosWorld = kSrc->se3CfromW.inverse()*(candidate.dDepth*v3Unprojected);
     Vector<3> v3PosTarget = kTarget->se3CfromW*v3PosWorld;
-    ImageRef irTarget = ir(mCamera->Project(project(v3PosTarget)));
+    ImageRef irTarget;
+    if (!nCam)
+        irTarget = ir(mCamera->Project(project(v3PosTarget)));
+    else
+        irTarget = ir(mCameraSec[nCam - 1]->Project(project(v3PosTarget)));
 
     // Find current-frame corners which might match this
     PatchFinder Finder;
@@ -3094,9 +3103,9 @@ bool MapMaker::AddPointDepth(boost::shared_ptr<KeyFrame> kSrc,
         pNew->v3OneDownFromCenter_NC  = unproject(mCamera->UnProject(v2RootPos + vec(ImageRef(0,nLevelScale))));
     }
     else{
-        pNew->v3Center_NC = unproject(mCameraSec->UnProject(v2RootPos));
-        pNew->v3OneRightFromCenter_NC = unproject(mCameraSec->UnProject(v2RootPos + vec(ImageRef(nLevelScale,0))));
-        pNew->v3OneDownFromCenter_NC  = unproject(mCameraSec->UnProject(v2RootPos + vec(ImageRef(0,nLevelScale))));
+        pNew->v3Center_NC = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos));
+        pNew->v3OneRightFromCenter_NC = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos + vec(ImageRef(nLevelScale,0))));
+        pNew->v3OneDownFromCenter_NC  = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos + vec(ImageRef(0,nLevelScale))));
     }
 
     normalize(pNew->v3Center_NC);
@@ -3104,7 +3113,6 @@ bool MapMaker::AddPointDepth(boost::shared_ptr<KeyFrame> kSrc,
     normalize(pNew->v3OneRightFromCenter_NC);
 
     pNew->nSourceCamera = nCam;
-    if (!nCam)
     pNew->bfixed = kSrc->bFixed&&kTarget->bFixed;
 
     pNew->RefreshPixelVectors();
@@ -3143,8 +3151,9 @@ bool MapMaker::AddPointDepth(boost::shared_ptr<KeyFrame> kSrc,
 bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc, 
                                 boost::shared_ptr<KeyFrame> kTarget,
                                 int nLevel,
-                                int nCandidate, int nCam)
+                                int nCandidate)
 {
+    int nCam = kSrc->nSourceCamera;
     static Image<Vector<2> > imUnProj;
     static Image<Vector<2> > imUnProjsec;// look out this static member!!
     static bool bMadeCache = false;
@@ -3157,11 +3166,11 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
         while(ir.next(imUnProj.size()));
         bMadeCache = true;
     }
-    if(!bMadeCachesec && nCam)
+    else if(!bMadeCachesec && nCam)
     {
         ImageRef ir;
         imUnProjsec.resize(kSrc->aLevels[0].im.size());
-        do imUnProjsec[ir] = mCameraSec->UnProject(ir);
+        do imUnProjsec[ir] = mCameraSec[nCam - 1]->UnProject(ir);
         while(ir.next(imUnProjsec.size()));
         bMadeCachesec = true;
     }
@@ -3177,7 +3186,7 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
     }
     else
     {
-        v3Ray_SC = unproject(mCameraSec->UnProject(v2RootPos));
+        v3Ray_SC = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos));
     }
     normalize(v3Ray_SC);
     assert(v3Ray_SC[2] >= 0);
@@ -3240,7 +3249,7 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
             return false;
     }
     else{
-        if(fabs(dNormDist) > mCameraSec->LargestRadiusInImage() )
+        if(fabs(dNormDist) > mCameraSec[nCam - 1]->LargestRadiusInImage() )
             return false;
     }
 
@@ -3277,7 +3286,7 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
         dMaxDistDiff = mCamera->OnePixelDist() * (4.0 + 1.0 * nLevelScale);
     }
     else{
-        dMaxDistDiff = mCameraSec->OnePixelDist() * (4.0 + 1.0 * nLevelScale);
+        dMaxDistDiff = mCameraSec[nCam - 1]->OnePixelDist() * (4.0 + 1.0 * nLevelScale);
     }
     double dMaxDistSq = dMaxDistDiff * dMaxDistDiff;
 
@@ -3335,8 +3344,8 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
 //             << Finder.GetSubPixPos()[0] << ", " << Finder.GetSubPixPos()[1] << endl;
         SE3<> tc12 = kSrc->se3CfromW * kTarget->se3CfromW.inverse();
         Vector<2> nc1, nc2;
-        nc1 = mCameraSec->UnProject(v2RootPos);
-        nc2 = mCameraSec->UnProject(Finder.GetSubPixPos());
+        nc1 = mCameraSec[nCam - 1]->UnProject(v2RootPos);
+        nc2 = mCameraSec[nCam - 1]->UnProject(Finder.GetSubPixPos());
         Vector<3> tc1, tc2;
         tc1 = unproject(nc1);
         tc2 = unproject(nc2);
@@ -3371,9 +3380,9 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
         pNew->v3OneDownFromCenter_NC  = unproject(mCamera->UnProject(v2RootPos + vec(ImageRef(0,nLevelScale))));
     }
     else{
-        pNew->v3Center_NC = unproject(mCameraSec->UnProject(v2RootPos));
-        pNew->v3OneRightFromCenter_NC = unproject(mCameraSec->UnProject(v2RootPos + vec(ImageRef(nLevelScale,0))));
-        pNew->v3OneDownFromCenter_NC  = unproject(mCameraSec->UnProject(v2RootPos + vec(ImageRef(0,nLevelScale))));
+        pNew->v3Center_NC = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos));
+        pNew->v3OneRightFromCenter_NC = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos + vec(ImageRef(nLevelScale,0))));
+        pNew->v3OneDownFromCenter_NC  = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos + vec(ImageRef(0,nLevelScale))));
     }
 
     normalize(pNew->v3Center_NC);
@@ -3383,7 +3392,7 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
     pNew->RefreshPixelVectors();
 
     pNew->nSourceCamera = nCam;
-    if (!nCam)
+    //if (!nCam)
     pNew->bfixed = kSrc->bFixed&&kTarget->bFixed;
     
     mMap.vpPoints.push_back(pNew);
@@ -3524,9 +3533,9 @@ double MapMaker::DistToNearestKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
 // waiting list, if the quadrotor flys fast.
 bool MapMaker::NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
 {
-    std::cout << "calculating the closest kf... " << endl;
+//    std::cout << "calculating the closest kf... " << endl;
     boost::shared_ptr<KeyFrame> pClosest = ClosestKeyFrame(kCurrent,0.0);
-    std::cout << "Closest kf id: " << pClosest->id<< ", latest kfs id: " << mMap.vpKeyFrames[mMap.vpKeyFrames.size()-1]->id << endl;
+//    std::cout << "Closest kf id: " << pClosest->id<< ", latest kfs id: " << mMap.vpKeyFrames[mMap.vpKeyFrames.size()-1]->id << endl;
 //      std::cout << "dist to closest keyframe: linear " << KeyFrameLinearDist(*kCurrent,*pClosest)
 //                << ", angular: " << KeyFrameAngularDist(*kCurrent,*pClosest) << std::endl;
 //      std::cout << "total dist and cur pose: " << KeyFrameDist(*kCurrent,*pClosest) << " \n"

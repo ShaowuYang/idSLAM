@@ -156,8 +156,8 @@ protected:
   void AddKeyFrameFromTopOfQueue();  
   void ThinCandidates(KeyFrame &k, int nLevel);
   void AddSomeMapPoints(int nLevel, int nCam=0); // for dual camera case, add camera number param.
-  bool AddPointDepth(boost::shared_ptr<KeyFrame> kSrc, boost::shared_ptr<KeyFrame> kTarget, int nLevel, int nCandidate, int nCam = 0);
-  bool AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc, boost::shared_ptr<KeyFrame> kTarget, int nLevel, int nCandidate, int nCam = 0);// add cam number param
+  bool AddPointDepth(boost::shared_ptr<KeyFrame> kSrc, boost::shared_ptr<KeyFrame> kTarget, int nLevel, int nCandidate);
+  bool AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc, boost::shared_ptr<KeyFrame> kTarget, int nLevel, int nCandidate);// add cam number param
   // Returns point in ref frame B
   TooN::Vector<3> ReprojectPoint(TooN::SE3<> se3AfromB, const TooN::Vector<2> &v2A, const TooN::Vector<2> &v2B);
   double viewAngleDiffPoint(TooN::Vector<3> vB2A, TooN::Vector<3> vB2B);
