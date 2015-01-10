@@ -23,8 +23,11 @@ using namespace idSLAM;
 using namespace ptam;
 
 MapVisualization::MapVisualization()
-    :camera(CameraModel::CreateCamera()), camerasec(CameraModel::CreateCamera(1))
-{}
+    :camera(CameraModel::CreateCamera())
+{
+    for (int i = 0; i < AddCamNumber; i ++)
+        camerasec[i] = CameraModel::CreateCamera(i + 1);
+}
 
 void MapVisualization::publishlandingpad(const Tracker *tracker, const ros::Publisher &landingpad_pub)
 {

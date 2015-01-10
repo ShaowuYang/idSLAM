@@ -52,7 +52,7 @@ public:
     static CameraModel* CreateCamera(int camnum = 0);
 	
 private:
-    static bool firstCreate, secondCreate;
+    static bool firstCreate, firstCreatesec;
 	static std::auto_ptr<CameraModel> cameraPrototype;
     static std::auto_ptr<CameraModel> cameraPrototypesec;
 	static bool polynomial;

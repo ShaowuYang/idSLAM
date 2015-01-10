@@ -9,7 +9,7 @@ using namespace std;
 using namespace ptam;
 
 bool CameraModel::firstCreate = true;
-bool CameraModel::secondCreate = true;
+bool CameraModel::firstCreatesec = true;
 bool CameraModel::polynomial = false;
 bool CameraModel::polynomialsec = false;
 auto_ptr<CameraModel> CameraModel::cameraPrototype;
@@ -20,7 +20,7 @@ CameraModel::CameraModel() {
 }
 
 CameraModel* CameraModel::CreateCamera(int camnum) {
-    if((firstCreate&&!camnum) || (secondCreate && camnum)) {
+    if((firstCreate&&!camnum)) {
         // This method might be called a lot, so we only check
         // the configuration on the first time
         string calibType;
@@ -47,10 +47,13 @@ CameraModel* CameraModel::CreateCamera(int camnum) {
                 polynomial = false;
             }
         }
-        else{
-            secondCreate = false;
-            calibType = GV3::get<string>("Camerasec.Type", "Polynomial", /*HIDDEN*/ SILENT);
-            calibFile = GV3::get<string>("Camerasec.File", "", /*HIDDEN*/ SILENT);
+        else if (camnum){
+            int adcamIndex = camnum - 1;
+            firstCreatesec = false;
+            string camType = "Camerasec" + adcamIndex + ".Type";
+            string camFile = "Camerasec" + adcamIndex + ".File";
+            calibType = GV3::get<string>(camType, "Polynomial", /*HIDDEN*/ SILENT);
+            calibFile = GV3::get<string>(camFile, "", /*HIDDEN*/ SILENT);
 
             if (calibType == "Polynomial") {
                 // This is a polynomial camera

@@ -5,6 +5,7 @@
 #include <sensor_msgs/Image.h>
 #include <visualization_msgs/Marker.h>
 #include <cv.h>
+#include "ptam/CameraModel.h"
 
 namespace ptam{
 class CameraModel;
@@ -28,7 +29,7 @@ public:
 	
 private:
     std::auto_ptr<ptam::CameraModel> camera;
-    std::auto_ptr<ptam::CameraModel> camerasec;
+    std::auto_ptr<ptam::CameraModel> camerasec[AddCamNumber];
 };
 
 } // namespace
