@@ -1440,7 +1440,7 @@ bool MapMaker::InitFromOneCircleDual(KeyFrame &kf, KeyFrame &kss,
 
     // write access: unique lock
     boost::unique_lock< boost::shared_mutex > locksec(mMap.mutex);
-    mMap.vpKeyFramessec.push_back(pkSec);
+    mMap.vpKeyFramessec[0].push_back(pkSec);
 //    CVD::img_save(pK->aLevels[0].im, "vpKeyFramessec.jpg");
     // Any measurements? Update the relevant point's measurement counter status map
 //    for(meas_it it = pkSec->mMeasurements.begin();
@@ -1510,7 +1510,7 @@ void MapMaker::AddSomeMapPoints(int nLevel, int nCam)
     }
     else
     {
-        kSrc = mMap.vpKeyFramessec[nCam - 1][mMap.vpKeyFramessec.size() - 1];
+        kSrc = mMap.vpKeyFramessec[nCam - 1][mMap.vpKeyFramessec[nCam - 1].size() - 1];
         kTarget = ClosestKeyFrame(kSrc,0.1);
     }
     static gvar3<double> gvnmindistxy("MapMaker.mindistxy", 0.1, SILENT);
@@ -3010,7 +3010,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         // id depends on whether add kf when ini by circle
         pK2[cn]->id = secKFid[cn];
         secKFid[cn] ++;
-        mMap.vpKeyFramessec.push_back(pK2[cn]);
+        mMap.vpKeyFramessec[cn].push_back(pK2[cn]);
         // Any measurements? Update the relevant point's measurement counter status map
         for(meas_it it = pK2[cn]->mMeasurements.begin();
             it!=pK2[cn]->mMeasurements.end();
@@ -3031,7 +3031,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         AddSomeMapPoints(0, cn);
         AddSomeMapPoints(1, cn);
         AddSomeMapPoints(2, cn);
-        cout << "Added map points from sec cam keyframe..."<< mMap.vpKeyFramessec.size() << endl;
+        cout << "Added map points from sec cam keyframe..."<< mMap.vpKeyFramessec[cn].size() << endl;
     }
 
     mbBundleConverged_Full = false;
@@ -3600,11 +3600,13 @@ void MapMaker::BundleAdjustAllsec()
             sFixed.insert(mMap.vpKeyFrames[i]);
         else
             sAdj.insert(mMap.vpKeyFrames[i]);
-    for(unsigned int i=0; i<mMap.vpKeyFramessec.size(); i++)
-        if(mMap.vpKeyFramessec[i]->bFixed)
-            sFixed.insert(mMap.vpKeyFramessec[i]);
+    for (int cn = 0; cn < AddCamNumber; cn ++)
+      for(unsigned int i=0; i<mMap.vpKeyFramessec[cn].size(); i++){
+        if(mMap.vpKeyFramessec[cn][i]->bFixed)
+            sFixed.insert(mMap.vpKeyFramessec[cn][i]);
         else
-            sAdj.insert(mMap.vpKeyFramessec[i]);
+            sAdj.insert(mMap.vpKeyFramessec[cn][i]);
+    }
 
     set<boost::shared_ptr<MapPoint> > sMapPoints;
     for(unsigned int i=0; i<mMap.vpPoints.size();i++)
@@ -4157,7 +4159,6 @@ void MapMaker::UpdateLMapByGMap(){
             }
         }
 //        cout << "Keyframe associated updated by GMAP." << "\n";
-
     }
     cout << "Updated Local map by GMAP..." << "\n";
 }
@@ -4165,8 +4166,8 @@ void MapMaker::UpdateLMapByGMap(){
 // the update of map points is naturally done, since in the backend they are represented in a relative manner
 void MapMaker::UpdateWaitingList(){
     for (unsigned int i = 0; i < mSLAM.wlKeyFrames.size(); i ++){
-        for (unsigned int j = 0; j < mMap.vpKeyFramessec.size(); j ++){
-            if (mMap.vpKeyFramessec[j]->id == mSLAM.wlKeyFrames[i]){//->id
+        for (unsigned int j = 0; j < mMap.vpKeyFramessec[0].size(); j ++){
+            if (mMap.vpKeyFramessec[0][j]->id == mSLAM.wlKeyFrames[i]){//->id
 //                mSLAM.wlKeyFrames[i]->ptamPosewTc = cs_geom::toSophusSE3(mMap.vpKeyFramessec[j]->se3CfromW);
 //                mSLAM.wlKeyFrames[i]->posewTc = mSLAM.wlKeyFrames[i]->ptamPosewTc;
             }

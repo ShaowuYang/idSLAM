@@ -74,9 +74,9 @@ public:
   int GetNKeyFrames() const { return mnKeyFrames; }
 
   inline SE3<> GetCurrentPose() const { return mse3CamFromWorldPub;}
-  inline SE3<> GetCurrentPosesec() const { return mse3CamFromWorldsec;}
+  inline SE3<> GetCurrentPosesec(int adcamIndex) const { return mse3CamFromWorldsec[adcamIndex];}
   const KeyFrame& GetCurrentKeyFrame() const { return *mCurrentKF; }
-  const KeyFrame& GetCurrentsecKeyFrame() const { return *mCurrentKFsec; }
+  const KeyFrame& GetCurrentsecKeyFrame(int adcamIndex) const { return *mCurrentKFsec[adcamIndex]; }
   Matrix<6, 6> GetPoseCovariance() const;
 
   // Gets messages to be printed on-screen for the user.
@@ -117,11 +117,14 @@ public:
   TooN::Vector<3> finishPadCameraPoseWorld;// camera pose when the landing pad is last detected
 
   ///////////// using multiple imgs ////////////
-  bool mUsingDualImg; /// abusing "dual", which means multiple now
+  bool mUsingDualImg; /// abusing "dual" in this project, which means multiple now
   bool mUseDualshould;
-  void Load_Cam1FromCam2 (const SE3<> cam1fromcam2){
-      mse3Cam1FromCam2 = cam1fromcam2;
-      mMapMaker.Load_Cam2FromCam1(cam1fromcam2.inverse());
+  void Load_Cam1FromCam2 (const std::vector<SE3<> > cam1fromcam2){
+      assert(cam1fromcam2.size() != AddCamNumber);
+      for (int i = 0; i < AddCamNumber; i ++){
+          mse3Cam1FromCam2[i] = cam1fromcam2[i];
+          mMapMaker.Load_Cam2FromCam1(cam1fromcam2[i].inverse(), i);
+      }
       mUseDualshould = true;
   }
 

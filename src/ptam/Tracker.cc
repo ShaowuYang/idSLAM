@@ -42,7 +42,7 @@ Tracker::Tracker(Map &m, MapMaker &mm) :
         mCurrentKFsec[i] = new KeyFrame();
         mCurrentKFsec[i]->bFixed = false;
 
-        mse3CamFromWorldsec = SE3<>();
+        mse3CamFromWorldsec[i] = SE3<>();
     }
     GUI.RegisterCommand("Reset", GUICommandCallBack, this);
     GUI.RegisterCommand("KeyPress", GUICommandCallBack, this);
@@ -101,12 +101,9 @@ void Tracker::Reset()
     mdMSDScaledVelocityMagnitude = 0;
     mCurrentKF->dSceneDepthMean = 1.0;
     mCurrentKF->dSceneDepthSigma = 1.0;
-    mCurrentKFsec->dSceneDepthMean = 1.0;
-    mCurrentKFsec->dSceneDepthSigma = 1.0;
     mnInitialStage = TRAIL_TRACKING_NOT_STARTED;
     mlTrails.clear();
     mCurrentKF->mMeasurements.clear();
-    mCurrentKFsec->mMeasurements.clear();
     mnLastKeyFrameDropped = -20;
     mnFrame=0;
     mnKeyFrames=0;
@@ -116,6 +113,10 @@ void Tracker::Reset()
     mUseDualshould = false;
     debugmarkLoopDetected = false;
     for (int i = 0; i < AddCamNumber; i ++){
+        mCurrentKFsec[i]->dSceneDepthMean = 1.0;
+        mCurrentKFsec[i]->dSceneDepthSigma = 1.0;
+        mCurrentKFsec[i]->mMeasurements.clear();
+
         mv6CameraVelocitysec[i] = Zeros;
         mnLastKeyFrameDroppedsec[i] = -20;
         mnFramesec[i]=0;
@@ -189,7 +190,7 @@ void Tracker::TrackFrame(Image<byte> &imFrame)
         if (use_circle_ini){
             if (use_one_circle && circle_pose_get){ //&& (se3CfromW.inverse().get_translation()[2] > 0.4)){
                 mse3CamFromWorld = se3CfromW;
-                mse3CamFromWorldsec[0] = mse3Cam1FromCam2.inverse()*mse3CamFromWorld;
+                mse3CamFromWorldsec[0] = mse3Cam1FromCam2[0].inverse()*mse3CamFromWorld;
                 mse3CamFromWorldPub = se3CfromW;
                 mCurrentKF->se3CfromW = se3CfromW;
                 //                    mCurrentKF->MakeKeyFrame_Rest();
@@ -237,11 +238,11 @@ void Tracker::TrackFrame(Image<byte> &imFrame, Image<byte> &imFramesec)
     mCurrentKF->MakeKeyFrame_Rest();
     mCurrentKF->nSourceCamera = 0;
     // and the second camera img
-    mCurrentKFsec->mMeasurements.clear();
-    mCurrentKFsec->MakeKeyFrame_Lite(imFramesec, 1);
-    mCurrentKFsec->MakeKeyFrame_Rest();
-    mCurrentKFsec->nSourceCamera = 1;
-    mCurrentKFsec->mAssociateKeyframe = true;
+    mCurrentKFsec[0]->mMeasurements.clear();
+    mCurrentKFsec[0]->MakeKeyFrame_Lite(imFramesec, 1);
+    mCurrentKFsec[0]->MakeKeyFrame_Rest();
+    mCurrentKFsec[0]->nSourceCamera = 1;
+    mCurrentKFsec[0]->mAssociateKeyframe = true;
 
     // dual image should be initialised individually
     initNewFrame();
@@ -252,7 +253,7 @@ void Tracker::TrackFrame(Image<byte> &imFrame, Image<byte> &imFramesec)
         if (use_circle_ini){
             if (use_one_circle && circle_pose_get){ //&& (se3CfromW.inverse().get_translation()[2] > 0.4)){
                 mse3CamFromWorld = se3CfromW;
-                mse3CamFromWorldsec[0] = mse3Cam1FromCam2.inverse()*se3CfromW;
+                mse3CamFromWorldsec[0] = mse3Cam1FromCam2[0].inverse()*se3CfromW;
                 mse3CamFromWorldPub = se3CfromW;
                 mCurrentKF->se3CfromW = se3CfromW;
                 //                    mCurrentKF->MakeKeyFrame_Rest();
