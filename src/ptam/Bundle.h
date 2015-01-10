@@ -456,7 +456,7 @@ protected:
   std::vector<std::vector<Meas*> > mvMeasLUTs;  //Each camera gets a per-point table of pointers to valid measurements
   
   std::auto_ptr<CameraModel> mCamera;
-  std::auto_ptr<CameraModel> mCameraSec;// the second camera model.
+  std::auto_ptr<CameraModel> mCameraSec[AddCamNumber];// the second camera model.
   int mnCamsToUpdate;
   int mnStartRow;
   double mdSigmaSquared;

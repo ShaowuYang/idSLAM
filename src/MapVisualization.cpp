@@ -25,8 +25,10 @@ using namespace ptam;
 MapVisualization::MapVisualization()
     :camera(CameraModel::CreateCamera())
 {
-    for (int i = 0; i < AddCamNumber; i ++)
-        camerasec[i] = CameraModel::CreateCamera(i + 1);
+    for (int i = 0; i < AddCamNumber; i ++){
+        std::auto_ptr<CameraModel> camera_temp (CameraModel::CreateCamera(i + 1));
+        camerasec[i] = camera_temp;
+    }
 }
 
 void MapVisualization::publishlandingpad(const Tracker *tracker, const ros::Publisher &landingpad_pub)
@@ -641,12 +643,12 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
 
             camkey_marker.points[nCams0 + i] = camPos;
 
-            if ((i < nCams)&&map->vpKeyFramessec[i]->mAssociatedinFinalQueue){
+            if ((i < nCams)&&map->vpKeyFramessec[cn][i]->mAssociatedinFinalQueue){
                 cameraconnect_marker[cn].colors[i*2].r = 0.5f;
                 cameraconnect_marker[cn].colors[i*2].g = 0.0f;
                 cameraconnect_marker[cn].colors[i*2].b = 0.0f;
                 cameraconnect_marker[cn].points[i*2] = camPos;
-                camPose = map->vpKeyFrames[map->vpKeyFramessec[i]->nAssociatedKf]->se3CfromW.inverse();
+                camPose = map->vpKeyFrames[map->vpKeyFramessec[cn][i]->nAssociatedKf]->se3CfromW.inverse();
                 camPos = geometry_msgs_point(camPose.get_translation());
                 cameraconnect_marker[cn].colors[i*2+1].r = 1.0f;
                 cameraconnect_marker[cn].colors[i*2+1].g = 1.0f;
@@ -663,7 +665,7 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
         cameranum_marker.pose.position.z = camPose.get_translation()[2];
 
         if (map->vpKeyFrames[kfnum]->mAssociatedinFinalQueue){
-            camPose = map->vpKeyFramessec[map->vpKeyFrames[kfnum]->nAssociatedKf]->se3CfromW.inverse();
+            camPose = map->vpKeyFramessec[cn][map->vpKeyFrames[kfnum]->nAssociatedKf]->se3CfromW.inverse();
             cameranum_markersec.pose.position.x = camPose.get_translation()[0];
             cameranum_markersec.pose.position.y = camPose.get_translation()[1];
             cameranum_markersec.pose.position.z = camPose.get_translation()[2];
@@ -799,7 +801,7 @@ void MapVisualization::renderDebugImageSec(cv::Mat& rgb_cv, const Tracker* track
         if (!p.nSourceCamera)// from the master camera
             continue;
 
-        p.TData.Project(p.v3WorldPos, kf.se3CfromW, camerasec.get());
+        p.TData.Project(p.v3WorldPos, kf.se3CfromW, camerasec[p.nSourceCamera - 1].get());
         if (!p.TData.bInImage) {
             continue;
         }

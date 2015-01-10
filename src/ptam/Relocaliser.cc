@@ -14,8 +14,10 @@ using namespace ptam;
 Relocaliser::Relocaliser(Map &map)
   : mMap(map), mCamera(CameraModel::CreateCamera())
 {
-    for (int i = 0; i < AddCamNumber; i ++)
-        mCameraSec[i] = CameraModel::CreateCamera(i + 1);
+    for (int i = 0; i < AddCamNumber; i ++){
+        std::auto_ptr<CameraModel> camera_temp (CameraModel::CreateCamera(i + 1));
+        mCameraSec[i] = camera_temp;
+    }
 };
 
 SE3<> Relocaliser::BestPose()

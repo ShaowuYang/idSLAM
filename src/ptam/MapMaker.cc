@@ -49,8 +49,10 @@ MapMaker::MapMaker(Map& m, SLAMSystem &ss, backend &be, bool bOffline)
     : mMap(m), mSLAM(ss), mbackend_(be), mCamera(CameraModel::CreateCamera()),
       mbOffline(bOffline), mbMappingEnabled(true), newRecentKF(false)
 {
-    for (int i = 0; i < AddCamNumber; i ++)
-        mCameraSec[i] = CameraModel::CreateCamera(i + 1);
+    for (int i = 0; i < AddCamNumber; i ++){
+        std::auto_ptr<CameraModel> camera_temp (CameraModel::CreateCamera(i + 1));
+        mCameraSec[i] = camera_temp;
+    }
     mbResetRequested = false;
     Reset();
     if (!bOffline)
@@ -423,8 +425,8 @@ void MapMaker::HandleBadPoints()
     // write access: unique lock
     boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
 
-    int nCam = mMap.vpPoints[i]->nSourceCamera;
-    for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
+    for(unsigned int i=0; i<mMap.vpPoints.size(); i++) {
+        int nCam = mMap.vpPoints[i]->nSourceCamera;
         if(mMap.vpPoints[i]->bBad)
         {
             if (!nCam){
@@ -444,6 +446,7 @@ void MapMaker::HandleBadPoints()
                 }
             }
         }
+    }
 
 
     // Move bad points to the trash list.
@@ -844,7 +847,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
     // Also add kfs from those additional cameras
     for (int i = 0; i < AddCamNumber; i ++){
         boost::shared_ptr<KeyFrame> pkFirst(new KeyFrame());
-        *pkFirst = adkfs[i];
+        *pkFirst = *adkfs[i];
         pkFirst->SBI = kf.SBI;
         pkFirst->bFixed = true;
         pkFirst->se3CfromW = mse3Cam2FromCam1[i] * worldPos;
@@ -2826,7 +2829,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
     /// TODO: allow individual additional kfs to be added, as I tried and abondoned before. This can improve the robustness of the system
     int nKfmin = mvpKeyFrameQueue.size();
     for (int i = 0; i < AddCamNumber; i ++){
-        if (mvpKeyFrameQueueSec.size()== 0)
+        if (mvpKeyFrameQueueSec[i].size()== 0)
             usingDualimg = false;
         else if (mvpKeyFrameQueueSec[i].size() < nKfmin)
             nKfmin = mvpKeyFrameQueueSec[i].size();
@@ -4024,7 +4027,7 @@ void MapMaker::BundleAdjust(set<boost::shared_ptr<KeyFrame> > sAdjustSet, set<bo
                 for (int cn = 0; cn < AddCamNumber; cn ++)
                     if (!itr->first->nSourceCamera && itr->first->mAssociateKeyframe
                         && sAssociatedSet.count(mMap.vpKeyFramessec[cn][itr->first->nAssociatedKf]))
-                    mMap.vpKeyFramessec[cn][itr->first->nAssociatedKf]->se3CfromW = itr->first->se3Cam2fromCam1[cn]*itr->first->se3CfromW;
+                    mMap.vpKeyFramessec[cn][itr->first->nAssociatedKf]->se3CfromW = itr->first->se3Cam2fromCam1*itr->first->se3CfromW;
             }
         }
         if(bRecent)
