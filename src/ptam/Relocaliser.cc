@@ -74,7 +74,7 @@ bool Relocaliser::AttemptRecoveryDual(KeyFrame &kCurrent, KeyFrame &kCurrentsec)
   // do the same for the second cam
   kCurrentsec.SBI.MakeFromKF(kCurrentsec);
   ScoreKFs(kCurrentsec);
-  pair<SE2<>, double> result_pair2 = kCurrentsec.SBI.IteratePosRelToTarget(mMap.vpKeyFramessec[mnBest2]->SBI, 6);
+  pair<SE2<>, double> result_pair2 = kCurrentsec.SBI.IteratePosRelToTarget(mMap.vpKeyFramessec[kCurrentsec.nSourceCamera - 1][mnBest2]->SBI, 6);
   mse2sec = result_pair2.first;
   double dScore2 =result_pair2.second;
 
@@ -88,9 +88,9 @@ bool Relocaliser::AttemptRecoveryDual(KeyFrame &kCurrent, KeyFrame &kCurrentsec)
       mse3Best = SmallBlurryImage::SE3fromSE2(mse2, mCamera.get()) * se3KeyFramePos;
   }else
   {
-      SE3<> se3KeyFramePos = mMap.vpKeyFramessec[mnBest2]->se3CfromW;
+      SE3<> se3KeyFramePos = mMap.vpKeyFramessec[kCurrentsec.nSourceCamera - 1][mnBest2]->se3CfromW;
       // SE3fromSE2 will set the corret image size for the camera, so no need to call CameraModel::SetImageSize()
-      mse3Best = SmallBlurryImage::SE3fromSE2(mse2sec, mCameraSec.get()) * se3KeyFramePos;
+      mse3Best = SmallBlurryImage::SE3fromSE2(mse2sec, mCameraSec[kCurrentsec.nSourceCamera - 1].get()) * se3KeyFramePos;
   }
 
   return true;

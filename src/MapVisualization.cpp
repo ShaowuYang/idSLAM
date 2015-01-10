@@ -268,14 +268,14 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
     bool useDifWorldFrame = true; // use a different world frame for rviz visualization
 
     static visualization_msgs::Marker camera_marker;
-    static visualization_msgs::Marker camera_markersec;// second camera
+    static visualization_msgs::Marker camera_markersec[AddCamNumber];// second camera
     static visualization_msgs::Marker point_marker;
     static visualization_msgs::Marker campath_marker;//visualize camera path
     static visualization_msgs::Marker camkey_marker;
 
     static visualization_msgs::Marker cameranum_marker;
     static visualization_msgs::Marker cameranum_markersec;// second camera
-    static visualization_msgs::Marker cameraconnect_marker;// second camera
+    static visualization_msgs::Marker cameraconnect_marker[AddCamNumber];// second camera
 
     camera_marker.header.frame_id = world_frame;
     camera_marker.header.stamp = ros::Time::now();
@@ -300,50 +300,50 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
     camera_marker.type = visualization_msgs::Marker::LINE_LIST;
 
     if (dualcamera)
-    {
-        camera_markersec.header.frame_id = world_frame;
-        camera_markersec.header.stamp = ros::Time::now();
-        camera_markersec.ns = "map";
-        camera_markersec.id = 4;
-        camera_markersec.action = visualization_msgs::Marker::ADD;
-        camera_markersec.pose.position.x = 0;
-        camera_markersec.pose.position.y = 0;
-        camera_markersec.pose.position.z = 0;
-        camera_markersec.pose.orientation.x = 0.0;
-        camera_markersec.pose.orientation.y = 0.0;
-        camera_markersec.pose.orientation.z = 0.0;
-        camera_markersec.pose.orientation.w = 1.0;
-        camera_markersec.scale.x = 0.01;
-        camera_markersec.scale.y = 0.01;
-        camera_markersec.scale.z = 0.01;
-        camera_markersec.color.r = 1.0f;//165.0/255.0f;
-        camera_markersec.color.g = 0;//30.0/255.0f;
-        camera_markersec.color.b = 0;//55.0/255.0f;
-        camera_markersec.color.a = 0.5f;
-        camera_markersec.lifetime = ros::Duration();
-        camera_markersec.type = visualization_msgs::Marker::LINE_LIST;
+    for (int cn = 0; cn < AddCamNumber; cn ++){
+        camera_markersec[cn].header.frame_id = world_frame;
+        camera_markersec[cn].header.stamp = ros::Time::now();
+        camera_markersec[cn].ns = "map";
+        camera_markersec[cn].id = 4 + cn;
+        camera_markersec[cn].action = visualization_msgs::Marker::ADD;
+        camera_markersec[cn].pose.position.x = 0;
+        camera_markersec[cn].pose.position.y = 0;
+        camera_markersec[cn].pose.position.z = 0;
+        camera_markersec[cn].pose.orientation.x = 0.0;
+        camera_markersec[cn].pose.orientation.y = 0.0;
+        camera_markersec[cn].pose.orientation.z = 0.0;
+        camera_markersec[cn].pose.orientation.w = 1.0;
+        camera_markersec[cn].scale.x = 0.01;
+        camera_markersec[cn].scale.y = 0.01;
+        camera_markersec[cn].scale.z = 0.01;
+        camera_markersec[cn].color.r = 1.0f;//165.0/255.0f;
+        camera_markersec[cn].color.g = 0;//30.0/255.0f;
+        camera_markersec[cn].color.b = 0;//55.0/255.0f;
+        camera_markersec[cn].color.a = 0.5f;
+        camera_markersec[cn].lifetime = ros::Duration();
+        camera_markersec[cn].type = visualization_msgs::Marker::LINE_LIST;
 
-        cameraconnect_marker.header.frame_id = world_frame;
-        cameraconnect_marker.header.stamp = ros::Time::now();
-        cameraconnect_marker.ns = "map";
-        cameraconnect_marker.id = 7;
-        cameraconnect_marker.action = visualization_msgs::Marker::ADD;
-        cameraconnect_marker.pose.position.x = 0;
-        cameraconnect_marker.pose.position.y = 0;
-        cameraconnect_marker.pose.position.z = 0;
-        cameraconnect_marker.pose.orientation.x = 0.0;
-        cameraconnect_marker.pose.orientation.y = 0.0;
-        cameraconnect_marker.pose.orientation.z = 0.0;
-        cameraconnect_marker.pose.orientation.w = 1.0;
-        cameraconnect_marker.scale.x = 0.01;
-        cameraconnect_marker.scale.y = 0.01;
-        cameraconnect_marker.scale.z = 0.01;
-        cameraconnect_marker.color.r = 1.0f;//165.0/255.0f;
-        cameraconnect_marker.color.g = 0;//30.0/255.0f;
-        cameraconnect_marker.color.b = 0;//55.0/255.0f;
-        cameraconnect_marker.color.a = 0.7f;
-        cameraconnect_marker.lifetime = ros::Duration();
-        cameraconnect_marker.type = visualization_msgs::Marker::LINE_LIST;
+        cameraconnect_marker[cn].header.frame_id = world_frame;
+        cameraconnect_marker[cn].header.stamp = ros::Time::now();
+        cameraconnect_marker[cn].ns = "map";
+        cameraconnect_marker[cn].id = 7;
+        cameraconnect_marker[cn].action = visualization_msgs::Marker::ADD;
+        cameraconnect_marker[cn].pose.position.x = 0;
+        cameraconnect_marker[cn].pose.position.y = 0;
+        cameraconnect_marker[cn].pose.position.z = 0;
+        cameraconnect_marker[cn].pose.orientation.x = 0.0;
+        cameraconnect_marker[cn].pose.orientation.y = 0.0;
+        cameraconnect_marker[cn].pose.orientation.z = 0.0;
+        cameraconnect_marker[cn].pose.orientation.w = 1.0;
+        cameraconnect_marker[cn].scale.x = 0.01;
+        cameraconnect_marker[cn].scale.y = 0.01;
+        cameraconnect_marker[cn].scale.z = 0.01;
+        cameraconnect_marker[cn].color.r = 1.0f;//165.0/255.0f;
+        cameraconnect_marker[cn].color.g = 0;//30.0/255.0f;
+        cameraconnect_marker[cn].color.b = 0;//55.0/255.0f;
+        cameraconnect_marker[cn].color.a = 0.7f;
+        cameraconnect_marker[cn].lifetime = ros::Duration();
+        cameraconnect_marker[cn].type = visualization_msgs::Marker::LINE_LIST;
     }
 
     cameranum_marker.header.frame_id = world_frame;
@@ -557,15 +557,18 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
 
         camkey_marker.points[i] = camPos;
     }
-    if (dualcamera && map->vpKeyFramessec.size()){
+
+    /// camera poses for other cameras
+    for (int cn = 0; cn < AddCamNumber; cn ++)
+      if (dualcamera && map->vpKeyFramessec[cn].size()){
         unsigned int nCams0 = map->vpKeyFrames.size();
-        unsigned int nCams = map->vpKeyFramessec.size();
-        camera_markersec.points.resize((nCams+1)*6);
-        camera_markersec.colors.resize((nCams+1)*6);
+        unsigned int nCams = map->vpKeyFramessec[cn].size();
+        camera_markersec[cn].points.resize((nCams+1)*6);
+        camera_markersec[cn].colors.resize((nCams+1)*6);
         camkey_marker.points.resize(nCams0+nCams+1);
 
-        cameraconnect_marker.points.resize((nCams+1)*2);
-        cameraconnect_marker.colors.resize((nCams+1)*2);
+        cameraconnect_marker[cn].points.resize((nCams+1)*2);
+        cameraconnect_marker[cn].colors.resize((nCams+1)*2);
 
         unsigned int ii = 0;
         for (unsigned int i = 0; i <nCams0; i ++){
@@ -577,12 +580,11 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
             camkey_marker.points[i] = camPos;
         }
         for (unsigned int i = 0; i < nCams+1; i++) {
-
             SE3<> camPose;
             if (i < nCams)
-                camPose = map->vpKeyFramessec[i]->se3CfromW.inverse();
+                camPose = map->vpKeyFramessec[cn][i]->se3CfromW.inverse();
             else
-                camPose = tracker->GetCurrentPosesec().inverse();
+                camPose = tracker->GetCurrentPosesec(cn).inverse();
             Vector<3> T = camPose.get_translation();
             geometry_msgs::Point camPos;
 
@@ -600,56 +602,56 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
                 dZ[0] = 0.0;   dZ[1] = 0.0;  dZ[2] = 0.1;
             }
 
-            camera_markersec.colors[ii].r = 255.0/255.0f;
-            camera_markersec.colors[ii].g = 0.0f;
-            camera_markersec.colors[ii].b = 105.0/255.0f;
-            camera_markersec.colors[ii].a = 0.5f;
-            camera_markersec.points[ii++] = camPos;
+            camera_markersec[cn].colors[ii].r = 255.0/255.0f;
+            camera_markersec[cn].colors[ii].g = 0.0f;
+            camera_markersec[cn].colors[ii].b = 105.0/255.0f;
+            camera_markersec[cn].colors[ii].a = 0.5f;
+            camera_markersec[cn].points[ii++] = camPos;
 
             Vector<3> to = camPose*dX;
-            camera_markersec.colors[ii].r = 255.0/255.0f;
-            camera_markersec.colors[ii].g = 0.0f;
-            camera_markersec.colors[ii].b = 105.0/255.0f;
-            camera_markersec.colors[ii].a = 0.5f;
-            camera_markersec.points[ii++] = geometry_msgs_point(to);
+            camera_markersec[cn].colors[ii].r = 255.0/255.0f;
+            camera_markersec[cn].colors[ii].g = 0.0f;
+            camera_markersec[cn].colors[ii].b = 105.0/255.0f;
+            camera_markersec[cn].colors[ii].a = 0.5f;
+            camera_markersec[cn].points[ii++] = geometry_msgs_point(to);
 
-            camera_markersec.colors[ii].r = 0.0f;
-            camera_markersec.colors[ii].g = 255.0/255.0f;;
-            camera_markersec.colors[ii].b = 105.0/255.0f;
-            camera_markersec.colors[ii].a = 0.5f;
-            camera_markersec.points[ii++] = camPos;
+            camera_markersec[cn].colors[ii].r = 0.0f;
+            camera_markersec[cn].colors[ii].g = 255.0/255.0f;;
+            camera_markersec[cn].colors[ii].b = 105.0/255.0f;
+            camera_markersec[cn].colors[ii].a = 0.5f;
+            camera_markersec[cn].points[ii++] = camPos;
             to = camPose*dY;
-            camera_markersec.colors[ii].r = 0.0f;
-            camera_markersec.colors[ii].g = 255.0/255.0f;;
-            camera_markersec.colors[ii].b = 105.0/255.0f;
-            camera_markersec.colors[ii].a = 0.5f;
-            camera_markersec.points[ii++] = geometry_msgs_point(to);
+            camera_markersec[cn].colors[ii].r = 0.0f;
+            camera_markersec[cn].colors[ii].g = 255.0/255.0f;;
+            camera_markersec[cn].colors[ii].b = 105.0/255.0f;
+            camera_markersec[cn].colors[ii].a = 0.5f;
+            camera_markersec[cn].points[ii++] = geometry_msgs_point(to);
 
-            camera_markersec.colors[ii].r = 105.0/255.0f;
-            camera_markersec.colors[ii].g = 0.0f;
-            camera_markersec.colors[ii].b = 255.0/255.0f;;
-            camera_markersec.colors[ii].a = 0.5f;
-            camera_markersec.points[ii++] = camPos;
+            camera_markersec[cn].colors[ii].r = 105.0/255.0f;
+            camera_markersec[cn].colors[ii].g = 0.0f;
+            camera_markersec[cn].colors[ii].b = 255.0/255.0f;;
+            camera_markersec[cn].colors[ii].a = 0.5f;
+            camera_markersec[cn].points[ii++] = camPos;
             to = camPose*dZ;
-            camera_markersec.colors[ii].r = 105.0/255.0f;
-            camera_markersec.colors[ii].g = 0.0f;
-            camera_markersec.colors[ii].b = 255.0/255.0f;;
-            camera_markersec.colors[ii].a = 0.5f;
-            camera_markersec.points[ii++] = geometry_msgs_point(to);
+            camera_markersec[cn].colors[ii].r = 105.0/255.0f;
+            camera_markersec[cn].colors[ii].g = 0.0f;
+            camera_markersec[cn].colors[ii].b = 255.0/255.0f;;
+            camera_markersec[cn].colors[ii].a = 0.5f;
+            camera_markersec[cn].points[ii++] = geometry_msgs_point(to);
 
             camkey_marker.points[nCams0 + i] = camPos;
 
             if ((i < nCams)&&map->vpKeyFramessec[i]->mAssociatedinFinalQueue){
-                cameraconnect_marker.colors[i*2].r = 0.5f;
-                cameraconnect_marker.colors[i*2].g = 0.0f;
-                cameraconnect_marker.colors[i*2].b = 0.0f;
-                cameraconnect_marker.points[i*2] = camPos;
+                cameraconnect_marker[cn].colors[i*2].r = 0.5f;
+                cameraconnect_marker[cn].colors[i*2].g = 0.0f;
+                cameraconnect_marker[cn].colors[i*2].b = 0.0f;
+                cameraconnect_marker[cn].points[i*2] = camPos;
                 camPose = map->vpKeyFrames[map->vpKeyFramessec[i]->nAssociatedKf]->se3CfromW.inverse();
                 camPos = geometry_msgs_point(camPose.get_translation());
-                cameraconnect_marker.colors[i*2+1].r = 1.0f;
-                cameraconnect_marker.colors[i*2+1].g = 1.0f;
-                cameraconnect_marker.colors[i*2+1].b = 1.0f;
-                cameraconnect_marker.points[i*2+1] = camPos;
+                cameraconnect_marker[cn].colors[i*2+1].r = 1.0f;
+                cameraconnect_marker[cn].colors[i*2+1].g = 1.0f;
+                cameraconnect_marker[cn].colors[i*2+1].b = 1.0f;
+                cameraconnect_marker[cn].points[i*2+1] = camPos;
             }
         }
 
@@ -676,6 +678,7 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
 
     lock.unlock();
 
+    /// camera path, chose one camera for visualizaiton
     if (!dualcamera)
     {
         SE3<> camPose = tracker->GetCurrentPose().inverse();
@@ -690,7 +693,7 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
         campath_marker.points.push_back(camPos);
     }
     else{
-        SE3<> camPose = tracker->GetCurrentPosesec().inverse();
+        SE3<> camPose = tracker->GetCurrentPosesec(0).inverse();
         Vector<3> T = camPose.get_translation();
         geometry_msgs::Point camPos = geometry_msgs_point(T);
         campath_marker.points.push_back(camPos);
@@ -698,13 +701,14 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
 
     point_pub.publish(point_marker);
     camera_pub.publish(camera_marker);
-    if (dualcamera && map->vpKeyFramessec.size())
-    {
-        camera_pubsec.publish(camera_markersec);
-//        camera_pubsec.publish(cameranum_markersec);
-//        camera_pub.publish(cameranum_marker);
-        camera_pubsec.publish(cameraconnect_marker);
-    }
+    for (int cn = 0; cn < AddCamNumber; cn ++)
+        if (dualcamera && map->vpKeyFramessec[cn].size())
+        {
+            camera_pubsec.publish(camera_markersec[cn]);
+    //        camera_pubsec.publish(cameranum_markersec);
+    //        camera_pub.pu+blish(cameranum_marker);
+            camera_pubsec.publish(cameraconnect_marker[cn]);
+        }
 
     camera_pub.publish(campath_marker);
     camera_pub.publish(camkey_marker);

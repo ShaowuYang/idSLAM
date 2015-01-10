@@ -248,24 +248,28 @@ public:
     // the second camera pose in the master camera frames
     SE3<> Load_camsec_para()
     {
-        SE3<> campara;
+        vector<SE3<> > campara;
         ifstream cam_para_table;
         string table_path = cam_para_path_second;
-        double temp1, temp2, temp3, temp4, temp5;
+        double temp1;
         cam_para_table.open(table_path.c_str());
         assert(cam_para_table.is_open());
 
 //        cam_para_table>>temp1>>temp2>>temp3>>temp4>>temp5;
         Matrix<3> cam;
-        for (int i = 0; i < 3; i ++){
-            for (int j = 0; j < 3; j ++){
+        SE3<> campara_temp;
+        for (int cn = 0; cn < AddCamNumber; cn ++){
+            for (int i = 0; i < 3; i ++){
+                for (int j = 0; j < 3; j ++){
+                    cam_para_table>>temp1;
+                    cam(i, j) = temp1;
+                }
                 cam_para_table>>temp1;
-                cam(i, j) = temp1;
+                campara_temp.get_translation()[i] = temp1/1000.0;
             }
-            cam_para_table>>temp1;
-            campara.get_translation()[i] = temp1/1000.0;
+            campara_temp.get_rotation() = cam;
+            campara.push_back(campara_temp);
         }
-        campara.get_rotation() = cam;
 
         return campara;//Tic
     }
@@ -797,7 +801,7 @@ private:
     bool isflying;// When quadrotor flying, constrain its possible attitude estimate angles.
     bool istrackPad;
     SE3<> se3IMUfromcam;
-    SE3<> se3cam1fromcam2;
+    vector<SE3<> > se3cam1fromcam2;
     string cam_para_path;
     string cam_para_path_second;// the second camera
     string ref_img_path;

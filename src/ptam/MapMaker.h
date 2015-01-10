@@ -110,8 +110,8 @@ public:
   TooN::Vector<3> finishPadCameraPoseWorld;// camera pose when the landing pad is last detected
   //////////////////////////////////////////////////////////////////
 
-  void Load_Cam2FromCam1 (const SE3<> cam2fromcam1){
-      mse3Cam2FromCam1[0] = cam2fromcam1;
+  void Load_Cam2FromCam1 (const SE3<> cam2fromcam1, int adcamIndex){
+      mse3Cam2FromCam1[adcamIndex] = cam2fromcam1;
   }
 
   void registerErasedAllCallback(ErasedAllCbFunction const &cb) { mMap.erasedAllCallback = cb; }
