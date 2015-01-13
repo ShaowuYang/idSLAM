@@ -6,7 +6,7 @@ find_package(cmake_modules REQUIRED)
 #find_package(bullet REQUIRED)
 
 include_directories(   ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/backend/cslam
+    ${PROJECT_SOURCE_DIR}/src/backend/
     /usr/local/include/bullet)
 
 rosbuild_add_library(nodebase BaseSLAMNode.cpp)

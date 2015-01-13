@@ -60,7 +60,7 @@
 
 using namespace CVD;
 using namespace std;
-using namespace cslam;
+using namespace backend;
 
 namespace idSLAM{
 #define intervalmax_imgdual 1/30.00    // time interval of img msg from different camera

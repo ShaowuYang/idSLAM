@@ -9,22 +9,19 @@
 #include <idSLAM/Keyframe.h>
 #include <idSLAM/Edges.h>
 #include <cs_geometry/Camera.h>
-//#include <slam/Keyframe.h>
+#include <ptam/KeyFrame.h>
 #include <slam/SLAMSystem.h>
-//#include <slam/>
 
 #include <boost/thread/condition.hpp>
 
-namespace cslam {
+namespace backend {
 
-class backend : protected CVD::Thread{
+class LoopClosing : protected CVD::Thread{
 public:
-    backend(ros::NodeHandle& nh, cs_geom::Camera &cam, cslam::SLAMSystem &ss);
+    LoopClosing(ros::NodeHandle& nh, ros::NodeHandle& nh_pri, backend::SLAMSystem &ss);
 
     void addKeyframe(const int kf_id);
-    void addPoints(const Keyframe kf);
-    void addEdges(const std::vector<Edge> edges);
-    void updateKfPoses(const vector<boost::shared_ptr<Keyframe> > kfs);
+    void addEdges(const std::vector<ptam::Edge> edges);
 
     virtual void StopThread();
 
@@ -32,8 +29,7 @@ protected:
     virtual void run();
 
     boost::condition kfWlEmpty_;
-    boost::shared_ptr<Keyframe> messageToKeyframe(const idSLAM::KeyframeConstPtr& msg);
-    std::vector<boost::shared_ptr<Edge> > messageToEdges(const std::vector<cslam::Edge>& msg);
+    std::vector<boost::shared_ptr<ptam::Edge> > messageToEdges(const std::vector<ptam::Edge>& msg);
 
     // TODO: consider to move to baseslamnode
     void publishTF(const ros::TimerEvent& e = ros::TimerEvent());
@@ -43,7 +39,7 @@ protected:
 //    Map &mMap;
 //    boost::scoped_ptr<cs_geom::Camera> cam_;
 //    boost::scoped_ptr<SLAMSystem> slam_;
-    cs_geom::Camera &cam_;
+//    cs_geom::Camera &cam_;
     SLAMSystem &slam_;// the back end slam system, read and write access
 
     std::string world_frame_, body_frame_, camera_frame_;

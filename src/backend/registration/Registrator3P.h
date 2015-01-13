@@ -4,9 +4,9 @@
 #include <TooN/TooN.h>
 
 #include <cs_geometry/Camera.h>
-#include <slam/Keyframe.h>
+#include <ptam/KeyFrame.h>
 
-namespace cslam {
+namespace backend {
 
 struct Hypothesis3P {
     Hypothesis3P() : score(0.0) { }
@@ -38,8 +38,8 @@ public:
     }
 
     // Try to find kfa's map points to kfb's corners. Return: ^A T_B
-    Sophus::SE3d solve(const Keyframe& kfa, const Keyframe& kfb, const std::vector<cv::DMatch>& matches);
-    std::vector<cv::DMatch> getInliers(const Keyframe& kfa, const Keyframe& kfb,
+    Sophus::SE3d solve(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb, const std::vector<cv::DMatch>& matches);
+    std::vector<cv::DMatch> getInliers(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
                                        const std::vector<cv::DMatch>& matches,
                                        const Sophus::SE3d& relPoseBA,
                                        double threshold,

@@ -6,7 +6,7 @@
 #include <sophus/sim3.hpp>
 #include "Registrator3P.h"
 
-namespace cslam {
+namespace backend {
 
 class RegistratorSIM3 {
 public:

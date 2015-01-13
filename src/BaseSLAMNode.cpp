@@ -17,7 +17,7 @@
 #include "MapVisualization.h"
 using namespace ptam;
 using namespace idSLAM;
-using namespace cslam;
+using namespace backend;
 
 BaseSLAMNode::BaseSLAMNode()
 //    : nh_private_("~")
@@ -114,7 +114,7 @@ void BaseSLAMNode::InitBackend()
     ss_.reset(new SLAMSystem(*map_,*cam_,voc_file, close_loops_, saveKeyframes, pubmap_));
 
     //ini the backend
-    backend_.reset(new cslam::backend(nh_, nh_private_, *ss_));
+    backend_.reset(new backend::LoopClosing(nh_, nh_private_, *ss_));
 }
 
 void BaseSLAMNode::publishPose(ros::Time stamp)

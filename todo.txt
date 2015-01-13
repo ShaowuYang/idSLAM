@@ -1,2 +1,8 @@
-1. it's possible I didn't use the yaml parsing correct camera calibration file. 
+Now basic multi-kinect SLAM with back-end closing loops from one camera is initially done. Next modification to do:
+
+1. modify the median-based robust standard-deviation, so that image and depth measurements can be weighted seperately.
+
+2. solve the synchronisation problem among multiple kinects.
+
+OTHERS: it's possible I didn't use the yaml parsing correct camera calibration file. 
 	need to check this in the backend.

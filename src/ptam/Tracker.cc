@@ -687,8 +687,10 @@ bool Tracker::AttemptRecovery()
     bool bRelocGoodsec = false;
     int nAdCamGoodnum = 0;
 
-    /// TODO: use multi image to relocalize the system
-//        bRelocGood = mRelocaliser.AttemptRecoveryDual(*mCurrentKF, *mCurrentKFsec);
+    /// use multi image to relocalize the system
+    /// TODO: use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
+    /// If failed, then use the original method of PTAM to reloc.
+
     bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKF);
     /// using only one other kf for reloc, after the main camera kf failed
     if (!bRelocGood && mUsingDualImg)

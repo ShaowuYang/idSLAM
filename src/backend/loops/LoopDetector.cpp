@@ -4,7 +4,7 @@
 #include <boost/lexical_cast.hpp>
 
 using namespace boost;
-using namespace cslam;
+using namespace backend;
 using namespace cs_geom;
 using namespace std;
 
@@ -33,12 +33,12 @@ void LoopDetector::reset()
     ld2kf_.clear();
 }
 
-int LoopDetector::detectLoop(const Keyframe& kf)
+int LoopDetector::detectLoop(const ptam::KeyFrame& kf)
 {
-    vector<FBrief::TDescriptor> descriptors(kf.kpDesc.rows);
+    vector<FBrief::TDescriptor> descriptors(kf.kpDescriptors.rows);
 
-    for (uint i = 0; i < kf.kpDesc.rows; i++) {
-        FBrief::fromMat8UC(descriptors[i], kf.kpDesc.row(i));
+    for (uint i = 0; i < kf.kpDescriptors.rows; i++) {
+        FBrief::fromMat8UC(descriptors[i], kf.kpDescriptors.row(i));
     }
 
     DLoopDetector::DetectionResult result;

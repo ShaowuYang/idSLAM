@@ -1,6 +1,6 @@
 #include "PlaneEdge.h"
 
-using namespace cslam;
+using namespace backend;
 
 PlaneEdge::PlaneEdge() :
     BaseUnaryEdge<2, g2o::SE3Quat, g2o::VertexSE3>()

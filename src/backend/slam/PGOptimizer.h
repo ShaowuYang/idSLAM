@@ -3,9 +3,9 @@
 
 #include <boost/scoped_ptr.hpp>
 #include <g2o/core/graph_optimizer_sparse.h>
-//#include <slam/Keyframe.h>
+#include <ptam/KeyFrame.h>
 
-namespace cslam {
+namespace backend {
 
 class PGOptimizer {
 public:
@@ -14,8 +14,14 @@ public:
 
     void reset();
 
-    void addKeyframe(const Keyframe& kf);
-    void addEdge(const ptam::Edge& e, bool useScenDepth=true, double scenDepth=1.0);
+    void addKeyframe(const ptam::KeyFrame& kf);
+    //////
+    /// \brief addEdge
+    /// \param e
+    /// \param useScenDepth
+    /// \param scenDepth use scene depth from the keyframe to form the info matrix
+    /////
+    void addEdge(const ptam::Edge& e, double scenDepth=1.0, bool useScenDepth=true);
     void addLoopEdgeSim3(const ptam::Edge& e, double scale);
     void optimize();
 
@@ -29,7 +35,8 @@ public:
        minInform = mininfo;
     }
 
-    void applyResult(std::vector<boost::shared_ptr<Keyframe> > keyframes);
+    void applyResult(std::vector<boost::shared_ptr<ptam::KeyFrame> > keyframes,
+                     std::vector<Sophus::SE3d>& keyframedPoses);
 protected:
     int nIters_;
     Sophus::SE3d bodyTcam_;

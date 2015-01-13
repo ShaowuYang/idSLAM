@@ -1,2 +1,2 @@
-add_library(cslam_matching BruteForceMatcher.cpp)
-target_link_libraries(cslam_matching ${OpenCV_LIBS} cslam_reg)
+add_library(backend_matching BruteForceMatcher.cpp)
+target_link_libraries(backend_matching ${OpenCV_LIBS} backend_reg)

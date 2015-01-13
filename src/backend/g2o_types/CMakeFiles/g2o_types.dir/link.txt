@@ -1,1 +1,0 @@
-/usr/bin/c++  -fPIC  -fopenmp -O2 -g -DNDEBUG   -shared -Wl,-soname,libg2o_types.so -o ../../../lib/libg2o_types.so CMakeFiles/g2o_types.dir/anchored_points.cpp.o  -L/opt/ros/indigo/lib 

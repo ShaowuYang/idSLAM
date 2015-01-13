@@ -19,9 +19,9 @@ class Map;
 class MapMaker;
 class Tracker;
 }
-namespace cslam{
+namespace backend{
 class SLAMSystem;
-class backend;
+class LoopClosing;
 }
 namespace cs_geom{
 class Camera;
@@ -59,8 +59,8 @@ protected:
 
     //backend objects
     boost::scoped_ptr<cs_geom::Camera> cam_;
-    boost::scoped_ptr<cslam::SLAMSystem> ss_;
-    boost::scoped_ptr<cslam::backend> backend_;
+    boost::scoped_ptr<backend::SLAMSystem> ss_;
+    boost::scoped_ptr<backend::LoopClosing> backend_;
 
     // ROS Publishers
     ros::Publisher cam_marker_pub_;

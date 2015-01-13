@@ -11,13 +11,16 @@
 #include <g2o/types/slam3d/edge_se3_quat.h>
 //#include <g2o_types/anchored_points.h>
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
+#include <cs_geometry/Conversions.h>
 
 #include "PlaneEdge.h"
 
-using namespace cslam;
+using namespace backend;
 using namespace std;
 
 #define SPACE_SIM3 0
+#define maxPointDepth 5.0
+#define minPointDepth 1.0
 
 PGOptimizer::PGOptimizer()
 {
@@ -30,7 +33,7 @@ void PGOptimizer::reset()
 
     bodyTcam_ = Sophus::SE3d();
     nIters_  = 5;
-    setScenDepth(5.0, 1.0, 0.5);
+    setScenDepth(maxPointDepth, minPointDepth, 0.5);
 
     // Setup g2o:
     optimizer_.reset(new g2o::SparseOptimizer());
@@ -85,7 +88,7 @@ void PGOptimizer::reset()
     idVfixed = 0;
 }
 
-void PGOptimizer::addKeyframe(const Keyframe& kf)
+void PGOptimizer::addKeyframe(const ptam::KeyFrame& kf)
 {
     // Determine new pose graph vertex id:
     int thisPV = ++lastPV_;
@@ -97,7 +100,7 @@ void PGOptimizer::addKeyframe(const Keyframe& kf)
     g2o::VertexSim3Expmap *v = new g2o::VertexSim3Expmap();
     v->setId(thisPV);
     // the SIM3 library use inverse representation as we espected
-    Sophus::SE3d posectw = kf.posewTc.inverse();
+    Sophus::SE3d posectw = cs_geom::toSophusSE3(kf.se3CfromW);
     v->setEstimate(g2o::Sim3(posectw.rotationMatrix(), posectw.translation(), 1.));
     if (thisPV == 1){
         v->setFixed(true);
@@ -109,7 +112,7 @@ void PGOptimizer::addKeyframe(const Keyframe& kf)
 #else
     g2o::VertexSE3 *v = new g2o::VertexSE3();
     v->setId(thisPV);
-    v->setEstimate(g2o::SE3Quat(kf.posewTc.rotationMatrix(), kf.posewTc.translation()));
+    v->setEstimate(g2o::SE3Quat(cs_geom::toSophusSE3(kf.se3CfromW.inverse()).rotationMatrix(), cs_geom::toSophusSE3(kf.se3CfromW.inverse()).translation()));
 
     bool ok = optimizer_->addVertex(v);
     verticesAdded.insert(v);
@@ -117,11 +120,12 @@ void PGOptimizer::addKeyframe(const Keyframe& kf)
     assert(ok);
 
     if (thisPV == 1) { // first "real" vertex
-        addEdge(Edge(pv2kf_.at(0), kf.id, EDGE_INIT, kf.posewTc));
+        addEdge(ptam::Edge(pv2kf_.at(0), kf.id, ptam::EDGE_INIT, cs_geom::toSophusSE3(kf.se3CfromW.inverse())),
+                kf.dSceneDepthMean);
     }
 }
 
-void PGOptimizer::addEdge(const Edge& e, bool useScenDepth, double scenDepth)
+void PGOptimizer::addEdge(const ptam::Edge& e, double scenDepth, bool useScenDepth)
 {
 #if SPACE_SIM3
     g2o::EdgeSim3 *ge = new g2o::EdgeSim3();
@@ -159,7 +163,9 @@ void PGOptimizer::addEdge(const Edge& e, bool useScenDepth, double scenDepth)
     I(2,2) = 0.01;
 
     if (useScenDepth){
-        I(3,3) = minInform + (maxScenDepth - scenDepth) * (1.0 - minInform) / (maxScenDepth - minScenDepth);
+        if (scenDepth > maxPointDepth)
+            scenDepth = maxPointDepth;
+        I(3,3) = minInform + abs(maxScenDepth - scenDepth) * abs(1.0 - minInform) / (maxScenDepth - minScenDepth);
         I(4,4) = I(3,3);
         I(5,5) = I(3,3);
     }
@@ -167,16 +173,16 @@ void PGOptimizer::addEdge(const Edge& e, bool useScenDepth, double scenDepth)
 
     double weight = 1.0;
     switch (e.type) {
-    case EDGE_MOTIONMODEL:
+    case ptam::EDGE_MOTIONMODEL:
         weight = 0.001;
         break;
-    case EDGE_LOOP:
+    case ptam::EDGE_LOOP:
         weight = 1.0;
         break;
-    case EDGE_PTAM:
+    case ptam::EDGE_PTAM:
         weight = 1.0;
         break;
-    case EDGE_INIT:
+    case ptam::EDGE_INIT:
         weight = 0.001;
         break;
     default:
@@ -191,7 +197,7 @@ void PGOptimizer::addEdge(const Edge& e, bool useScenDepth, double scenDepth)
     assert(ok);
 }
 
-void PGOptimizer::addLoopEdgeSim3(const Edge& e, double scale)
+void PGOptimizer::addLoopEdgeSim3(const ptam::Edge& e, double scale)
 {
     assert(SPACE_SIM3);
 
@@ -212,16 +218,16 @@ void PGOptimizer::addLoopEdgeSim3(const Edge& e, double scale)
 
     double weight = 1.0;
     switch (e.type) {
-    case EDGE_MOTIONMODEL:
+    case ptam::EDGE_MOTIONMODEL:
         weight = 0.001;
         break;
-    case EDGE_LOOP:
+    case ptam::EDGE_LOOP:
         weight = 1.0;
         break;
-    case EDGE_PTAM:
+    case ptam::EDGE_PTAM:
         weight = 1.0;
         break;
-    case EDGE_INIT:
+    case ptam::EDGE_INIT:
         weight = 0.001;
         break;
     default:
@@ -280,7 +286,9 @@ void PGOptimizer::optimize_portion(const set<int> vids)
         assert(updateOK);
         optportion = true;
     }
+    cout<< "doing optimizer_->optimize..." << endl;
     optimizer_->optimize(nIters_);//, !firstRun_);
+    cout<< "done optimizer_->optimize..." << endl;
 
     verticesAdded.clear();
     edgesAdded.clear();
@@ -309,17 +317,13 @@ bool PGOptimizer::defineSubGraph(g2o::HyperGraph::VertexSet& v, const set<int> v
     return false;
 }
 
-void PGOptimizer::applyResult(std::vector<boost::shared_ptr<Keyframe> > keyframes)
+void PGOptimizer::applyResult(std::vector<boost::shared_ptr<ptam::KeyFrame> > keyframes, std::vector<Sophus::SE3d>& keyframedPoses)
 {
-//    cout << "kf poses difference after PGO: " << endl;
-//    for (int i = 0; i < keyframes.size(); i ++)
-//        cout << keyframes[i]->posewTc.translation().transpose() << "\n";
-//    cout << "\n";
-
+    keyframedPoses.resize(keyframes.size());
     for (int i = idVfixed; i < keyframes.size(); i++) {
         int id = keyframes[i]->id;
-        boost::shared_ptr<Keyframe> kf = keyframes[i];
-        Eigen::Matrix<double, 3,1> kfpose = kf->posewTc.translation();
+//        boost::shared_ptr<ptam::KeyFrame> kf = keyframes[i];
+//        keyframedPoses[i] = cs_geom::toSophusSE3(kf->se3CfromW);
 
 #if SPACE_SIM3
         g2o::VertexSim3Expmap* v = (g2o::VertexSim3Expmap*) optimizer_->vertex(kf2pv_.at(id));
@@ -328,16 +332,16 @@ void PGOptimizer::applyResult(std::vector<boost::shared_ptr<Keyframe> > keyframe
         Sophus::SE3d Tctw;
         Tctw.setQuaternion(est.rotation());
         Tctw.translation() = est.translation()*est.scale();
-        kf->posewTc = Tctw.inverse();
+        kf->se3CfromW = cs_geom::toToonSE3(Tctw);
         // TODO: and update the map points
-
-        cout << (kf->posewTc.translation()-kfpose).transpose() << " scale: " << est.inverse().scale() << endl;
 #else
         g2o::VertexSE3* v = (g2o::VertexSE3*) optimizer_->vertex(kf2pv_.at(id));
         const g2o::SE3Quat est = v->estimate();
-        kf->posewTc.setQuaternion(est.rotation());
-        kf->posewTc.translation() = est.translation();
-//        cout << (kf->posewTc.translation()-kfpose).transpose() << "\n";
+        Sophus::SE3d poseNew;
+        poseNew.setQuaternion(est.rotation());
+        poseNew.translation() = est.translation();
+        keyframedPoses[i] = poseNew.inverse(); // pose cfw
+//        kf->se3CfromW = cs_geom::toToonSE3(poseNew).inverse();
 #endif
     }
 }

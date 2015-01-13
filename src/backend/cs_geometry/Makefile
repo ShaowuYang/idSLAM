@@ -177,6 +177,30 @@ Camera.cpp.s:
 	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/Camera.cpp.s
 .PHONY : Camera.cpp.s
 
+Conversions.o: Conversions.cpp.o
+.PHONY : Conversions.o
+
+# target to build an object file
+Conversions.cpp.o:
+	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/Conversions.cpp.o
+.PHONY : Conversions.cpp.o
+
+Conversions.i: Conversions.cpp.i
+.PHONY : Conversions.i
+
+# target to preprocess a source file
+Conversions.cpp.i:
+	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/Conversions.cpp.i
+.PHONY : Conversions.cpp.i
+
+Conversions.s: Conversions.cpp.s
+.PHONY : Conversions.s
+
+# target to generate assembly for a file
+Conversions.cpp.s:
+	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/Conversions.cpp.s
+.PHONY : Conversions.cpp.s
+
 FivePointSolver.o: FivePointSolver.cpp.o
 .PHONY : FivePointSolver.o
 
@@ -225,30 +249,6 @@ Math.cpp.s:
 	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/Math.cpp.s
 .PHONY : Math.cpp.s
 
-PointClouds.o: PointClouds.cpp.o
-.PHONY : PointClouds.o
-
-# target to build an object file
-PointClouds.cpp.o:
-	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/PointClouds.cpp.o
-.PHONY : PointClouds.cpp.o
-
-PointClouds.i: PointClouds.cpp.i
-.PHONY : PointClouds.i
-
-# target to preprocess a source file
-PointClouds.cpp.i:
-	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/PointClouds.cpp.i
-.PHONY : PointClouds.cpp.i
-
-PointClouds.s: PointClouds.cpp.s
-.PHONY : PointClouds.s
-
-# target to generate assembly for a file
-PointClouds.cpp.s:
-	cd /home/young/localhome/code/idSLAM && $(MAKE) -f src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/build.make src/backend/cs_geometry/CMakeFiles/cs_geometry.dir/PointClouds.cpp.s
-.PHONY : PointClouds.cpp.s
-
 TrivariatePolynomials.o: TrivariatePolynomials.cpp.o
 .PHONY : TrivariatePolynomials.o
 
@@ -289,15 +289,15 @@ help:
 	@echo "... Camera.o"
 	@echo "... Camera.i"
 	@echo "... Camera.s"
+	@echo "... Conversions.o"
+	@echo "... Conversions.i"
+	@echo "... Conversions.s"
 	@echo "... FivePointSolver.o"
 	@echo "... FivePointSolver.i"
 	@echo "... FivePointSolver.s"
 	@echo "... Math.o"
 	@echo "... Math.i"
 	@echo "... Math.s"
-	@echo "... PointClouds.o"
-	@echo "... PointClouds.i"
-	@echo "... PointClouds.s"
 	@echo "... TrivariatePolynomials.o"
 	@echo "... TrivariatePolynomials.i"
 	@echo "... TrivariatePolynomials.s"

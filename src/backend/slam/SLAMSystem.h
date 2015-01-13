@@ -13,16 +13,17 @@
 
 #include <matching/BruteForceMatcher.h>
 
-#include "Keyframe.h"
+//#include "Keyframe.h"
 #include "PGOptimizer.h"
+#include <ptam/Map.h>
+#include <ptam/KeyFrame.h>
 
-
-namespace cslam {
+namespace backend {
 
 class SLAMSystem
 {
 public:
-    SLAMSystem(const cs_geom::Camera& cam, const std::string& vocFile,
+    SLAMSystem(ptam::Map &m, const cs_geom::Camera& cam, const std::string& vocFile,
                bool closeLoops = true, bool saveKeyframes = false,
                bool pubmap = true);
 
@@ -30,8 +31,8 @@ public:
 
     void addKeyframes();
     void addEdges();
-    void updatePoints(const boost::shared_ptr<Keyframe> kf);
-    void updateKfPose(const boost::shared_ptr<Keyframe> kf);
+//    void updatePoints(const boost::shared_ptr<Keyframe> kf);// removed : no more update
+//    void updateKfPose(const boost::shared_ptr<Keyframe> kf);
     // define a subgraph to be optimised when no loop is detected
     // @vids: ids of those vertices we want
     void defineSubGraph(std::set<int>& vids, int vmaxnum);
@@ -39,10 +40,10 @@ public:
 
     int countGoodOdometryEdges(); // count number of good odometry edges up to latest keyframe
 
-    std::vector<boost::shared_ptr<ptam::KeyFrame> > wlKeyFrames;  //kfs, the waiting list to be added by the backend
+    std::vector<int> wlKeyFrames;  //a list of kfs orgernised by ID, the waiting list to be added by the backend
     std::vector<boost::shared_ptr<ptam::Edge> > wlEdges;  //kfs, the waiting list to be added by the backend
     const std::vector<boost::shared_ptr<ptam::KeyFrame> >& keyframes() { return keyframes_; }
-    std::vector<boost::shared_ptr<ptam::KeyFrame> >& wlkf() { return wlKeyFrames; }
+    std::vector<int>& wlkf() { return wlKeyFrames; }
     Sophus::SE3d cslamTptam() { return cslamTptam_; }
 
     // interactives with the front end
@@ -66,9 +67,9 @@ public:
     }
     unsigned int getCornersSize(){
         unsigned int cornersize = 0;
-        boost::shared_ptr<Keyframe> kf = keyframes_[keyframes_.size()-1];
-        for (unsigned int i = 0 ; i < kf->levels.size(); i ++){
-            cornersize += kf->levels[i].corners.size();
+        boost::shared_ptr<ptam::KeyFrame> kf = keyframes_[keyframes_.size()-1];
+        for (unsigned int i = 0 ; i < LEVELS; i ++){
+            cornersize += kf->aLevels[i].vMaxCorners.size();
         }
         return cornersize;
     }
@@ -76,17 +77,19 @@ public:
     mutable boost::mutex syncMutex;
     mutable boost::mutex mutex_wl; // for waiting list access
 
-    std::vector<boost::shared_ptr<ptam::KeyFrame> > keyframes_;
+    std::vector<boost::shared_ptr<ptam::KeyFrame> > keyframes_; // a ptr copy of the kfs in the map
     std::vector<boost::shared_ptr<ptam::Edge> > ptam_edges_; // ptam edges, indexed by kf A index idA
     std::vector<boost::shared_ptr<ptam::Edge> > ptam_edges_local_;// ptam edges in local BA come with the new kf at the same time
+    std::vector<Sophus::SE3d> keyframeUpdatedPoses; /// new keyframe poses after PGO
 
     bool pubmap_;
     int kfinpgo;
     ofstream backinfolog;
 
 protected:
-    int findBestKeyframeForMatching(const Keyframe& kf);
+    int findBestKeyframeForMatching(const ptam::KeyFrame &kf);
 
+    ptam::Map& map_;
     const cs_geom::Camera& cam_;
     PGOptimizer pgo_;
 
