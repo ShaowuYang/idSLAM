@@ -6,7 +6,7 @@
 #include <g2o/core/base_unary_edge.h>
 #include <g2o/types/slam3d/vertex_se3_quat.h>
 
-namespace cslam {
+namespace backend {
 
 class PlaneEdge : public g2o::BaseUnaryEdge<2, g2o::SE3Quat, g2o::VertexSE3>
 {

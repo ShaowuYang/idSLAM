@@ -5,7 +5,7 @@
 #include <DBoW2/DBoW2.h>
 
 #include <cs_geometry/Camera.h>
-#include <slam/Keyframe.h>
+#include <ptam/KeyFrame.h>
 
 #include <registration/Registrator5P.h>
 #include <registration/RegistratorBAPTAM.h>
@@ -14,7 +14,7 @@
 #include "TemplatedLoopDetector.h"
 
 
-namespace cslam {
+namespace backend {
 
 class LoopDetector {
 public:
@@ -23,7 +23,7 @@ public:
 
     // Add newKF to database and use it to detect loops
     // return -1 if no loop was detected or the ID of the best match.
-    int detectLoop(const Keyframe& newKF);
+    int detectLoop(const ptam::KeyFrame& newKF);
 protected:
     const cs_geom::Camera& cam_;
     boost::scoped_ptr<BriefVocabulary>   voc_;

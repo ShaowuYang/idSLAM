@@ -1,6 +1,6 @@
 #include "RegistratorKFs.h"
 
-namespace cslam {
+namespace backend {
 
 RegistratorKFs::RegistratorKFs(const cs_geom::Camera& cam,
                                int nMinInliers, double threshPx, double maxErrAngle,
@@ -12,17 +12,17 @@ RegistratorKFs::RegistratorKFs(const cs_geom::Camera& cam,
     reg_sim3_.reset(new RegistratorSIM3(useSIM3));
 }
 
-boost::shared_ptr<Edge> RegistratorKFs::tryAndMatch(const Keyframe& kfa, const Keyframe& kfb)
+boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
 {
-    boost::shared_ptr<Edge> edge;
+    boost::shared_ptr<ptam::Edge> edge;
 
     std::vector<cv::DMatch> matchesAB, matchesBA;
     std::vector<cv::DMatch> matchesABin, matchesBAin;
     std::vector<Observation> obsAB, obsBA;
 
     // match both ways
-    matcher_->match(kfa.mpDesc, kfb.kpDesc, matchesAB);
-    matcher_->match(kfb.mpDesc, kfa.kpDesc, matchesBA);
+    matcher_->match(kfa.mpDescriptors, kfb.kpDescriptors, matchesAB);
+    matcher_->match(kfb.mpDescriptors, kfa.kpDescriptors, matchesBA);
 
     // RANSAC A->B:
     Sophus::SE3d relPoseAB = reg_3p_->solve(kfa, kfb, matchesAB);
@@ -51,14 +51,14 @@ boost::shared_ptr<Edge> RegistratorKFs::tryAndMatch(const Keyframe& kfa, const K
     reg_sim3_->solve(obsAB, obsBA);
 
     // change a, b order to make this edge consist with the definition for backward neighbours
-    edge.reset(new Edge(kfb.id, kfa.id, cslam::EDGE_LOOP, reg_sim3_->aTb_se3().inverse()));
+    edge.reset(new ptam::Edge(kfb.id, kfa.id, ptam::EDGE_LOOP, reg_sim3_->aTb_se3().inverse()));
     return edge;
 }
 
 // for detected large loop, we expect there's significant pose drift.
-boost::shared_ptr<Edge> RegistratorKFs::tryAndMatchLargeLoop(const Keyframe& kfa, const Keyframe& kfb)
+boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
 {
-    boost::shared_ptr<Edge> edge;
+    boost::shared_ptr<ptam::Edge> edge;
 
     std::vector<cv::DMatch> matchesAB, matchesBA;
     std::vector<cv::DMatch> matchesABin, matchesBAin;
@@ -66,7 +66,7 @@ boost::shared_ptr<Edge> RegistratorKFs::tryAndMatchLargeLoop(const Keyframe& kfa
 
     // match both ways
 //    matcher_->match(kfa.mpDesc, kfb.kpDesc, matchesAB);
-    matcher_->match(kfb.mpDesc, kfa.kpDesc, matchesBA);
+    matcher_->match(kfb.mpDescriptors, kfa.kpDescriptors, matchesBA);
 
     // RANSAC A->B:
 //    Sophus::SE3d relPoseAB = reg_3p_->solve(kfa, kfb, matchesAB);
@@ -95,7 +95,7 @@ boost::shared_ptr<Edge> RegistratorKFs::tryAndMatchLargeLoop(const Keyframe& kfa
 //    reg_sim3_->solve(obsAB, obsBA);
 
     // change a, b order to make this edge consist with the definition for backward neighbours
-    edge.reset(new Edge(kfb.id, kfa.id, cslam::EDGE_LOOP, relPoseBA));
+    edge.reset(new ptam::Edge(kfb.id, kfa.id, ptam::EDGE_LOOP, relPoseBA));
     return edge;
 }
 } // namespace

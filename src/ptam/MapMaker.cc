@@ -41,11 +41,11 @@ using namespace CVD;
 using namespace std;
 using namespace GVars3;
 using namespace ptam;
-using namespace cslam;
+using namespace backend;
 
 // Constructor sets up internal reference variable to Map.
 // Most of the intialisation is done by Reset()..
-MapMaker::MapMaker(Map& m, SLAMSystem &ss, backend &be, bool bOffline)
+MapMaker::MapMaker(Map& m, SLAMSystem &ss, LoopClosing &be, bool bOffline)
     : mMap(m), mSLAM(ss), mbackend_(be), mCamera(CameraModel::CreateCamera()),
       mbOffline(bOffline), mbMappingEnabled(true), newRecentKF(false)
 {

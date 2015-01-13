@@ -4,12 +4,12 @@
 #include <opencv2/opencv.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#include <slam/Keyframe.h>
+#include <ptam/KeyFrame.h>
 
 #include "Registrator3P.h"
 #include "RegistratorSIM3.h"
 
-namespace cslam {
+namespace backend {
 
 class RegistratorKFs {
 public:
@@ -17,8 +17,8 @@ public:
                    int nMinInliers = 30, double threshPx = 3.0, double maxErrAngle_ = 10.0*M_PI/180.0,
                    bool useSIM3 = false);
 
-    boost::shared_ptr<Edge> tryAndMatch(const Keyframe& kf1, const Keyframe& kf2);
-    boost::shared_ptr<Edge> tryAndMatchLargeLoop(const Keyframe& kf1, const Keyframe& kf2);
+    boost::shared_ptr<ptam::Edge> tryAndMatch(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
+    boost::shared_ptr<ptam::Edge> tryAndMatchLargeLoop(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
 
 protected:
     boost::scoped_ptr<cv::DescriptorMatcher> matcher_;

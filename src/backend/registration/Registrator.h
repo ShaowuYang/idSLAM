@@ -5,7 +5,7 @@
 
 #include <cs_geometry/Camera.h>
 
-namespace cslam {
+namespace backend {
 
 class Registrator {
 public:

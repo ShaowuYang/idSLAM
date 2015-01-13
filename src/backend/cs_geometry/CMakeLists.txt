@@ -18,12 +18,11 @@ set(EXTERNAL_LIBS
    gsl gslcblas yaml-cpp
 )
 
-add_library(cs_geometry
+rosbuild_add_library(cs_geometry
   Camera.cpp
-  Conversions.hpp
+  Conversions.cpp
   FivePointSolver.cpp
   Math.cpp
-  PointClouds.cpp
   TrivariatePolynomials.cpp
 )
 target_link_libraries(cs_geometry ${EXTERNAL_LIBS})

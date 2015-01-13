@@ -1,1 +1,1 @@
-add_library(cslam_tools Profiler.cpp)
+add_library(backend_tools Profiler.cpp)

@@ -33,6 +33,7 @@ Sophus::SE3d toSophusSE3(const geometry_msgs::Pose& msg);
 Sophus::SE3d toSophusSE3(const tf::Transform& msg);
 
 Eigen::Matrix3d toEigenMat(const tf::Matrix3x3& tfMat);
+Eigen::Vector3d toEigenVec(const TooN::Vector<3>& v3);
 
 geometry_msgs::Quaternion toGeomMsgQuat(const TooN::SO3<>& so3);
 geometry_msgs::Pose toGeomMsgPose(const TooN::SE3<>& se3);
@@ -43,7 +44,5 @@ Sophus::SO3d toSO3(const tf::Matrix3x3& m);
 Sophus::SO3d toSO3(const tf::Quaternion& q);
 
 }
-
-#include "Conversions.hpp"
 
 #endif /* _CS_GEOMETRY_CONVERSIONS_H_ */

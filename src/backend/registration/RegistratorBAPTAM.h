@@ -14,7 +14,7 @@
 
 #include "Registrator.h"
 
-namespace cslam {
+namespace backend {
 
 class RegistratorBAPTAM : public Registrator {
 public:

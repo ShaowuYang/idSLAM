@@ -5,7 +5,7 @@
 #include <ptam/PolynomialCamera.h>
 #include <ptam/Bundle.h>
 
-using namespace cslam;
+using namespace backend;
 using namespace ptam;
 using namespace std;
 

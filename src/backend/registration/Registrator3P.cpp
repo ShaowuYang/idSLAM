@@ -2,14 +2,16 @@
 
 #include <opencv2/core/eigen.hpp>
 #include <cs_geometry/Math.h>
+#include <cs_geometry/Conversions.h>
+#include <ptam/MapPoint.h>
 
-using namespace cslam;
+using namespace backend;
 using namespace cs_geom;
 
 
 #define N_SAMPLES 4
 
-Sophus::SE3d Registrator3P::solve(const Keyframe& kfa, const Keyframe& kfb,
+Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
                                   const std::vector<cv::DMatch>& matches)
 {
     if (matches.size() < 5)
@@ -28,7 +30,7 @@ Sophus::SE3d Registrator3P::solve(const Keyframe& kfa, const Keyframe& kfb,
 
         for (int i = 0; i < N_SAMPLES; i++) {
             const int& ind = sampleInd[i];
-            const Eigen::Vector3d& mpa = kfa.mapPoints[matches[ind].queryIdx].p3d;
+            const Eigen::Vector3d& mpa = cs_geom::toEigenVec(kfa.mapPoints[matches[ind].queryIdx]->v3RelativePos);
             mapPointsA[i]   = cv::Point3f(mpa[0], mpa[1], mpa[2]);
             imagePointsB[i] = kfb.keypoints[matches[ind].trainIdx].pt;
         }
@@ -57,7 +59,7 @@ Sophus::SE3d Registrator3P::solve(const Keyframe& kfa, const Keyframe& kfb,
         // observation oInd(i) consists of one pair of points:
 
         const cv::DMatch& match = matches[oInd[i]];
-        const Eigen::Vector3d& mpa   = kfa.mapPoints[match.queryIdx].p3d;
+        const Eigen::Vector3d& mpa   = cs_geom::toEigenVec(kfa.mapPoints[match.queryIdx]->v3RelativePos);
         const cv::Point2f&     imbcv = kfb.keypoints[match.trainIdx].pt;
         Eigen::Vector2d imb(imbcv.x, imbcv.y);
 
@@ -88,7 +90,7 @@ Sophus::SE3d Registrator3P::solve(const Keyframe& kfa, const Keyframe& kfb,
     return hyp[0].relPose.inverse();
 }
 
-std::vector<cv::DMatch> Registrator3P::getInliers(const Keyframe& kfa, const Keyframe& kfb,
+std::vector<cv::DMatch> Registrator3P::getInliers(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
                                                   const std::vector<cv::DMatch>& matches,
                                                   const Sophus::SE3d& relPoseAB,
                                                   double threshold,
@@ -100,7 +102,7 @@ std::vector<cv::DMatch> Registrator3P::getInliers(const Keyframe& kfa, const Key
     for (uint i = 0; i < matches.size(); i++) {
         const cv::DMatch& m = matches[i];
 
-        const Eigen::Vector3d& mpa   = kfa.mapPoints[m.queryIdx].p3d;
+        const Eigen::Vector3d& mpa   = cs_geom::toEigenVec(kfa.mapPoints[m.queryIdx]->v3RelativePos);
         const cv::Point2f&     imbcv = kfb.keypoints[m.trainIdx].pt;
         Eigen::Vector2d ipb(imbcv.x, imbcv.y);
 

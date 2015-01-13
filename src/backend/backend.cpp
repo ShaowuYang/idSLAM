@@ -5,21 +5,21 @@
 #include <visualization_msgs/Marker.h>
 
 #include <sensor_msgs/PointCloud2.h>
-#include <pcl/ros/conversions.h>
+#include <pcl/conversions.h>
 
 #include <cs_geometry/Conversions.h>
 #include <cs_geometry/PointClouds.h>
+#include <ptam/MapPoint.h>
 
 using namespace cv;
 using namespace cs_geom;
-using namespace cslam;
+using namespace backend;
 using namespace std;
 
-backend::backend(ros::NodeHandle &nh, cs_geom::Camera &cam, SLAMSystem &ss) :
+LoopClosing::LoopClosing(ros::NodeHandle &nh, ros::NodeHandle &nh_pri, SLAMSystem &ss) :
     nh_(nh),
-    cam_(cam),
-    slam_(ss),
-    nh_private_("~")
+    nh_private_(nh_pri),
+    slam_(ss)
 {
     nh_private_.param("world_frame",     world_frame_,   std::string("/ptam_world"));
 
@@ -40,12 +40,12 @@ backend::backend(ros::NodeHandle &nh, cs_geom::Camera &cam, SLAMSystem &ss) :
     start();// This CVD::thread func starts the backend thread with function run()
 }
 
-void backend::StopThread(){
+void LoopClosing::StopThread(){
     this->stop();
     this->join();
 }
 
-void backend::run(){
+void LoopClosing::run(){
     while(!shouldStop()){
         //should do CHECK_RESET
         // check the waiting list of the front end, and add kfs, edges
@@ -61,7 +61,7 @@ void backend::run(){
             boost::unique_lock<boost::mutex> lockg(slam_.syncMutex);// write access
             slam_.setGMapUpdated(false);
             lockg.unlock();
-            cout << "edges and kfs sizes: " << slam_.wlEdges.size() << ", "
+            cout << "adding edges and kfs sizes: " << slam_.wlEdges.size() << ", "
                     << slam_.wlKeyFrames.size() << endl;
 
             // add edges first, then kfs, since we need to add a outgoing edge of a kf
@@ -93,138 +93,45 @@ void backend::run(){
     }
 }
 
-void backend::addKeyframe(const Keyframe msg)
+void LoopClosing::addKeyframe(const int kf_id)
 {
-//    boost::shared_ptr<Keyframe> kf = messageToKeyframe(msg);
-    boost::shared_ptr<Keyframe> kf( new Keyframe);
-    *kf = msg;
-//    slam_.addKeyframe(kf);
+//    boost::shared_ptr<Keyframe> kf( new Keyframe);
+//    *kf = kf_id;
 
-    slam_.wlKeyFrames.push_back(kf);
+    slam_.wlKeyFrames.push_back(kf_id);
     kfWlEmpty_.notify_one();
 }
 
-void backend::addEdges(const std::vector<Edge> msg)
+void LoopClosing::addEdges(const std::vector<ptam::Edge> msg)
 {
-    std::vector<boost::shared_ptr<Edge> > edges = messageToEdges(msg);
+    std::vector<boost::shared_ptr<ptam::Edge> > edges = messageToEdges(msg);
 //    slam_.addEdges(edges);
 
     for (int i = 0; i < edges.size(); i++)
         slam_.wlEdges.push_back(edges[i]);
 }
 
-void backend::addPoints(const Keyframe msg)
+std::vector<boost::shared_ptr<ptam::Edge> > LoopClosing::messageToEdges(const std::vector<ptam::Edge>& msg)
 {
-    cout << "map points of kf id: "<< msg.id << ", " << msg.mapPoints.size() << endl;
-    cout << "corners: " << msg.keypoints.size();
-    for (uint i = 0; i < msg.levels.size(); i++)
-        cout << msg.levels[i].corners.size() << " ";
-    cout << endl;
-
-    boost::shared_ptr<Keyframe> kf( new Keyframe);
-    *kf = msg;
-
-    slam_.updatePoints(kf);
-}
-
-void backend::updateKfPoses(const vector<boost::shared_ptr<Keyframe> > kfs)
-{
-    boost::shared_ptr<Keyframe> kf( new Keyframe);
-    for (int i = 0; i < kfs.size(); i ++){
-        kf = kfs[i];
-
-        slam_.updateKfPose(kf);
-    }
-}
-
-boost::shared_ptr<Keyframe> backend::messageToKeyframe(const idSLAM::KeyframeConstPtr& msg)
-{
-    boost::shared_ptr<Keyframe> kf(new Keyframe());
-    kf->id = msg->id;
-    kf->time = TimeStamp(msg->kftime.sec, msg->kftime.nsec);
-
-    kf->ptamPosewTc = toSophusSE3(msg->pose);
-    kf->posewTc     = kf->ptamPosewTc;
-
-    kf->haveImuData = msg->haveImuData;
-    kf->imuNaviTc   = toSophusSO3(msg->naviTCam);
-
-//    kf->haveGroundData = (use_ground_data_ && msg->haveGroundData);
-//    kf->groundTc       = toSophusSE3(msg->groundTCam);
-
-    // Copy depth image:
-    kf->depthImage = cv::Mat(msg->depthImage.height, msg->depthImage.width, CV_16UC1,
-                             (void*) &msg->depthImage.data[0], msg->depthImage.step).clone();
-
-    // Copy rgb image:
-    kf->rgbImage = cv::Mat(msg->rgbImage.height, msg->rgbImage.width, CV_8UC3,
-                           (void*) &msg->rgbImage.data[0]).clone();
-
-    // Copy levels:
-    kf->levels.resize(msg->levels.size());
-    for (uint l = 0; l < msg->levels.size(); l++) {
-        int levelscale = 1 << l;
-        const idSLAM::Level& lmsg = msg->levels[l];
-        Level& lkf = kf->levels[l];
-
-        // Make sure image is actually copied:
-        lkf.image = cv::Mat(lmsg.height, lmsg.width, CV_8UC1,
-                            (void*) &lmsg.data[0], lmsg.step).clone();
-
-        assert(lmsg.corners.size() > 0);
-        lkf.corners.resize(lmsg.corners.size());
-        lkf.cornerDepth.resize(lmsg.corners.size());
-        for (uint c = 0; c < lmsg.corners.size(); c++) {
-            lkf.corners[c].x = lmsg.corners[c].ix;
-            lkf.corners[c].y = lmsg.corners[c].iy;
-        }
-
-        lkf.cornerDepth.resize(lmsg.cornerDepth.size());
-        for (uint c = 0; c < lmsg.cornerDepth.size(); c++) {
-            lkf.cornerDepth[c] = lmsg.cornerDepth[c];
-        }
-    }
-
-    // Copy map points:
-    Sophus::SE3d poseInv = kf->posewTc.inverse();
-    kf->mapPoints.resize(msg->mappoints.size());
-    for (uint i = 0; i < msg->mappoints.size(); i++) {
-        const idSLAM::Mappoint& mpmsg = msg->mappoints[i];
-        MapPoint& mpkf = kf->mapPoints[i];
-
-        mpkf.level = mpmsg.level;
-
-        // p3d: PTAM stores global map points, we need relative map points:
-        mpkf.p3d = poseInv*Eigen::Vector3d(mpmsg.px, mpmsg.py, mpmsg.pz);
-
-        mpkf.pi.x  = mpmsg.ix;
-        mpkf.pi.y  = mpmsg.iy;
-    }
-
-    return kf;
-}
-
-std::vector<boost::shared_ptr<Edge> > backend::messageToEdges(const std::vector<cslam::Edge>& msg)
-{
-    std::vector<boost::shared_ptr<Edge> > edges;
+    std::vector<boost::shared_ptr<ptam::Edge> > edges;
 
     edges.resize(msg.size());
 
     for (uint e = 0; e < edges.size(); e++) {
-        edges[e].reset(new Edge);
-        const Edge& emsg = msg[e];
+        edges[e].reset(new ptam::Edge);
+        const ptam::Edge& emsg = msg[e];
 
         edges[e]->idA   = emsg.idA;
         edges[e]->idB   = emsg.idB;
         edges[e]->aTb   = emsg.aTb;
-        edges[e]->type  = EDGE_PTAM;
+        edges[e]->type  = ptam::EDGE_PTAM;
         edges[e]->valid = true;
     }
 
     return edges;
 }
 
-void backend::publishTF(const ros::TimerEvent&)
+void LoopClosing::publishTF(const ros::TimerEvent&)
 {
     tf_broadcaster_.sendTransform(tf::StampedTransform(toTfTrans(slam_.cslamTptam().inverse()),
                                                        ros::Time::now(),
@@ -232,9 +139,10 @@ void backend::publishTF(const ros::TimerEvent&)
                                                        world_frame_));
 }
 
-void backend::publishVis()
+void LoopClosing::publishVis()
 {
-    const std::vector<boost::shared_ptr<Keyframe> >& kfs = slam_.keyframes();
+    const std::vector<boost::shared_ptr<ptam::KeyFrame> >& kfs = slam_.keyframes();
+    bool useDifWorldFrame = true; // use a different world frame for rviz visualization
 
     if (vis_kf_pub_.getNumSubscribers() > 0) {
         visualization_msgs::Marker kf_marker;
@@ -263,8 +171,17 @@ void backend::publishVis()
         kf_marker.points.resize(kfs.size()*6);
         uint ip = 0;
 
-        BOOST_FOREACH(const boost::shared_ptr<Keyframe> kf, kfs) {
-            const Sophus::SE3d& pose = kf->posewTc;
+        BOOST_FOREACH(const boost::shared_ptr<ptam::KeyFrame> kf, kfs) {
+            TooN::SE3<> kfpose = kf->se3CfromW.inverse();
+            if (useDifWorldFrame){
+                TooN::Matrix<3> datam = TooN::Data(0, 0, 1.0,//Rww1, because the roll and pitch angles are in
+                                             -1.0, 0, 0, // a world frame which pointing downward.
+                                             0, -1.0, 0);
+                TooN::SO3<> rot = TooN::SO3<>();
+                rot = datam;
+                kfpose = rot * kfpose;
+            }
+            const Sophus::SE3d& pose = cs_geom::toSophusSE3(kfpose);
 
             geometry_msgs::Point camPos = toGeomMsgPoint(pose.translation());
 
@@ -284,7 +201,7 @@ void backend::publishVis()
         vis_kf_pub_.publish(kf_marker);
     } // end if vis_kf_pub_ has subscribers
 
-    if (vis_points_pub_.getNumSubscribers() > 0) {
+    /*if (vis_points_pub_.getNumSubscribers() > 0) {
         visualization_msgs::Marker points_marker;
 
         points_marker.header.frame_id = world_frame_;
@@ -309,11 +226,11 @@ void backend::publishVis()
         points_marker.lifetime = ros::Duration();
         points_marker.type = visualization_msgs::Marker::POINTS;
 
-        BOOST_FOREACH(const boost::shared_ptr<Keyframe> kf, kfs) {
-            const Sophus::SE3d& kfPose = kf->posewTc;
-            BOOST_FOREACH(cslam::MapPoint p, kf->mapPoints) {
-                Eigen::Vector3d pWorld = kfPose*p.p3d;
-                unsigned char gray     = kf->levels[p.level].image.at<unsigned char>(p.pi);
+        BOOST_FOREACH(const boost::shared_ptr<ptam::KeyFrame> kf, kfs) {
+            const Sophus::SE3d& kfPose = cs_geom::toSophusSE3(kf->se3CfromW.inverse());
+            BOOST_FOREACH(boost::shared_ptr<ptam::MapPoint> mp, kf->mapPoints) {
+                Eigen::Vector3d pWorld = kfPose*cs_geom::toEigenVec(mp->v3WorldPos);
+                unsigned char gray     = kf->aLevels[mp->nSourceLevel].im[mp->irCenter];
                 std_msgs::ColorRGBA color;
                 color.a = 1.0;
                 color.r = color.g = color.b = (1./255.)*gray;
@@ -323,7 +240,7 @@ void backend::publishVis()
         }
 
         vis_points_pub_.publish(points_marker);
-    } // end if vis_points_pub_ has subscribers
+    } */// end if vis_points_pub_ has subscribers
 
     static ros::Time lastCloudPublished_ = ros::Time(0);
 //    if (vis_pointcloud_pub_.getNumSubscribers() > 0 &&
@@ -373,21 +290,39 @@ void backend::publishVis()
         edge_marker.lifetime = ros::Duration();
         edge_marker.type = visualization_msgs::Marker::LINE_LIST;
 
-        BOOST_FOREACH(const boost::shared_ptr<Keyframe> kf, kfs) {
-            const Sophus::SE3d& kfPose = kf->posewTc;
+        BOOST_FOREACH(const boost::shared_ptr<ptam::KeyFrame> kf, kfs) {
+            TooN::SE3<> kfpose = kf->se3CfromW.inverse();
+            if (useDifWorldFrame){
+                TooN::Matrix<3> datam = TooN::Data(0, 0, 1.0,//Rww1, because the roll and pitch angles are in
+                                             -1.0, 0, 0, // a world frame which pointing downward.
+                                             0, -1.0, 0);
+                TooN::SO3<> rot = TooN::SO3<>();
+                rot = datam;
+                kfpose = rot * kfpose;
+            }
+            const Sophus::SE3d& kfPose = cs_geom::toSophusSE3(kfpose);
 
             Eigen::Vector3d from = kfPose.translation();
 
-            for (Keyframe::EdgeMap::const_iterator it = kf->edges.begin();
+            for (ptam::KeyFrame::EdgeMap::const_iterator it = kf->edges.begin();
                  it != kf->edges.end(); it++) {
                  const int idB = it->first;
-                 const boost::shared_ptr<Edge> edge = it->second;
+                 const boost::shared_ptr<ptam::Edge> edge = it->second;
                  assert(idB == edge->idA);
 
                  if (idB >= (int) kfs.size())
                      continue;
 
-                 Eigen::Vector3d to = kfs[idB]->posewTc.translation();
+                 TooN::SE3<> kfpose = kfs[idB]->se3CfromW.inverse();
+                 if (useDifWorldFrame){
+                     TooN::Matrix<3> datam = TooN::Data(0, 0, 1.0,//Rww1, because the roll and pitch angles are in
+                                                  -1.0, 0, 0, // a world frame which pointing downward.
+                                                  0, -1.0, 0);
+                     TooN::SO3<> rot = TooN::SO3<>();
+                     rot = datam;
+                     kfpose = rot * kfpose;
+                 }
+                 Eigen::Vector3d to = cs_geom::toSophusSE3(kfpose).translation();
                  edge_marker.points.push_back(toGeomMsgPoint(from));
                  edge_marker.points.push_back(toGeomMsgPoint(to));
 
@@ -397,13 +332,13 @@ void backend::publishVis()
                  color.g = 0.4;
                  color.b = 0.4;
                  switch (edge->type) {
-                 case EDGE_PTAM:
+                 case ptam::EDGE_PTAM:
                      color.g = 1.0;
                      break;
-                 case EDGE_MOTIONMODEL:
+                 case ptam::EDGE_MOTIONMODEL:
                      color.b = 1.0;
                      break;
-                 case EDGE_LOOP:
+                 case ptam::EDGE_LOOP:
                      color.r = 1.0;
                      color.a = 1.0;
                      color.g = 0.;
@@ -415,7 +350,7 @@ void backend::publishVis()
                  edge_marker.colors.push_back(color);
             }
 
-            if (kf->haveGroundData) {
+            /*if (kf->haveGroundData) {
                 std_msgs::ColorRGBA colorGround;
                 colorGround.a = 0.7;
                 colorGround.r = 1.0;
@@ -428,7 +363,7 @@ void backend::publishVis()
 
                 edge_marker.colors.push_back(colorGround);
                 edge_marker.colors.push_back(colorGround);
-            }
+            }*/
         }
 
         vis_edges_pub_.publish(

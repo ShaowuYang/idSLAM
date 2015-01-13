@@ -29,8 +29,8 @@
 #include <boost/smart_ptr.hpp>
 
 #include <ODT/landing_object.h>
-#include <slam/SLAMSystem.h>
-#include <backend.h>
+#include <backend/slam/SLAMSystem.h>
+#include <backend/backend.h>
 
 namespace ptam{
 //typedef boost::function<void(boost::shared_ptr<KeyFrame>)> sendKfCbFunction;
@@ -40,7 +40,7 @@ namespace ptam{
 class MapMaker : protected CVD::Thread
 {
 public:
-  MapMaker(Map &m, cslam::SLAMSystem &ss, cslam::backend &be, bool bOffline = false);
+  MapMaker(Map &m, backend::SLAMSystem &ss, backend::LoopClosing &be, bool bOffline = false);
   ~MapMaker();
   
   // Make a map from scratch. Called by the tracker.
@@ -142,9 +142,9 @@ protected:
   virtual void run();      // The MapMaker thread code lives here
 
 //  Map &mGMap;               // the global map of the slam system, handled by the backend, accessed by ptam.
-  cslam::SLAMSystem &mSLAM; // the slam system, which contains the global map
+  backend::SLAMSystem &mSLAM; // the slam system, which contains the global map
                             // mapmaker will only do read access to it
-  cslam::backend &mbackend_;// the backend
+  backend::LoopClosing &mbackend_;// the backend
 
   // Functions for starting the map from scratch:
   TooN::SE3<> CalcPlaneAligner();

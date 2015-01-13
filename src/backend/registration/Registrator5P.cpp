@@ -5,7 +5,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 
 using namespace cs_geom;
-using namespace cslam;
+using namespace backend;
 using namespace std;
 
 Registrator5P::Registrator5P(const cs_geom::Camera& cam,

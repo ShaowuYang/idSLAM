@@ -1,4 +1,4 @@
-add_library(cslam_reg
+add_library(backend_reg
   RegistratorSIM3.cpp
   Registrator3P.cpp
   Registrator5P.cpp
@@ -6,5 +6,5 @@ add_library(cslam_reg
   RegistratorKFs.cpp
 )
 
-target_link_libraries(cslam_reg ptam yaml-cpp)
+target_link_libraries(backend_reg ptam yaml-cpp)
 
