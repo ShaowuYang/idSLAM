@@ -14,10 +14,10 @@ Camera::Camera()
     good_ = false;
 }
 
-Camera::Camera(const std::string& calib_file)
+Camera::Camera(const std::string& calib_file, int camNum)
 {
-    cout << "Pose Graph camera calib file: " << calib_file << endl;
-    this->readFromFile(calib_file);
+    cout << "Pose Graph camera " << camNum << " calib file: " << calib_file << endl;
+    this->readFromFile(calib_file, camNum);
 }
 
 struct SimpleMatrix
@@ -43,12 +43,22 @@ void operator >> (const YAML::Node& node, SimpleMatrix& m)
         m.data[i] = data[i].as<double>();
 }
 
-void Camera::readFromFile(const std::string& calib_file)
+void Camera::readFromFile(const std::string& calib_file, int camNum)
 {
-    static const char WIDTH_YML_NAME[]  = "image_width";
-    static const char HEIGHT_YML_NAME[] = "image_height";
-    static const char K_YML_NAME[]      = "camera_matrix";
-    static const char D_YML_NAME[]      = "distortion_coefficients";
+    string camIndex;// = std::to_string(camnum - 1); // not working!!
+
+    if (!camNum){
+        camIndex = "";
+    }
+    else {
+        stringstream ss;
+        ss << camNum - 1;
+        camIndex = ss.str();
+    }
+    string WIDTH_YML_NAME = "image_width" + camIndex;
+    string HEIGHT_YML_NAME = "image_height" + camIndex;
+    string K_YML_NAME = "camera_matrix" + camIndex;
+    string D_YML_NAME = "distortion_coefficients" + camIndex;
 
     // First: Use Yaml to extract width_, height_, K_, D_
 //    std::ifstream in(calib_file.c_str());
@@ -65,22 +75,22 @@ void Camera::readFromFile(const std::string& calib_file)
 //        parser.GetNextDocument(doc);
         YAML::Node doc = YAML::LoadFile(calib_file);// using the new api
 
-        width_ = doc[WIDTH_YML_NAME].as<int>();//  >> width_;
-        height_ = doc[HEIGHT_YML_NAME].as<int>();
+        width_ = doc[WIDTH_YML_NAME.c_str()].as<int>();//  >> width_;
+        height_ = doc[HEIGHT_YML_NAME.c_str()].as<int>();
 
         // Read camera matrix:
         K_ = cv::Mat(3, 3, CV_64FC1, 0.0);
         SimpleMatrix K(3, 3, (double*) K_.data);
-        doc[K_YML_NAME] >> K;
+        doc[K_YML_NAME.c_str()] >> K;
 
         // Read distortion coefficients:
-        const YAML::Node& D_node = doc[D_YML_NAME];
+        const YAML::Node& D_node = doc[D_YML_NAME.c_str()];
         int D_rows, D_cols;
         D_rows = D_node["rows"].as<int>();
         D_cols = D_node["cols"].as<int>();
         D_ = cv::Mat(1, 8, CV_64FC1, 0.0);
         SimpleMatrix D(1, D_rows*D_cols, (double*) D_.data);
-        doc[D_YML_NAME] >> D;
+        doc[D_YML_NAME.c_str()] >> D;
     }
     catch (YAML::Exception& e) {
         cerr << "Exception parsing YAML camera calibration:" << endl << e.what() << endl;

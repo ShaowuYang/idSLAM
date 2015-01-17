@@ -22,6 +22,7 @@ class Relocaliser
 public:
   Relocaliser(Map &map);
   bool AttemptRecovery(KeyFrame &k);
+  bool AttemptRecovery(const KeyFrame &goodkf, const KeyFrame &kf); ///current kf with the most recent good kf
   TooN::SE3<> BestPose();
   bool AttemptRecoveryDual(KeyFrame &k, KeyFrame &k2);
 
@@ -37,6 +38,7 @@ protected:
   TooN::SE3<> mse3Best;
   std::auto_ptr<CameraModel> mCamera;
   std::auto_ptr<CameraModel> mCameraSec[AddCamNumber];
+
 };
 } // namespace
 

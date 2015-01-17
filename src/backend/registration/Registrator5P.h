@@ -18,7 +18,7 @@ namespace backend {
 
 class Registrator5P : public Registrator {
 public:
-    Registrator5P(const cs_geom::Camera& cam,
+    Registrator5P(const cs_geom::Camera * cam,
                   double rob = 3.0,
                   double thresh2D = 0.008,
                   double threshD = 0.3);

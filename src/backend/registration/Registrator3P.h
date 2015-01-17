@@ -32,9 +32,11 @@ struct Observation {
 
 class Registrator3P {
 public:
-    Registrator3P(const cs_geom::Camera& cam, int nMaxObs = 500, int nHyp = 400, int blockSize = 50) :
-        cam_(cam), nMaxObs_(nMaxObs), nHyp_(nHyp), blockSize_(blockSize) {
-
+    Registrator3P(const cs_geom::Camera * cam, int camNum = 1, int nMaxObs = 500, int nHyp = 400, int blockSize = 50) :
+        nMaxObs_(nMaxObs), nHyp_(nHyp), blockSize_(blockSize) {
+        cam_ = new cs_geom::Camera [camNum];
+        for (int i = 0; i < camNum; i ++)
+            cam_[i] = cam[i];
     }
 
     // Try to find kfa's map points to kfb's corners. Return: ^A T_B
@@ -48,7 +50,7 @@ public:
     protected:
     static inline int preemption(int i, int M, int B) { return M*pow(2, - i/B); }
 
-    const cs_geom::Camera& cam_;
+    cs_geom::Camera * cam_;
     int nMaxObs_, nHyp_, blockSize_;
 };
 

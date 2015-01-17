@@ -5,7 +5,6 @@
 
 #include <opencv2/opencv.hpp>
 #include <Eigen/Core>
-
 namespace cs_geom {
 
 /**
@@ -23,14 +22,14 @@ public:
     * \brief Constructs camera object from calibration file.
     * \param filename Filename that contains calibration data (OpenCV yaml format).
     */
-    Camera(const std::string& filename);
+    Camera(const std::string& filename, int camNum);
     ~Camera();
 
     /*!
     * \brief Initializes existing camera object from calibration file.
     * \param filename Filename that contains calibration data (OpenCV yaml format).
     */
-    void readFromFile(const std::string& filename);
+    void readFromFile(const std::string& filename, int camNum);
 
     /*!
     * \brief Indicates whether creation of this object succeeded.

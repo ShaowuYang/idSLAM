@@ -13,7 +13,7 @@ namespace backend {
 
 class RegistratorKFs {
 public:
-    RegistratorKFs(const cs_geom::Camera& cam,
+    RegistratorKFs(const cs_geom::Camera * cam,
                    int nMinInliers = 30, double threshPx = 3.0, double maxErrAngle_ = 10.0*M_PI/180.0,
                    bool useSIM3 = false);
 

@@ -138,6 +138,8 @@ protected:
   boost::shared_ptr<KeyFrame> mCurrentKFsec[AddCamNumber];            // The current working frame as a keyframe struct
                                                             /// abusing "second" in this project, which means all those additional cameras
   std::vector<int> ActiveAdCamIndex; /// active cameras used in this frame
+  boost::shared_ptr<KeyFrame> mGoodKFtoTrack;       /// the most recent well-tracked kf, used when tracking get lost
+  boost::shared_ptr<KeyFrame> mGoodKFtoTracksec[AddCamNumber];
   // The major components to which the tracker needs access:
   Map &mMap;                      // The map, consisting of points and keyframes
   MapMaker &mMapMaker;            // The class which maintains the map
@@ -218,6 +220,7 @@ protected:
   
   // Relocalisation functions:
   bool AttemptRecovery();         // Called by TrackFrame if tracking is lost.
+  bool AttemptRecovery(const KeyFrame &goodkf, const KeyFrame &kf);
   bool mbJustRecoveredSoUseCoarse;// Always use coarse tracking after recovery!
 
   // Frame-to-frame motion init:

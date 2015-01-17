@@ -6,6 +6,7 @@
 #include "PatchFinder.h"
 #include "MapPoint.h"
 #include "TrackerData.h"
+#include <registration/RegistratorKFs.h>
 
 #include <cvd/utility.h>
 #include <cvd/fast_corner.h>
@@ -114,6 +115,8 @@ void Tracker::Reset()
     mUsingDualImg = false;
     mUseDualshould = false;
     debugmarkLoopDetected = false;
+    boost::shared_ptr<KeyFrame> kf_temp (new KeyFrame());
+    mGoodKFtoTrack= kf_temp;
     for (int i = 0; i < AddCamNumber; i ++){
         mCurrentKFsec[i]->dSceneDepthMean = 1.0;
         mCurrentKFsec[i]->dSceneDepthSigma = 1.0;
@@ -123,8 +126,12 @@ void Tracker::Reset()
         mnLastKeyFrameDroppedsec[i] = -20;
         mnFramesec[i]=0;
         mnKeyFramessec[i]=0;
+
+        boost::shared_ptr<KeyFrame> kf_temp (new KeyFrame());
+        mGoodKFtoTracksec[i] = kf_temp;
     }
     ActiveAdCamIndex.clear();
+
 
     // Tell the MapMaker to reset itself..
     // this may take some time, since the mapmaker thread may have to wait
@@ -647,6 +654,13 @@ bool Tracker::trackMapDual() {
             //			assert(mCurrentKF.aLevels[0].vCandidates.size() > 0);
             AddNewKeyFrame();
         };
+
+        /// record the most recent good kf for tracking recovery
+        if (mTrackingQuality == GOOD){
+            mGoodKFtoTrack = mCurrentKF;
+            for (int cn = 0; cn < AddCamNumber; cn ++)
+                mGoodKFtoTracksec[cn] = mCurrentKFsec[cn];
+        }
     }
     else  // what if there is a map, but tracking has been lost?
     {
@@ -690,20 +704,31 @@ bool Tracker::AttemptRecovery()
     /// use multi image to relocalize the system
     /// TODO: use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
     /// If failed, then use the original method of PTAM to reloc.
-
-    bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKF);
-    /// using only one other kf for reloc, after the main camera kf failed
+    bRelocGood = mRelocaliser.AttemptRecovery(*mGoodKFtoTrack, *mCurrentKF);
     if (!bRelocGood && mUsingDualImg)
         for (int i = 0; i < AddCamNumber; i ++){
             if (bRelocGoodsec)
                 break;
             if (mCurrentKFsec[i]->bNewsec)
-                bRelocGoodsec = mRelocaliser.AttemptRecovery(*mCurrentKFsec[i]);
+                bRelocGoodsec = mRelocaliser.AttemptRecovery(*mGoodKFtoTracksec[i], *mCurrentKFsec[i]);
             nAdCamGoodnum = i;
         }
-    if(!bRelocGood && !bRelocGoodsec){
-        cout << "Recovering failed." << endl;
-        return false;
+
+    if (!bRelocGood && !bRelocGoodsec){
+        bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKF);
+        /// using only one other kf for reloc, after the main camera kf failed
+        if (!bRelocGood && mUsingDualImg)
+            for (int i = 0; i < AddCamNumber; i ++){
+                if (bRelocGoodsec)
+                    break;
+                if (mCurrentKFsec[i]->bNewsec)
+                    bRelocGoodsec = mRelocaliser.AttemptRecovery(*mCurrentKFsec[i]);
+                nAdCamGoodnum = i;
+            }
+        if(!bRelocGood && !bRelocGoodsec){
+            cout << "Recovering failed." << endl;
+            return false;
+        }
     }
 
     SE3<> se3Best = mRelocaliser.BestPose();
@@ -717,6 +742,28 @@ bool Tracker::AttemptRecovery()
     mbJustRecoveredSoUseCoarse = true;
     cout << "Recovering seems to be success." << endl;
     return true;
+}
+
+bool Tracker::AttemptRecovery(const KeyFrame &goodkf, const KeyFrame &kf)
+{
+//    int cam = kf.nSourceCamera;
+//    std::auto_ptr<CameraModel> camera_temp;
+//    if (!cam)
+//        camera_temp = mCamera;
+//    else
+//        camera_temp = mCameraSec[cam - 1];
+//    boost::scoped_ptr<backend::RegistratorKFs> registratorkf;
+//    registratorkf = mMapMaker.mbackend_.;
+
+//    boost::shared_ptr<ptam::Edge> edge;
+//    edge = registratorkf->tryAndMatch(goodkf, kf);
+
+//    if (edge){
+//        mse3Best = cs_geom::toToonSE3(edge->aTb);
+//        return true;
+//    }
+//    else
+//        return false;
 }
 
 // GUI interface. Stuff commands onto the back of a queue so the tracker handles

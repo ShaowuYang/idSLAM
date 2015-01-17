@@ -13,9 +13,8 @@ using namespace cs_geom;
 using namespace backend;
 using namespace std;
 
-SLAMSystem::SLAMSystem(ptam::Map &m, const Camera& cam, const std::string& vocFile, bool closeLoops, bool saveKeyframes, bool pubmap)
+SLAMSystem::SLAMSystem(ptam::Map &m, const boost::scoped_ptr<cs_geom::Camera> * cam, const std::string& vocFile, bool closeLoops, bool saveKeyframes, bool pubmap)
     : map_(m),
-      cam_(cam),
       pgo_(),
       closeLoops_(closeLoops),
       saveKeyframes_(saveKeyframes),
@@ -23,11 +22,13 @@ SLAMSystem::SLAMSystem(ptam::Map &m, const Camera& cam, const std::string& vocFi
 {
     // TODO: resolve those initialization parameters
 //    cslamTptam_ = bodyTcam;
+    for (int i = 0; i < AddCamNumber + 1; i ++)
+        cam_[i] = *cam[i];
     bodyTcam_ = Sophus::SE3();
     cslamTptam_ = Sophus::SE3d();
-    loopDetector_.reset(new LoopDetector(cam, vocFile));
-    matcher_.reset(new BruteForceMatcher(cam));
-    registrator_.reset(new RegistratorKFs(cam));
+    loopDetector_.reset(new LoopDetector(cam_, vocFile));
+//    matcher_.reset(new BruteForceMatcher(cam, AddCamNumber + 1));
+    registrator_.reset(new RegistratorKFs(cam_, AddCamNumber + 1));
 
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
@@ -407,10 +408,10 @@ int SLAMSystem::findBestKeyframeForMatching(const ptam::KeyFrame& kf)
         // TODO: could consider to normalize it using mean scene depth.
         int nVisible = 0;
         BOOST_FOREACH(boost::shared_ptr<ptam::MapPoint> p, kfi.mapPoints) {
-            nVisible += cam_.isVisible(relPose*cs_geom::toEigenVec(p->v3RelativePos)); /// use my relative pose to its father kf
+            nVisible += cam_[p->nSourceCamera].isVisible(relPose*cs_geom::toEigenVec(p->v3RelativePos)); /// use my relative pose to its father kf
         }
         BOOST_FOREACH(boost::shared_ptr<ptam::MapPoint> p, kf.mapPoints) {
-            nVisible += cam_.isVisible(relPose.inverse()*cs_geom::toEigenVec(p->v3RelativePos));
+            nVisible += cam_[p->nSourceCamera].isVisible(relPose.inverse()*cs_geom::toEigenVec(p->v3RelativePos));
         }
 
         if (nVisible > bestVisible) {

@@ -14,7 +14,7 @@ namespace backend {
 
 class BruteForceMatcher {
 public:
-    BruteForceMatcher(const cs_geom::Camera& cam);
+    BruteForceMatcher(const cs_geom::Camera * cam, int camNum);
 
     boost::shared_ptr<ptam::Edge> tryAndMatch(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
 

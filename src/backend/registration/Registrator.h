@@ -9,9 +9,15 @@ namespace backend {
 
 class Registrator {
 public:
-    Registrator(const cs_geom::Camera& cam, double rob = 3.0,
+    Registrator(const cs_geom::Camera * cam, int camNum = 1, double rob = 3.0,
               double thresh2D = 5.0,
-              double threshD = 0.3) : cam_(cam), rob_(rob), thresh2D_(thresh2D), threshD_(threshD), nMatches_(0), nInliers_(0), nInliersDepth_(0) {}
+              double threshD = 0.3) : rob_(rob),
+        thresh2D_(thresh2D), threshD_(threshD), nMatches_(0),
+        nInliers_(0), nInliersDepth_(0) {
+        cam_ = new cs_geom::Camera [camNum];
+        for (int i = 0; i < camNum; i ++)
+            cam_[i] = cam[i];
+    }
 
     virtual void solve(const std::vector<cv::KeyPoint>& kpts0,
                   const std::vector<float>& depths0,
@@ -29,7 +35,7 @@ public:
 
     std::vector<cv::DMatch> inliers() { return inliers_; }
 protected:
-    const cs_geom::Camera& cam_;
+    cs_geom::Camera *cam_;
     double rob_, thresh2D_, threshD_;
 
     Sophus::SE3d relPose0T1_;

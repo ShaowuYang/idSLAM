@@ -8,9 +8,11 @@ using namespace backend;
 using namespace cs_geom;
 using namespace std;
 
-LoopDetector::LoopDetector(const Camera& cam, const std::string& vocFile) : cam_(cam)
+LoopDetector::LoopDetector(const Camera *cam, const std::string& vocFile)
+    : cam_(cam[0])
 {
-    params_ = BriefLoopDetector::Parameters(cam.width(), cam.height());
+    /// if use multi-modal cameras, modification required
+    params_ = BriefLoopDetector::Parameters(cam[0].width(), cam[0].height());
     params_.use_nss = true; // use normalized similarity score instead of raw score
     params_.alpha = 0.0; // nss threshold
     params_.k = 0; // a loop must be consistent with 1 previous matches

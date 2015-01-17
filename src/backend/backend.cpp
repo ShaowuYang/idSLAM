@@ -25,10 +25,10 @@ LoopClosing::LoopClosing(ros::NodeHandle &nh, ros::NodeHandle &nh_pri, SLAMSyste
 
     pubmap_ = slam_.pubmap_;
     // setup published topics
-    vis_kf_pub_         = nh_.advertise<visualization_msgs::Marker>("/cslam/keyframes", 1);
-    vis_points_pub_     = nh_.advertise<visualization_msgs::Marker>("/cslam/points", 1);
-    vis_edges_pub_      = nh_.advertise<visualization_msgs::Marker>("/cslam/edges", 1);
-    vis_pointcloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/cslam/pointcloud", 1);
+    vis_kf_pub_         = nh_.advertise<visualization_msgs::Marker>("/backend/keyframes", 1);
+    vis_points_pub_     = nh_.advertise<visualization_msgs::Marker>("/backend/points", 1);
+    vis_edges_pub_      = nh_.advertise<visualization_msgs::Marker>("/backend/edges", 1);
+    vis_pointcloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/backend/pointcloud", 1);
 
     backinfolog.open("backend.log");
     cout <<"logfile in backend open?: " << backinfolog.is_open() << endl;

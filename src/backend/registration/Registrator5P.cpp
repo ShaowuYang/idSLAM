@@ -8,7 +8,7 @@ using namespace cs_geom;
 using namespace backend;
 using namespace std;
 
-Registrator5P::Registrator5P(const cs_geom::Camera& cam,
+Registrator5P::Registrator5P(const Camera *cam,
                              double rob, double thresh2D, double threshD) : Registrator(cam)
 {
 

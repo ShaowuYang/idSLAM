@@ -23,7 +23,7 @@ namespace backend {
 class SLAMSystem
 {
 public:
-    SLAMSystem(ptam::Map &m, const cs_geom::Camera& cam, const std::string& vocFile,
+    SLAMSystem(ptam::Map &m, const boost::scoped_ptr<cs_geom::Camera> * cam, const std::string& vocFile,
                bool closeLoops = true, bool saveKeyframes = false,
                bool pubmap = true);
 
@@ -90,10 +90,10 @@ protected:
     int findBestKeyframeForMatching(const ptam::KeyFrame &kf);
 
     ptam::Map& map_;
-    const cs_geom::Camera& cam_;
+    cs_geom::Camera cam_[AddCamNumber + 1]; /// in all the backend, we do not name additional cameras seperately
     PGOptimizer pgo_;
 
-    boost::scoped_ptr<BruteForceMatcher> matcher_;
+//    boost::scoped_ptr<BruteForceMatcher> matcher_;
     boost::scoped_ptr<RegistratorKFs> registrator_;
     boost::scoped_ptr<LoopDetector> loopDetector_;
 

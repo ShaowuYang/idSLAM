@@ -37,7 +37,9 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
 
         cv::Mat rvec(3,1,cv::DataType<double>::type);
         cv::Mat tvec(3,1,cv::DataType<double>::type);
-        if (cv::solvePnP(mapPointsA, imagePointsB, cam_.K(), cam_.D(), rvec, tvec,  false, cv::EPNP)) {
+        /// here we need the model of camera B!
+        int camNum = kfb.nSourceCamera;
+        if (cv::solvePnP(mapPointsA, imagePointsB, cam_[kfb.nSourceCamera].K(), cam_[kfb.nSourceCamera].D(), rvec, tvec,  false, cv::EPNP)) {
             Sophus::SE3d se3;
             Eigen::Vector3d r;
             cv::cv2eigen(rvec, r);
@@ -65,7 +67,7 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
 
         // update score for all hypotheses w.r.t. observation oInd(i)
         for (int h = 0; h < (int) hyp.size(); h++) {
-            Eigen::Vector2d err = cam_.project3DtoPixel(hyp[h].relPose*mpa) - imb;
+            Eigen::Vector2d err = cam_[kfb.nSourceCamera].project3DtoPixel(hyp[h].relPose*mpa) - imb;
             hyp[h].score -= log(1.0 + err.dot(err));
 //            hyp[h].score += err.dot(err) < 3.0;
         }
@@ -106,11 +108,11 @@ std::vector<cv::DMatch> Registrator3P::getInliers(const ptam::KeyFrame& kfa, con
         const cv::Point2f&     imbcv = kfb.keypoints[m.trainIdx].pt;
         Eigen::Vector2d ipb(imbcv.x, imbcv.y);
 
-        Eigen::Vector2d err = cam_.project3DtoPixel(relPoseBA*mpa) - ipb;;
+        Eigen::Vector2d err = cam_[kfb.nSourceCamera].project3DtoPixel(relPoseBA*mpa) - ipb;;
 
         if (err.dot(err) < thresh2) {
             inliers.push_back(m);
-            obs.push_back(Observation(mpa, cam_.unprojectPixel(ipb)));
+            obs.push_back(Observation(mpa, cam_[kfb.nSourceCamera].unprojectPixel(ipb)));
         }
     }
 
