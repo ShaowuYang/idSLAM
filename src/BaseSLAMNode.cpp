@@ -110,8 +110,10 @@ void BaseSLAMNode::InitBackend()
 
 //    world_frame_ = "/idslam_world";
 
-    cam_.reset(new cs_geom::Camera(calib_file));
-    ss_.reset(new SLAMSystem(*map_,*cam_,voc_file, close_loops_, saveKeyframes, pubmap_));
+    cam_[0].reset(new cs_geom::Camera(calib_file, 0));
+    for (int i = 0; i < AddCamNumber; i ++)
+        cam_[i+1].reset(new cs_geom::Camera(calib_file, i+1));
+    ss_.reset(new SLAMSystem(*map_,cam_,voc_file, close_loops_, saveKeyframes, pubmap_));
 
     //ini the backend
     backend_.reset(new backend::LoopClosing(nh_, nh_private_, *ss_));

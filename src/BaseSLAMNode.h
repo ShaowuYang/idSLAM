@@ -14,6 +14,8 @@
 #include <pluginlib/class_list_macros.h>
 #include <nodelet/nodelet.h>
 
+#include <ptam/CameraModel.h>
+
 namespace ptam{
 class Map;
 class MapMaker;
@@ -58,7 +60,7 @@ protected:
     boost::scoped_ptr<MapVisualization> map_viz_;
 
     //backend objects
-    boost::scoped_ptr<cs_geom::Camera> cam_;
+    boost::scoped_ptr<cs_geom::Camera> cam_[AddCamNumber + 1];
     boost::scoped_ptr<backend::SLAMSystem> ss_;
     boost::scoped_ptr<backend::LoopClosing> backend_;
 

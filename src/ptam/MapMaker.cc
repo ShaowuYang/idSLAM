@@ -263,6 +263,8 @@ void MapMaker::run()
                     if (mMap.vpKeyFrames[i]->SentToGMap)
                         continue;
 
+                    /// TODO: Add keyframes from multiple cameras
+                    /// edges only from one camera, while kfs from multi-cam
                     sendKfCallback(mMap.vpKeyFrames[i], true);
                     mMap.vpKeyFrames[i]->SentToGMap = true;
                 }

@@ -4,6 +4,7 @@
 #include "KeyFrame.h"
 #include <cvd/utility.h>
 #include <gvars3/instances.h>
+#include <cs_geometry/Conversions.h>
 
 using namespace CVD;
 using namespace GVars3;
@@ -18,6 +19,7 @@ Relocaliser::Relocaliser(Map &map)
         std::auto_ptr<CameraModel> camera_temp (CameraModel::CreateCamera(i + 1));
         mCameraSec[i] = camera_temp;
     }
+
 };
 
 SE3<> Relocaliser::BestPose()
@@ -59,6 +61,11 @@ bool Relocaliser::AttemptRecovery(KeyFrame &kCurrent)
   else 
     return false;
 };
+
+bool Relocaliser::AttemptRecovery(const KeyFrame &goodkf, const KeyFrame &kf)
+{
+
+}
 
 bool Relocaliser::AttemptRecoveryDual(KeyFrame &kCurrent, KeyFrame &kCurrentsec)
 {

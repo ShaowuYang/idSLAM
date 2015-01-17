@@ -18,7 +18,7 @@ namespace backend {
 
 class LoopDetector {
 public:
-    LoopDetector(const cs_geom::Camera& cam, const std::string& vocFile);
+    LoopDetector(const cs_geom::Camera * cam, const std::string& vocFile);
     void reset();
 
     // Add newKF to database and use it to detect loops

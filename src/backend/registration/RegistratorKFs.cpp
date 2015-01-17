@@ -2,7 +2,7 @@
 
 namespace backend {
 
-RegistratorKFs::RegistratorKFs(const cs_geom::Camera& cam,
+RegistratorKFs::RegistratorKFs(const cs_geom::Camera *cam,
                                int nMinInliers, double threshPx, double maxErrAngle,
                                bool useSIM3)
     : nMinInliers_(nMinInliers), threshPx_(threshPx), maxErrAngle_(maxErrAngle)

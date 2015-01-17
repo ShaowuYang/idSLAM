@@ -3,11 +3,11 @@
 
 namespace backend {
 
-BruteForceMatcher::BruteForceMatcher(const cs_geom::Camera& cam)
+BruteForceMatcher::BruteForceMatcher(const cs_geom::Camera *cam, int camNum)
 {
     matcher_.reset(new cv::BFMatcher(cv::NORM_HAMMING, true));
-    reg_5p_.reset(new Registrator5P(cam));
-    reg_ba_.reset(new RegistratorBAPTAM(cam));
+    reg_5p_.reset(new Registrator5P(cam, camNum));
+    reg_ba_.reset(new RegistratorBAPTAM(cam, camNum));
 }
 
 boost::shared_ptr<ptam::Edge> BruteForceMatcher::tryAndMatch(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2)

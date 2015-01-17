@@ -29,8 +29,8 @@
 #include <boost/smart_ptr.hpp>
 
 #include <ODT/landing_object.h>
-#include <backend/slam/SLAMSystem.h>
-#include <backend/backend.h>
+#include <slam/SLAMSystem.h>
+#include <backend.h>
 
 namespace ptam{
 //typedef boost::function<void(boost::shared_ptr<KeyFrame>)> sendKfCbFunction;

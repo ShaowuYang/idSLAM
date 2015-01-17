@@ -43,7 +43,6 @@ set(EXTERNAL_LIBRARIES
 set(BACKEND_COMMON_LIBRARIES
   backend_slam
   backend_loops
-  backend_matching
   backend_reg
   backend_tools
   cs_geometry
@@ -54,7 +53,6 @@ set(BACKEND_COMMON_LIBRARIES
 add_subdirectory(cs_geometry)
 add_subdirectory(tools)
 add_subdirectory(registration)
-add_subdirectory(matching)
 add_subdirectory(loops)
 add_subdirectory(slam)
 add_subdirectory(g2o_types)
