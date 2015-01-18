@@ -78,6 +78,7 @@ public:
     mutable boost::mutex mutex_wl; // for waiting list access
 
     std::vector<boost::shared_ptr<ptam::KeyFrame> > keyframes_; // a ptr copy of the kfs in the map
+    std::vector<boost::shared_ptr<ptam::KeyFrame> > keyframes_add_; // kfs from additional cameras
     std::vector<boost::shared_ptr<ptam::Edge> > ptam_edges_; // ptam edges, indexed by kf A index idA
     std::vector<boost::shared_ptr<ptam::Edge> > ptam_edges_local_;// ptam edges in local BA come with the new kf at the same time
     std::vector<Sophus::SE3d> keyframeUpdatedPoses; /// new keyframe poses after PGO

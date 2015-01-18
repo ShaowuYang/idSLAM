@@ -47,6 +47,7 @@ void SLAMSystem::reset()
     loopDetector_->reset();
 
     keyframes_.clear();
+    keyframes_add_.clear();
     ptam_edges_.clear();
     ptam_edges_local_.clear();
     wlKeyFrames.clear();
@@ -107,7 +108,7 @@ void SLAMSystem::addEdges()
 void SLAMSystem::addKeyframes()
 {
     boost::unique_lock<boost::mutex> lock(mutex_wl);// write access
-    boost::shared_ptr<ptam::KeyFrame> kf(new ptam::KeyFrame);
+    boost::shared_ptr<ptam::KeyFrame> kf; // (new ptam::KeyFrame)
 //    boost::unique_lock<boost::mutex> lock(syncMutex);
 
     pgoRunRequired = false;//
@@ -126,11 +127,12 @@ void SLAMSystem::addKeyframes()
     lock.unlock();
 
     // add all keyframes in kfs, and clear it
+    /// TODO： if there's kfs from additional cams, add them
     while (wlkfs.size() > 0)    {
         kf = wlkfs[0];
         wlkfs.erase(wlkfs.begin());
 
-        assert(kf->id == keyframes_.size());// strong assumption
+        assert(kf->id == keyframes_.size());// Not added yet. strong assumption
 
         // TODO: only do pgo when we have enough kfs (max kfs in the local map)
         if (kf->id >= maxKfsInLMap-1) {// && kf->haveGroundData
@@ -165,6 +167,13 @@ void SLAMSystem::addKeyframes()
         ///////////////////
         keyframes_.push_back(kf);
         pgo_.addKeyframe(*kf);
+        // add kf_additional only aside with cam1
+        for (int cn = 0; cn < AddCamNumber; cn ++)
+            if (map_.vpKeyFramessec[cn].size() >= kf->id){
+                boost::shared_ptr<ptam::KeyFrame> kf(new ptam::KeyFrame);
+                kf = map_.vpKeyFramessec[cn][kf->id];
+                keyframes_add_.push_back(kf);
+            }
 
         latestKFinMap_ = kf->id;
 
@@ -178,7 +187,7 @@ void SLAMSystem::addKeyframes()
             ofs.close();
         }*/
 
-        // TODO: metric loop and appearence loop
+        /// TODO: detect loops with the additional kfs
         // Now find some loops.
         // Implicit loops:
         static int freelocalnum = 5;

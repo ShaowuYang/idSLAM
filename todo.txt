@@ -1,5 +1,7 @@
 Now basic multi-kinect SLAM with back-end closing loops from one camera is initially done. Next modification to do:
 
+0. External calibration of cameras without tracking system !!!! WTF
+
 1. modify the median-based robust standard-deviation, so that image and depth measurements can be weighted seperately.
 
 2. solve the synchronisation problem among multiple kinects.
