@@ -6,7 +6,7 @@
 #include "PatchFinder.h"
 #include "MapPoint.h"
 #include "TrackerData.h"
-#include <registration/RegistratorKFs.h>
+#include <cs_geometry/Conversions.h>
 
 #include <cvd/utility.h>
 #include <cvd/fast_corner.h>
@@ -657,7 +657,7 @@ bool Tracker::trackMapDual() {
 
         /// record the most recent good kf for tracking recovery
         if (mTrackingQuality == GOOD){
-            mGoodKFtoTrack = mCurrentKF;
+            *mGoodKFtoTrack = *mCurrentKF;
             for (int cn = 0; cn < AddCamNumber; cn ++)
                 mGoodKFtoTracksec[cn] = mCurrentKFsec[cn];
         }
@@ -700,21 +700,35 @@ bool Tracker::AttemptRecovery()
     bool bRelocGood = false;
     bool bRelocGoodsec = false;
     int nAdCamGoodnum = 0;
+    int minInliers = 30;
+    TooN::SE3<> mbestpose;
 
     /// use multi image to relocalize the system
     /// TODO: use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
-    /// If failed, then use the original method of PTAM to reloc.
-    bRelocGood = mRelocaliser.AttemptRecovery(*mGoodKFtoTrack, *mCurrentKF);
+    bRelocGood = AttemptRecovery(mGoodKFtoTrack, mCurrentKF, mbestpose, minInliers);
     if (!bRelocGood && mUsingDualImg)
         for (int i = 0; i < AddCamNumber; i ++){
             if (bRelocGoodsec)
                 break;
             if (mCurrentKFsec[i]->bNewsec)
-                bRelocGoodsec = mRelocaliser.AttemptRecovery(*mGoodKFtoTracksec[i], *mCurrentKFsec[i]);
+                bRelocGoodsec = AttemptRecovery(mGoodKFtoTracksec[i], mCurrentKFsec[i], mbestpose, minInliers);
             nAdCamGoodnum = i;
         }
 
-    if (!bRelocGood && !bRelocGoodsec){
+    SE3<> se3Best = mbestpose;
+    if (bRelocGoodsec)
+        se3Best = mse3Cam1FromCam2[nAdCamGoodnum] * se3Best;
+    mse3CamFromWorld = se3Best; mse3StartPos = se3Best;
+    mse3CamFromWorldPub = se3Best; mse3StartPos = se3Best;
+    for (int i = 0; i < AddCamNumber; i ++)
+        mse3CamFromWorldsec[i] = mse3Cam1FromCam2[i].inverse()*mse3CamFromWorld;
+    mv6CameraVelocity = Zeros;
+    mbJustRecoveredSoUseCoarse = true;
+    cout << "Recovering seems to be success." << endl;
+    return true;
+
+    /// If failed, then use the original method of PTAM to reloc.
+    /*if (!bRelocGood && !bRelocGoodsec){
         bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKF);
         /// using only one other kf for reloc, after the main camera kf failed
         if (!bRelocGood && mUsingDualImg)
@@ -731,7 +745,7 @@ bool Tracker::AttemptRecovery()
         }
     }
 
-    SE3<> se3Best = mRelocaliser.BestPose();
+    se3Best = mRelocaliser.BestPose();
     if (bRelocGoodsec)
         se3Best = mse3Cam1FromCam2[nAdCamGoodnum] * se3Best;
     mse3CamFromWorld = se3Best; mse3StartPos = se3Best;
@@ -741,29 +755,21 @@ bool Tracker::AttemptRecovery()
     mv6CameraVelocity = Zeros;
     mbJustRecoveredSoUseCoarse = true;
     cout << "Recovering seems to be success." << endl;
-    return true;
+    return true;*/
 }
 
-bool Tracker::AttemptRecovery(const KeyFrame &goodkf, const KeyFrame &kf)
+bool Tracker::AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_ptr<KeyFrame> kf, TooN::SE3<> &mse3Best, int minInliers)
 {
-//    int cam = kf.nSourceCamera;
-//    std::auto_ptr<CameraModel> camera_temp;
-//    if (!cam)
-//        camera_temp = mCamera;
-//    else
-//        camera_temp = mCameraSec[cam - 1];
-//    boost::scoped_ptr<backend::RegistratorKFs> registratorkf;
-//    registratorkf = mMapMaker.mbackend_.;
+    goodkf->finalizeKeyframeBackend();
+    kf->finalizeKeyframekpts();
+    Sophus::SE3d relPoseAB;
 
-//    boost::shared_ptr<ptam::Edge> edge;
-//    edge = registratorkf->tryAndMatch(goodkf, kf);
-
-//    if (edge){
-//        mse3Best = cs_geom::toToonSE3(edge->aTb);
-//        return true;
-//    }
-//    else
-//        return false;
+    if (mMapMaker.relocaliseRegister(goodkf, kf, relPoseAB, minInliers)){
+        mse3Best = cs_geom::toToonSE3(relPoseAB);
+        return true;
+    }
+    else
+        return false;
 }
 
 // GUI interface. Stuff commands onto the back of a queue so the tracker handles

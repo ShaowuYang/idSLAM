@@ -55,6 +55,24 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& 
     return edge;
 }
 
+bool RegistratorKFs::tryToRelocalise(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
+                                             Sophus::SE3d &result, int minInliers)
+{
+    std::vector<cv::DMatch> matchesAB;
+
+    // match
+    matcher_->match(kfa.mpDescriptors, kfb.kpDescriptors, matchesAB);
+
+    // RANSAC A->B:
+    Sophus::SE3d relPoseAB;
+    if (reg_3p_->solvePnP_RANSAC(kfa, kfb, matchesAB, relPoseAB, minInliers)){
+        result = relPoseAB;
+        return true;
+    }
+    else
+        return false;
+}
+
 // for detected large loop, we expect there's significant pose drift.
 boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
 {
@@ -99,3 +117,5 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::K
     return edge;
 }
 } // namespace
+
+

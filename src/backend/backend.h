@@ -22,6 +22,7 @@ public:
 
     void addKeyframe(const int kf_id);
     void addEdges(const std::vector<ptam::Edge> edges);
+    bool relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const  boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, int minInliers = 50); // register the relocalisation module for the front-end
 
     virtual void StopThread();
 

@@ -431,3 +431,12 @@ int SLAMSystem::findBestKeyframeForMatching(const ptam::KeyFrame& kf)
 
     return bestInd;
 }
+
+bool SLAMSystem::relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, int minInliers)
+{
+    if (registrator_->tryToRelocalise(*goodkf, *kf, result, minInliers))
+        return true;
+    else
+        return false;
+}
+

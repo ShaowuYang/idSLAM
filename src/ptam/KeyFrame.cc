@@ -320,6 +320,7 @@ void KeyFrame::finalizeKeyframeBackend()
 {
     if(!mMeasurements.size())
         return;
+    /// TODO: if finalized before, return;
 
     mapPoints.clear();
     for(const_meas_it it = mMeasurements.begin(); it != mMeasurements.end(); it++) {
@@ -404,6 +405,55 @@ void KeyFrame::finalizeKeyframeBackend()
         keypoints.insert( keypoints.end(), kpts.begin(), kpts.end() );
     }
     mapPoints = mpNew;
+
+    // extract depth again
+    kpDepth.resize(keypoints.size());
+    for (unsigned int i = 0; i < keypoints.size(); i++) {
+        kpDepth[i] = keypoints[i].response;
+    }
+}
+
+void KeyFrame::finalizeKeyframekpts()
+{
+    boost::scoped_ptr<cv::DescriptorExtractor> extractor(new cv::BriefDescriptorExtractor(32));
+
+    // compute descriptors of all corners
+    keypoints.clear();
+    for (uint l = 0; l < LEVELS; l++) {
+        // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
+        Level &lev = aLevels[l];
+        ImageRef irsize = lev.im.size();
+
+        // Make sure image is actually copied:
+        cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
+                            (void*) lev.im.data(), lev.im.row_stride()).clone();
+
+        // for all corners
+        int scaleFactor = (1 << l);
+        std::vector<cv::KeyPoint> kpts;
+        kpts.resize(lev.vMaxCorners.size());
+
+        for (uint k = 0; k < kpts.size(); k++) {
+            kpts[k].pt.x = lev.vMaxCorners[k].x*scaleFactor;
+            kpts[k].pt.y = lev.vMaxCorners[k].y*scaleFactor;
+            kpts[k].octave = l;
+            kpts[k].angle = -1;
+            kpts[k].size = (1 << l)*10; // setting this is required for DescriptorExtractors to work.
+
+            // Abuse response field, but we have to keep this keypoint's depth somewhere
+            kpts[k].response = lev.vMaxCornersDepth[k];
+        }
+
+        cv::Mat levkpDesc;
+        // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
+        extractor->compute(cv_im, kpts, levkpDesc);
+
+        assert(levkpDesc.rows == kpts.size());
+
+        // concatenate all levels
+        kpDescriptors.push_back(levkpDesc);
+        keypoints.insert( keypoints.end(), kpts.begin(), kpts.end() );
+    }
 
     // extract depth again
     kpDepth.resize(keypoints.size());

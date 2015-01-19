@@ -32,7 +32,7 @@ struct Observation {
 
 class Registrator3P {
 public:
-    Registrator3P(const cs_geom::Camera * cam, int camNum = 1, int nMaxObs = 500, int nHyp = 400, int blockSize = 50) :
+    Registrator3P(const cs_geom::Camera * cam, int camNum = 1, int nMaxObs = 500, int nHyp = 200, int blockSize = 50) :
         nMaxObs_(nMaxObs), nHyp_(nHyp), blockSize_(blockSize) {
         cam_ = new cs_geom::Camera [camNum];
         for (int i = 0; i < camNum; i ++)
@@ -46,6 +46,9 @@ public:
                                        const Sophus::SE3d& relPoseBA,
                                        double threshold,
                                        std::vector<Observation>& obs);
+
+    bool solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
+                                 const std::vector<cv::DMatch>& matches, Sophus::SE3d &result, int minInliers = 50);
 
     protected:
     static inline int preemption(int i, int M, int B) { return M*pow(2, - i/B); }
