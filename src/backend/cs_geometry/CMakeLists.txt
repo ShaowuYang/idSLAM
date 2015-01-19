@@ -21,8 +21,6 @@ set(EXTERNAL_LIBS
 rosbuild_add_library(cs_geometry
   Camera.cpp
   Conversions.cpp
-  FivePointSolver.cpp
   Math.cpp
-  TrivariatePolynomials.cpp
 )
 target_link_libraries(cs_geometry ${EXTERNAL_LIBS})

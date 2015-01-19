@@ -39,7 +39,7 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
         cv::Mat tvec(3,1,cv::DataType<double>::type);
         /// here we need the model of camera B!
         int camNum = kfb.nSourceCamera;
-        if (cv::solvePnP(mapPointsA, imagePointsB, cam_[kfb.nSourceCamera].K(), cam_[kfb.nSourceCamera].D(), rvec, tvec,  false, cv::EPNP)) {
+        if (cv::solvePnP(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(), rvec, tvec,  false, cv::EPNP)) {
             Sophus::SE3d se3;
             Eigen::Vector3d r;
             cv::cv2eigen(rvec, r);
@@ -117,4 +117,38 @@ std::vector<cv::DMatch> Registrator3P::getInliers(const ptam::KeyFrame& kfa, con
     }
 
     return inliers;
+}
+
+bool Registrator3P::solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
+                                  const std::vector<cv::DMatch>& matches, Sophus::SE3d &result, int minInliers)
+{
+    if (matches.size() < 5)
+        return false;
+
+    std::vector<cv::Point3f> mapPointsA(matches.size());
+    std::vector<cv::Point2f> imagePointsB(matches.size());
+
+    for (int i = 0; i < matches.size(); i++) {
+        const int& ind = i;
+        const Eigen::Vector3d& mpa = cs_geom::toEigenVec(kfa.mapPoints[matches[ind].queryIdx]->v3RelativePos);
+        mapPointsA[i]   = cv::Point3f(mpa[0], mpa[1], mpa[2]);
+        imagePointsB[i] = kfb.keypoints[matches[ind].trainIdx].pt;
+    }
+
+    cv::Mat rvec(3,1,cv::DataType<double>::type);
+    cv::Mat tvec(3,1,cv::DataType<double>::type);
+    std::vector<int> inliers;
+    /// here we need the model of camera B!
+    int camNum = kfb.nSourceCamera;
+    cv::solvePnPRansac(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(), rvec, tvec,  false, 300, 6.0, minInliers*5, inliers, cv::EPNP);
+    if (inliers.size() > minInliers) {
+        Eigen::Vector3d r;
+        Sophus::SE3 se3; // TBA
+        cv::cv2eigen(rvec, r);
+        cv::cv2eigen(tvec, se3.translation());
+        se3.so3() = Sophus::SO3d::exp(r);
+        result = se3.inverse(); // TAB
+        return true;
+    }
+    return false;
 }

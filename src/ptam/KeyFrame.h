@@ -192,6 +192,7 @@ struct KeyFrame
 
   /// only for the back-end processes ///////////////
   void finalizeKeyframeBackend(); /// further process (compute descriptors of) the keyframe for the loop cloure detection
+  void finalizeKeyframekpts(); /// further process (compute descriptors of the corners of) the keyframe for relocalization
   std::vector<boost::shared_ptr<MapPoint> > mapPoints;  /// measured map points in this keyframe
   std::vector<cv::KeyPoint> mpKeypoints;
   cv::Mat mpDescriptors; /// descriptors for map points

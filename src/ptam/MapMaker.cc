@@ -622,6 +622,14 @@ void MapMaker::sendEdgesCallback(const std::vector<boost::shared_ptr<ptam::KeyFr
         mbackend_.addEdges(edges);
 }
 
+bool MapMaker::relocaliseRegister(const boost::shared_ptr<KeyFrame> goodkf, const boost::shared_ptr<KeyFrame> kf, Sophus::SE3d &result, int minInliers)
+{
+    if ( mbackend_.relocaliseRegister(goodkf, kf, result, minInliers))
+        return true;
+    else
+        return false;
+}
+
 // Finds 3d coords of point in reference frame B from two z=1 plane projections
 Vector<3> MapMaker::ReprojectPoint(SE3<> se3AfromB, const Vector<2> &v2A, const Vector<2> &v2B)
 {

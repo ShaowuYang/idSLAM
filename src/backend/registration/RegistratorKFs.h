@@ -19,6 +19,7 @@ public:
 
     boost::shared_ptr<ptam::Edge> tryAndMatch(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
     boost::shared_ptr<ptam::Edge> tryAndMatchLargeLoop(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
+    bool tryToRelocalise(const ptam::KeyFrame& goodkf, const ptam::KeyFrame& kf, Sophus::SE3d &result, int minInliers = 50);
 
 protected:
     boost::scoped_ptr<cv::DescriptorMatcher> matcher_;

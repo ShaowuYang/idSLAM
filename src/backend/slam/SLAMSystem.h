@@ -40,6 +40,7 @@ public:
 
     int countGoodOdometryEdges(); // count number of good odometry edges up to latest keyframe
 
+    bool relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, int minInliers = 50);
     std::vector<int> wlKeyFrames;  //a list of kfs orgernised by ID, the waiting list to be added by the backend
     std::vector<boost::shared_ptr<ptam::Edge> > wlEdges;  //kfs, the waiting list to be added by the backend
     const std::vector<boost::shared_ptr<ptam::KeyFrame> >& keyframes() { return keyframes_; }

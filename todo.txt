@@ -6,5 +6,6 @@ Now basic multi-kinect SLAM with back-end closing loops from one camera is initi
 
 2. solve the synchronisation problem among multiple kinects.
 
+
 OTHERS: it's possible I didn't use the yaml parsing correct camera calibration file. 
 	need to check this in the backend.
