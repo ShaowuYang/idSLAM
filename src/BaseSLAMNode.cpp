@@ -54,10 +54,14 @@ void BaseSLAMNode::onInit()
         GVars3::GV3::set_var("Camera.Type", std::string("\"") + calib_type + "\"");
     if (nh_private_.getParam("camera_file",calib_file))
         GVars3::GV3::set_var("Camera.File", std::string("\"") + calib_file + "\"");
-    if (nh_private_.getParam("camerasec_type",calib_type))
-        GVars3::GV3::set_var("Camerasec.Type", std::string("\"") + calib_type + "\"");
-    if (nh_private_.getParam("camerasec_file",calib_file))
-        GVars3::GV3::set_var("Camerasec.File", std::string("\"") + calib_file + "\"");
+    if (nh_private_.getParam("camerasec0_type",calib_type))
+        GVars3::GV3::set_var("Camerasec0.Type", std::string("\"") + calib_type + "\"");
+    if (nh_private_.getParam("camerasec0_file",calib_file))
+        GVars3::GV3::set_var("Camerasec0.File", std::string("\"") + calib_file + "\"");
+    if (nh_private_.getParam("camerasec1_type",calib_type))
+        GVars3::GV3::set_var("Camerasec1.Type", std::string("\"") + calib_type + "\"");
+    if (nh_private_.getParam("camerasec1_file",calib_file))
+        GVars3::GV3::set_var("Camerasec1.File", std::string("\"") + calib_file + "\"");
 
     map_.reset(new Map);
     InitBackend();// setup slam system, and init the backend
@@ -114,7 +118,6 @@ void BaseSLAMNode::InitBackend()
     for (int i = 0; i < AddCamNumber; i ++)
         cam_[i+1].reset(new cs_geom::Camera(calib_file, i+1));
     ss_.reset(new SLAMSystem(*map_,cam_,voc_file, close_loops_, saveKeyframes, pubmap_));
-
     //ini the backend
     backend_.reset(new backend::LoopClosing(nh_, nh_private_, *ss_));
 }

@@ -318,9 +318,9 @@ void KeyFrame::createRowLookupTable(int level) {
 
 void KeyFrame::finalizeKeyframeBackend()
 {
-    if(!mMeasurements.size())
+    if(finalized || !mMeasurements.size())
         return;
-    /// TODO: if finalized before, return;
+    /// TODO: descript points on the correct level!
 
     mapPoints.clear();
     for(const_meas_it it = mMeasurements.begin(); it != mMeasurements.end(); it++) {
@@ -336,13 +336,14 @@ void KeyFrame::finalizeKeyframeBackend()
             mapPoints.push_back(point);
         }
     }
+    cout << "mapPoints: " << mapPoints.size() << endl;
 
     boost::scoped_ptr<cv::DescriptorExtractor> extractor(new cv::BriefDescriptorExtractor(32));
 
     std::vector<std::vector<cv::KeyPoint> >mpKpts(LEVELS);
     for (uint i = 0; i < mapPoints.size(); i++) {
         int l = mapPoints[i]->nSourceLevel;
-        cv::KeyPoint kp(cv::Point2f(mapPoints[i]->irCenterZero[0], mapPoints[i]->irCenterZero[1]),
+        cv::KeyPoint kp(cv::Point2f(mapPoints[i]->irCenter[0], mapPoints[i]->irCenter[1]),
                         (1 << l)*10, // TODO: feature size to be adjusted
                         -1, 0,
                         l);
@@ -406,11 +407,15 @@ void KeyFrame::finalizeKeyframeBackend()
     }
     mapPoints = mpNew;
 
+    cout << "mapPoints: " << mapPoints.size() << endl;
+
     // extract depth again
     kpDepth.resize(keypoints.size());
     for (unsigned int i = 0; i < keypoints.size(); i++) {
         kpDepth[i] = keypoints[i].response;
     }
+
+    finalized = true;
 }
 
 void KeyFrame::finalizeKeyframekpts()
@@ -434,8 +439,8 @@ void KeyFrame::finalizeKeyframekpts()
         kpts.resize(lev.vMaxCorners.size());
 
         for (uint k = 0; k < kpts.size(); k++) {
-            kpts[k].pt.x = lev.vMaxCorners[k].x*scaleFactor;
-            kpts[k].pt.y = lev.vMaxCorners[k].y*scaleFactor;
+            kpts[k].pt.x = lev.vMaxCorners[k].x;//*scaleFactor;
+            kpts[k].pt.y = lev.vMaxCorners[k].y;//*scaleFactor;
             kpts[k].octave = l;
             kpts[k].angle = -1;
             kpts[k].size = (1 << l)*10; // setting this is required for DescriptorExtractors to work.
@@ -443,6 +448,8 @@ void KeyFrame::finalizeKeyframekpts()
             // Abuse response field, but we have to keep this keypoint's depth somewhere
             kpts[k].response = lev.vMaxCornersDepth[k];
         }
+
+        cout << "IN the current kf, keypoints: "<< kpts.size() << endl;
 
         cv::Mat levkpDesc;
         // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
@@ -454,6 +461,7 @@ void KeyFrame::finalizeKeyframekpts()
         kpDescriptors.push_back(levkpDesc);
         keypoints.insert( keypoints.end(), kpts.begin(), kpts.end() );
     }
+    cout << "IN the current kf, all keypoints: "<< keypoints.size() << endl;
 
     // extract depth again
     kpDepth.resize(keypoints.size());

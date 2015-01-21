@@ -35,8 +35,11 @@
         <param name="settings_file" type="string" value="$(find idSLAM)/data/settings-kinect.cfg" />
         <param name="camera_type" type="string" value="Polynomial"/>
         <param name="camera_file" type="string" value="$(find idSLAM)/data/kinect-poly.xml" />
-        <param name="camerasec_type" type="string" value="Polynomial"/>
-        <param name="camerasec_file" type="string" value="$(find idSLAM)/data/firefly-90deg_sec.xml" />
+        <param name="camerasec0_type" type="string" value="Polynomial"/>
+        <param name="camerasec0_file" type="string" value="$(find idSLAM)/data/kinect-poly0.xml" />
+        <param name="camerasec1_type" type="string" value="Polynomial"/>
+        <param name="camerasec1_file" type="string" value="$(find idSLAM)/data/kinect-poly1.xml" />
+
 
 	<param name="camera_frame" type="string" value="/openni_rgb_optical_frame" />	
 	<param name="calib_file" type="string" value="$(find idSLAM)/data/kinect.yaml"/>

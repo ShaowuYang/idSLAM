@@ -641,7 +641,6 @@ bool Tracker::trackMapDual() {
             mMessageForUser << " Map: " << mMap.vpPoints.size() << "P, " << mMap.vpKeyFrames.size() << "KF" ;
         }
 
-
         static gvar3<int> minInterval("Tracker.MinKeyFrameInterval", 20, SILENT);
         // Heuristics to check if a key-frame should be added to the map:
         // TODO: also consider the second image?
@@ -655,12 +654,12 @@ bool Tracker::trackMapDual() {
             AddNewKeyFrame();
         };
 
-        /// record the most recent good kf for tracking recovery
-        if (mTrackingQuality == GOOD){
-            *mGoodKFtoTrack = *mCurrentKF;
-            for (int cn = 0; cn < AddCamNumber; cn ++)
-                mGoodKFtoTracksec[cn] = mCurrentKFsec[cn];
-        }
+        /// TODO: record the most recent good kf for tracking recovery
+//        if (mTrackingQuality == GOOD){
+//            *mGoodKFtoTrack = *mCurrentKF;
+//            for (int cn = 0; cn < AddCamNumber; cn ++)
+//                mGoodKFtoTracksec[cn] = mCurrentKFsec[cn];
+//        }
     }
     else  // what if there is a map, but tracking has been lost?
     {
@@ -702,33 +701,57 @@ bool Tracker::AttemptRecovery()
     int nAdCamGoodnum = 0;
     int minInliers = 30;
     TooN::SE3<> mbestpose;
+    SE3<> se3Best;
+    static gvar3<int> gvnUsePnPrecovery("Tracker.usePnPrecover", 1, SILENT);
+    static gvar3<int> gvnMinInliers("Tracker.MinInliers", 30, SILENT);
+    minInliers = *gvnMinInliers;
 
     /// use multi image to relocalize the system
-    /// TODO: use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
-    bRelocGood = AttemptRecovery(mGoodKFtoTrack, mCurrentKF, mbestpose, minInliers);
-    if (!bRelocGood && mUsingDualImg)
-        for (int i = 0; i < AddCamNumber; i ++){
-            if (bRelocGoodsec)
-                break;
-            if (mCurrentKFsec[i]->bNewsec)
-                bRelocGoodsec = AttemptRecovery(mGoodKFtoTracksec[i], mCurrentKFsec[i], mbestpose, minInliers);
-            nAdCamGoodnum = i;
+    /// use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
+    if (*gvnUsePnPrecovery){
+        // write access: unique lock
+        boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
+//        boost::shared_ptr<KeyFrame> pClosest = mMapMaker.ClosestKeyFrame(mCurrentKF);
+        boost::shared_ptr<KeyFrame> pClosest = mMap.vpKeyFrames[mMap.vpKeyFrames.size() - 1];
+        mGoodKFtoTrack = pClosest;
+        lock.unlock();
+
+        bRelocGood = AttemptRecovery(mGoodKFtoTrack, mCurrentKF, mbestpose, minInliers);
+        if (!bRelocGood && mUsingDualImg)
+            for (int i = 0; i < AddCamNumber; i ++){
+                if (bRelocGoodsec)
+                    break;
+                boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
+                pClosest = mMap.vpKeyFramessec[i][mMap.vpKeyFramessec[i].size() - 1];
+                mGoodKFtoTracksec[i] = pClosest;
+                lock.unlock();
+
+                if (mCurrentKFsec[i]->bNewsec)
+                    bRelocGoodsec = AttemptRecovery(mGoodKFtoTracksec[i], mCurrentKFsec[i], mbestpose, minInliers);
+                nAdCamGoodnum = i;
+            }
+        if(!bRelocGood && !bRelocGoodsec){
+            cout << "Recovering failed using PnP method." << endl;
+            trackerlog << "Recovering failed using PnP method." << endl;
+            return false;
         }
 
-    SE3<> se3Best = mbestpose;
-    if (bRelocGoodsec)
-        se3Best = mse3Cam1FromCam2[nAdCamGoodnum] * se3Best;
-    mse3CamFromWorld = se3Best; mse3StartPos = se3Best;
-    mse3CamFromWorldPub = se3Best; mse3StartPos = se3Best;
-    for (int i = 0; i < AddCamNumber; i ++)
-        mse3CamFromWorldsec[i] = mse3Cam1FromCam2[i].inverse()*mse3CamFromWorld;
-    mv6CameraVelocity = Zeros;
-    mbJustRecoveredSoUseCoarse = true;
-    cout << "Recovering seems to be success." << endl;
-    return true;
+        se3Best = mbestpose;
+        if (bRelocGoodsec)
+            se3Best = mse3Cam1FromCam2[nAdCamGoodnum] * se3Best;
+        mse3CamFromWorld = se3Best; mse3StartPos = se3Best;
+        mse3CamFromWorldPub = se3Best; mse3StartPos = se3Best;
+        for (int i = 0; i < AddCamNumber; i ++)
+            mse3CamFromWorldsec[i] = mse3Cam1FromCam2[i].inverse()*mse3CamFromWorld;
+        mv6CameraVelocity = Zeros;
+        mbJustRecoveredSoUseCoarse = true;
+        cout << "Recovering seems to be success using PnP method." << endl;
+        trackerlog << "Recovering seems to be success using PnP method." << endl;
+        return true;
+    }
 
     /// If failed, then use the original method of PTAM to reloc.
-    /*if (!bRelocGood && !bRelocGoodsec){
+    if (!bRelocGood && !bRelocGoodsec){
         bRelocGood = mRelocaliser.AttemptRecovery(*mCurrentKF);
         /// using only one other kf for reloc, after the main camera kf failed
         if (!bRelocGood && mUsingDualImg)
@@ -740,7 +763,8 @@ bool Tracker::AttemptRecovery()
                 nAdCamGoodnum = i;
             }
         if(!bRelocGood && !bRelocGoodsec){
-            cout << "Recovering failed." << endl;
+            cout << "Recovering failed using PTAM method." << endl;
+            trackerlog << "Recovering failed using PTAM method." << endl;
             return false;
         }
     }
@@ -754,13 +778,19 @@ bool Tracker::AttemptRecovery()
         mse3CamFromWorldsec[i] = mse3Cam1FromCam2[i].inverse()*mse3CamFromWorld;
     mv6CameraVelocity = Zeros;
     mbJustRecoveredSoUseCoarse = true;
-    cout << "Recovering seems to be success." << endl;
-    return true;*/
+    cout << "Recovering seems to be success using PTAM method." << endl;
+    trackerlog << "Recovering seems to be success using PTAM method." << endl;
+    return true;
 }
 
 bool Tracker::AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_ptr<KeyFrame> kf, TooN::SE3<> &mse3Best, int minInliers)
 {
+    // write access: unique lock
+    boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
     goodkf->finalizeKeyframeBackend();
+    lock.unlock();
+
+    cout << "goodkf id: " << goodkf->id << endl;
     kf->finalizeKeyframekpts();
     Sophus::SE3d relPoseAB;
 

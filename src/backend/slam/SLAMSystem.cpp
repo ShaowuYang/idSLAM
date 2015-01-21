@@ -28,7 +28,7 @@ SLAMSystem::SLAMSystem(ptam::Map &m, const boost::scoped_ptr<cs_geom::Camera> * 
     cslamTptam_ = Sophus::SE3d();
     loopDetector_.reset(new LoopDetector(cam_, vocFile));
 //    matcher_.reset(new BruteForceMatcher(cam, AddCamNumber + 1));
-    registrator_.reset(new RegistratorKFs(cam_, AddCamNumber + 1));
+    registrator_.reset(new RegistratorKFs(cam_));
 
     feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
@@ -169,7 +169,7 @@ void SLAMSystem::addKeyframes()
         pgo_.addKeyframe(*kf);
         // add kf_additional only aside with cam1
         for (int cn = 0; cn < AddCamNumber; cn ++)
-            if (map_.vpKeyFramessec[cn].size() >= kf->id){
+            if (map_.vpKeyFramessec[cn].size() >= kf->id+1){
                 boost::shared_ptr<ptam::KeyFrame> kf(new ptam::KeyFrame);
                 kf = map_.vpKeyFramessec[cn][kf->id];
                 keyframes_add_.push_back(kf);
@@ -214,6 +214,8 @@ void SLAMSystem::addKeyframes()
                 localfreekfs = 0;
                 loopGot = true;// no appearance loop detection if metric loop detected
             }
+            else
+                cout << "No local loop detected. " << endl;
         }
         localfreekfs ++;
         if (localfreekfs > freelocalnum+1) localfreekfs = freelocalnum+1;

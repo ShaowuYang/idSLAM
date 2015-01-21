@@ -24,11 +24,14 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& 
     matcher_->match(kfa.mpDescriptors, kfb.kpDescriptors, matchesAB);
     matcher_->match(kfb.mpDescriptors, kfa.kpDescriptors, matchesBA);
 
+    std::cout << "kpts, matches sizes: " << kfa.mpDescriptors.rows << ", " << kfb.mpDescriptors.rows
+            << ", " << matchesAB.size() << ", " << matchesBA.size() << std::endl;
+
     // RANSAC A->B:
     Sophus::SE3d relPoseAB = reg_3p_->solve(kfa, kfb, matchesAB);
     matchesABin = reg_3p_->getInliers(kfa, kfb, matchesAB, relPoseAB, threshPx_, obsAB);
 
-//    std::cout << "inliers: " << matchesABin.size() << std::endl;
+    std::cout << "inliers: " << matchesABin.size() << std::endl;
     if (matchesABin.size() < nMinInliers_)
         return edge;
 
@@ -36,7 +39,7 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& 
     Sophus::SE3d relPoseBA = reg_3p_->solve(kfb, kfa, matchesBA);
     matchesBAin = reg_3p_->getInliers(kfb, kfa, matchesBA, relPoseBA, threshPx_, obsBA);
 
-//    std::cout << "inliers: " << matchesBAin.size() << std::endl;
+    std::cout << "inliers: " << matchesBAin.size() << std::endl;
     if (matchesBAin.size() < nMinInliers_)
         return edge;
 
@@ -77,6 +80,8 @@ bool RegistratorKFs::tryToRelocalise(const ptam::KeyFrame& kfa, const ptam::KeyF
 boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
 {
     boost::shared_ptr<ptam::Edge> edge;
+//    if (abs(kfa.id - kfb.id) < 20)
+//        return edge;
 
     std::vector<cv::DMatch> matchesAB, matchesBA;
     std::vector<cv::DMatch> matchesABin, matchesBAin;
