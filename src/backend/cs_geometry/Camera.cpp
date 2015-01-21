@@ -120,7 +120,7 @@ void Camera::readFromFile(const std::string& calib_file, int camNum)
     k5_ = lenD > 6? D_.at<double>(0,6) : 0.0f;
     k6_ = lenD > 7? D_.at<double>(0,7) : 0.0f;
 
-    cout << "Camera: building unprojection LUT..." << endl;
+    cout << "Camera: building unprojection LUT..." ;
     unprojectMap_ = cv::Mat(height_,width_,CV_32FC2);
     for (int y = 0; y < height_; y++) {
         for (int x = 0; x < width_; x++) {
@@ -131,7 +131,7 @@ void Camera::readFromFile(const std::string& calib_file, int camNum)
             unprojectMap_.at<Vec2f>(y,x) = Vec2f(pt.at<Vec2d>(0)[0],pt.at<Vec2d>(0)[1]);
         }
     }
-    cout << "... done bulding unprojection LUT" << endl;
+    cout << "... done for Cam " << camNum << endl;
     good_ = true;
 }
 

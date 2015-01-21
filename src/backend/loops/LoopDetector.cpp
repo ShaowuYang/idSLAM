@@ -22,7 +22,7 @@ LoopDetector::LoopDetector(const Camera *cam, const std::string& vocFile)
     cout << "LoopDetector: loading vocabulary: " << vocFile << endl;
     voc_.reset(new BriefVocabulary(vocFile));
 
-    reset();
+//    reset();
 }
 
 void LoopDetector::reset()

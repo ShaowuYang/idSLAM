@@ -11,23 +11,25 @@ using namespace ptam;
 
 bool CameraModel::firstCreate = true;
 bool CameraModel::firstCreatesec = true;
+int  CameraModel::seccamCreated = 0;
 bool CameraModel::polynomial = false;
 bool CameraModel::polynomialsec = false;
 auto_ptr<CameraModel> CameraModel::cameraPrototype;
-auto_ptr<CameraModel> CameraModel::cameraPrototypesec;
+auto_ptr<CameraModel> CameraModel::cameraPrototypesec[AddCamNumber];
 
 CameraModel::CameraModel() {
     mvImageSize[0] = mvImageSize[1] = 0;
 }
 
 CameraModel* CameraModel::CreateCamera(int camnum) {
-    if((firstCreate&&!camnum) || camnum) {
+    if((firstCreate && !camnum) || (firstCreatesec && camnum)) {
         // This method might be called a lot, so we only check
         // the configuration on the first time
         string calibType;
         string calibFile;
         if (!camnum){
             firstCreate = false;
+            // Camera.Type etc. parameters are overwriten in BaseSLAMNode.cpp
             calibType = GV3::get<string>("Camera.Type", "Polynomial", /*HIDDEN*/ SILENT);
             calibFile = GV3::get<string>("Camera.File", "", /*HIDDEN*/ SILENT);
 
@@ -53,7 +55,9 @@ CameraModel* CameraModel::CreateCamera(int camnum) {
             stringstream ss;
             ss << camnum - 1;
             adcamIndex = ss.str();
-            firstCreatesec = false;
+            seccamCreated ++;
+            if (seccamCreated >= AddCamNumber) // need to make sure cameras are created one by one
+                firstCreatesec = false;
             string camType = "Camerasec" + adcamIndex + ".Type";
             string camFile = "Camerasec" + adcamIndex + ".File";
             calibType = GV3::get<string>(camType, "Polynomial", /*HIDDEN*/ SILENT);
@@ -61,7 +65,7 @@ CameraModel* CameraModel::CreateCamera(int camnum) {
 
             if (calibType == "Polynomial") {
                 // This is a polynomial camera
-                cameraPrototypesec.reset(new PolynomialCamera(calibFile.c_str()));
+                cameraPrototypesec[camnum - 1].reset(new PolynomialCamera(calibFile.c_str()));
                 polynomialsec = true;
             } else if (calibType == "ATAN") {
                 // This is a ATAN camera
@@ -72,7 +76,7 @@ CameraModel* CameraModel::CreateCamera(int camnum) {
                     cerr << "  and/or put the Camera.Parameters= line into the appropriate .cfg file." << endl;
                     exit(1);
                 }
-                cameraPrototypesec.reset(new ATANCamera("Camera"));
+                cameraPrototypesec[camnum - 1].reset(new ATANCamera("Camera"));
                 polynomialsec = false;
             }
         }
@@ -85,7 +89,7 @@ CameraModel* CameraModel::CreateCamera(int camnum) {
     }
     else{
         if(polynomialsec)// TODO: currently, dual cameras should be with the same type
-            return new PolynomialCamera(*static_cast<PolynomialCamera*>(cameraPrototypesec.get()));
-        else return new ATANCamera(*static_cast<ATANCamera*>(cameraPrototypesec.get()));
+            return new PolynomialCamera(*static_cast<PolynomialCamera*>(cameraPrototypesec[camnum - 1].get()));
+        else return new ATANCamera(*static_cast<ATANCamera*>(cameraPrototypesec[camnum - 1].get()));
     }
 }

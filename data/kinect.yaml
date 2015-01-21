@@ -10,16 +10,11 @@ camera_matrix:
 distortion_coefficients:
    rows: 1
    cols: 5
-   data: [ 0.055211  -0.099003  -0.011422  -0.002495   0.000000]
+   data: [ 0.055211,  -0.099003,  -0.011422,  -0.002495,   0.000000]
 rectification_matrix:
    rows: 3
    cols: 3
    data: [ 1., 0., 0., 0., 1., 0., 0., 0., 1. ]
-projection_matrix:
-   rows: 3
-   cols: 4
-   data: [ 530.111697, 0.000000, 318.286837, 0.000000, 
-538.384375, 235.730967, 0., 0., 0., 0.0, 0.0, 1.00000000 ]
 
 image_width0: 640
 image_height0: 480
@@ -33,7 +28,7 @@ camera_matrix0:
 distortion_coefficients0:
    rows: 1
    cols: 5
-   data: [ 0.055211  -0.099003  -0.011422  -0.002495   0.000000]
+   data: [ 0.055211,  -0.099003,  -0.011422,  -0.002495,   0.000000]
 rectification_matrix0:
    rows: 3
    cols: 3
@@ -56,7 +51,7 @@ camera_matrix1:
 distortion_coefficients1:
    rows: 1
    cols: 5
-   data: [ 0.055211  -0.099003  -0.011422  -0.002495   0.000000]
+   data: [ 0.055211,  -0.099003,  -0.011422,  -0.002495,   0.000000]
 rectification_matrix1:
    rows: 3
    cols: 3

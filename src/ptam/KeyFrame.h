@@ -131,6 +131,7 @@ struct KeyFrame
       SentToGMap = false;
       pointSent = false;
       rgbIsBgr_ = false;
+      finalized = false;
   }
   virtual ~KeyFrame() {};
   int id; // for a mappoint, it is the id of its source keyframe, it has to be updated whenever its current
@@ -193,6 +194,7 @@ struct KeyFrame
   /// only for the back-end processes ///////////////
   void finalizeKeyframeBackend(); /// further process (compute descriptors of) the keyframe for the loop cloure detection
   void finalizeKeyframekpts(); /// further process (compute descriptors of the corners of) the keyframe for relocalization
+  bool finalized; /// finalized for the loop closing
   std::vector<boost::shared_ptr<MapPoint> > mapPoints;  /// measured map points in this keyframe
   std::vector<cv::KeyPoint> mpKeypoints;
   cv::Mat mpDescriptors; /// descriptors for map points

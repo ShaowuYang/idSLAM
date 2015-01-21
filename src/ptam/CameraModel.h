@@ -53,8 +53,9 @@ public:
 	
 private:
     static bool firstCreate, firstCreatesec;
+    static int seccamCreated;
 	static std::auto_ptr<CameraModel> cameraPrototype;
-    static std::auto_ptr<CameraModel> cameraPrototypesec;
+    static std::auto_ptr<CameraModel> cameraPrototypesec[AddCamNumber];
 	static bool polynomial;
     static bool polynomialsec;
 	TooN::Vector<2> mvImageSize;
