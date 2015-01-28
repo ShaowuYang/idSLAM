@@ -83,13 +83,12 @@ void LoopClosing::run(){
                         << backmidtime << " "
                         << backpgotime << " ";
             //and the keyframe size and map point size in the global map, and kfsize in pgo
-            backinfolog << slam_.keyframes_.size() << " "
+            backinfolog << slam_.getKfSize() << " "
                         << slam_.getMapPointSize() << " "
                         << slam_.kfinpgo << " "
                         << slam_.getCornersSize() << "\n";;
         }
         sleep(5);
-
     }
 }
 
@@ -97,7 +96,6 @@ void LoopClosing::addKeyframe(const int kf_id)
 {
 //    boost::shared_ptr<Keyframe> kf( new Keyframe);
 //    *kf = kf_id;
-
     slam_.wlKeyFrames.push_back(kf_id);
     kfWlEmpty_.notify_one();
 }

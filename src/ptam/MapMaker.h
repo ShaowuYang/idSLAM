@@ -110,7 +110,7 @@ public:
   TooN::Vector<3> finishPadCameraPoseWorld;// camera pose when the landing pad is last detected
   //////////////////////////////////////////////////////////////////
 
-  void Load_Cam2FromCam1 (const SE3<> cam2fromcam1, int adcamIndex){
+  void Load_Cam2FromCam1 (const TooN::SE3<> cam2fromcam1, int adcamIndex){
       mse3Cam2FromCam1[adcamIndex] = cam2fromcam1;
   }
 
@@ -128,7 +128,7 @@ public:
   void UpdateLMapByGMap();  // update the local map if the gmap is updated by pgo
   void UpdateWaitingList(); // update the waitinglist to reflect the local map update by BA
   bool needMotionModelUpdate;// motion model of the tracker need to be updated if the local map is updated according to the global map of the back end
-  SE3<> mse3LatestKFpose;// serve as the reference kf for updating motion model in trackerd
+  TooN::SE3<> mse3LatestKFpose;// serve as the reference kf for updating motion model in trackerd
   int  lastKFid;// the id of the reference kf
   bool debugmarkLoopDetected;
 
@@ -232,7 +232,7 @@ protected:
   landing_object* mLandingPad; // landing pad object
   KeyFrame mObject_keyframe;   // image ready for landing object detection
   bool nullObject_keyframe;    //
-  SE3<> mObject_keyframePose;
+  TooN::SE3<> mObject_keyframePose;
   KeyFrame mObject_detected;   // store the keyframe where the landing pad was detected.
   KeyFrame mTracking_frame;    // keyframe, pass every frame after detected, for pad tracking
   bool nullTracking_frame;     //
@@ -252,9 +252,9 @@ protected:
   std::vector<boost::shared_ptr<KeyFrame> > mPaddetectedKeyframes;// record those keyframes in which landing pad was detected
   // function for calculating the landing pad pose/aligning plane
   bool CalcLandingpadPlane(std::vector<boost::shared_ptr<MapPoint> > mpadmappoints,
-                           TooN::SE3<> &landingpadfromworld, TooN::Vector<3> &bestnormal, Vector<3> &bestmean);
+                           TooN::SE3<> &landingpadfromworld, TooN::Vector<3> &bestnormal, TooN::Vector<3> &bestmean);
   int CheckInlier_Refine(std::vector<boost::shared_ptr<MapPoint> > mpadmappoints,
-                         TooN::SE3<> &landingpadfromworld, TooN::Vector<3> &bestnormal, Vector<3> &bestmean);
+                         TooN::SE3<> &landingpadfromworld, TooN::Vector<3> &bestnormal, TooN::Vector<3> &bestmean);
 
   TooN::SE3<> mSe3Landingpadfromworld;
   TooN::Vector<3> mLandingpadNormal;
@@ -264,7 +264,7 @@ protected:
   int nNegative;
   ofstream pos_log_;
 
-  SE3<> mse3Cam2FromCam1[AddCamNumber];
+  TooN::SE3<> mse3Cam2FromCam1[AddCamNumber];
   bool bInputStopped; // no more image input
   bool bFullBAfinished; // full BA refinement to the full map has finished;
   bool bStopForFullBA; // robot stopping to do full ba

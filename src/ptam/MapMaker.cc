@@ -681,7 +681,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, const TooN::SE3<> &worldPos)
     double dSumDepth = 0.0;
     double dSumDepthSquared = 0.0;
     int nMeas = 0;
-    for(unsigned int l = 0; l < 1; l++) {
+    for(unsigned int l = 0; l < LEVELS; l++) {
         lcount[l] = 0;
         Level& lev = kf.aLevels[l];
         const int nLevelScale = LevelScale(l);
@@ -784,7 +784,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
     double dSumDepthSquared = 0.0;
     int nMeas = 0;
     pcount[0] = 0;
-    for(unsigned int l = 0; l < 1; l++) {
+    for(unsigned int l = 0; l < LEVELS; l++) {
         lcount[l] = 0;
         Level& lev = kf.aLevels[l];
         const int nLevelScale = LevelScale(l);
@@ -868,7 +868,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
         double dSumDepthSquared = 0.0;
         int nMeas = 0;
         pcount[i+1] = 0;
-        for(unsigned int l = 0; l < 1; l++) {
+        for(unsigned int l = 0; l < LEVELS; l++) {
             lcount[l] = 0;
             Level& lev = kf.aLevels[l];
             const int nLevelScale = LevelScale(l);
@@ -4146,6 +4146,7 @@ void MapMaker::UpdateLMapByGMap(){
             if(!vpPoint->bUpdated && (vpPoint->nSourceCamera==0) && (mMap.vpKeyFrames[i] == vpPoint->pPatchSourceKF.lock())){
                 Vector<3> rpos = kfspose[i] * vpPoint->v3WorldPos;
                 vpPoint->v3WorldPos = mMap.vpKeyFrames[i]->se3CfromW.inverse() * rpos;
+                vpPoint->v3RelativePos = mMap.vpKeyFrames[i]->se3CfromW * vpPoint->v3WorldPos;
             }
         }
 //        cout << "Keyframe points updated by GMAP." << "\n";
@@ -4168,6 +4169,7 @@ void MapMaker::UpdateLMapByGMap(){
                     if((vpPoint->nSourceCamera == (cn + 1)) && (mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf] == vpPoint->pPatchSourceKF.lock())){
                         Vector<3> rpos = kfpos * vpPoint->v3WorldPos;
                         vpPoint->v3WorldPos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW.inverse() * rpos;
+                        vpPoint->v3RelativePos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW * vpPoint->v3WorldPos;
                     }
                 }
             }

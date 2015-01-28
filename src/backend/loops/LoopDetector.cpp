@@ -49,6 +49,7 @@ int LoopDetector::detectLoop(const ptam::KeyFrame& kf)
 
     kf2ld_[kf.id] = result.query;
     ld2kf_[result.query] = kf.id;
+    std::cout << "result.match: " << result.match << std::endl;
 
     if (result.detection()) {
         return ld2kf_[result.match];

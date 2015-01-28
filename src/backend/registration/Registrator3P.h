@@ -48,7 +48,12 @@ public:
                                        std::vector<Observation>& obs);
 
     bool solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
-                                 const std::vector<cv::DMatch>& matches, Sophus::SE3d &result, int minInliers = 50);
+                                 const std::vector<cv::DMatch>& matches, Sophus::SE3d &result,
+                         std::vector<int>& inliers, double minInliers = 0.5);
+    void getObserv(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
+                                       const std::vector<cv::DMatch>& matches,
+                                       const std::vector<int> inliers,
+                                       std::vector<Observation>& obs);
 
     protected:
     static inline int preemption(int i, int M, int B) { return M*pow(2, - i/B); }

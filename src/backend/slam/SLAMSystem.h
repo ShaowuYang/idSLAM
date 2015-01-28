@@ -11,8 +11,6 @@
 #include <loops/LoopDetector.h>
 #include <registration/RegistratorKFs.h>
 
-#include <matching/BruteForceMatcher.h>
-
 //#include "Keyframe.h"
 #include "PGOptimizer.h"
 #include <ptam/Map.h>
@@ -61,17 +59,32 @@ public:
         return detected;}
     unsigned int getMapPointSize(){
         unsigned int pointsize = 0;
+        // read access
+        boost::unique_lock< boost::shared_mutex > lock(map_.mutex);
         for (unsigned int i = 0 ; i < keyframes_.size(); i ++){
             pointsize += keyframes_[i]->mapPoints.size();
         }
+        lock.unlock();
         return pointsize;
     }
+    int getKfSize() {
+        int kfs = 0;
+        // read access
+        boost::unique_lock< boost::shared_mutex > lock(map_.mutex);
+        kfs = keyframes_.size();
+        lock.unlock();
+        return kfs;
+    }
+
     unsigned int getCornersSize(){
         unsigned int cornersize = 0;
+        // read access
+        boost::unique_lock< boost::shared_mutex > lock(map_.mutex);
         boost::shared_ptr<ptam::KeyFrame> kf = keyframes_[keyframes_.size()-1];
         for (unsigned int i = 0 ; i < LEVELS; i ++){
             cornersize += kf->aLevels[i].vMaxCorners.size();
         }
+        lock.unlock();
         return cornersize;
     }
 

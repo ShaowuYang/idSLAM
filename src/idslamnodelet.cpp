@@ -627,6 +627,8 @@ public:
             if (depth_msg && (vis_pointcloud_pub_.getNumSubscribers() > 0))
                 map_viz_->publishPointCloud(map_.get(), tracker_.get(), vis_pointcloud_pub_, "/rgbd_link",
                                             vis_publish_interval_, vis_pointcloud_step_, cellSize);
+            if (depth_msg && (vis_crtpointcloud_pub_.getNumSubscribers() > 0))
+                map_viz_->publishCrtPointCloud(map_.get(), tracker_.get(), vis_crtpointcloud_pub_, "/rgbd_link");
         }
 
         if (map_maker_->imageInputCount < 100)

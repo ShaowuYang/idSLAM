@@ -263,6 +263,37 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
 
 }
 
+void MapVisualization::publishCrtPointCloud(const Map* map, const Tracker* tracker, const ros::Publisher &vis_pointcloud_pub, const std::string& world_frame,
+                                                double vis_publish_interval_)
+{
+    static ros::Time lastCloudPublished_ = ros::Time(0);
+    if (vis_pointcloud_pub.getNumSubscribers() > 0 &&
+            (ros::Time::now() - lastCloudPublished_).toSec() >= vis_publish_interval_)
+    {
+        static pcl::PointCloud<pcl::PointXYZRGB>::Ptr crtCloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+
+        // the current frame point cloud
+        cv::Mat rgb(map->mCurrentkf->rgbImage.size().y, map->mCurrentkf->rgbImage.size().x, CV_8UC3, map->mCurrentkf->rgbImage.data());
+        cv::Mat depth(map->mCurrentkf->depthImage.size().y, map->mCurrentkf->depthImage.size().x, CV_16UC1, map->mCurrentkf->depthImage.data());
+        const CameraModel& mcCamera = tracker->GetCamera();
+
+        // TODO: make a list of pointclouds for each kf, only replace those have been changed in BA
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr thisCloud = geometry::PointClouds::rgbdToPointCloud(
+                    mcCamera, rgb, depth, map->mCurrentkf->se3CfromW.inverse(), map->mCurrentkf->rgbIsBgr_);
+        *crtCloud = *thisCloud;
+
+        sensor_msgs::PointCloud2Ptr msg(new sensor_msgs::PointCloud2());
+        pcl::toROSMsg(*crtCloud, *msg);
+        msg->header.frame_id = world_frame;//
+        msg->header.stamp = ros::Time::now();
+
+        vis_pointcloud_pub.publish(msg);
+
+        lastCloudPublished_ = ros::Time::now();
+    }
+
+}
+
 void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tracker, const ros::Publisher &camera_pub,
                                                const ros::Publisher &point_pub, const std::string& world_frame, const ros::Publisher &camera_pubsec,
                                                const bool dualcamera)
