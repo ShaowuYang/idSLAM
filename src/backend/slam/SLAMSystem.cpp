@@ -108,6 +108,13 @@ void SLAMSystem::addEdges()
 void SLAMSystem::addKeyframes()
 {
     boost::unique_lock<boost::mutex> lock(mutex_wl);// write access
+    std::vector<int> WlKfid;
+    while (wlKeyFrames.size() > 0){
+        WlKfid.push_back(wlKeyFrames[0]); // TODO: multiple cameras
+        wlKeyFrames.erase(wlKeyFrames.begin());
+    }
+    lock.unlock();
+
     boost::shared_ptr<ptam::KeyFrame> kf; // (new ptam::KeyFrame)
 //    boost::unique_lock<boost::mutex> lock(syncMutex);
 
@@ -119,12 +126,13 @@ void SLAMSystem::addKeyframes()
     bool loopGot = false;// find a loop already? then skip other kfs
     debugmarkLoopDetected = false;
 
+    // read access: unique lock
+    boost::unique_lock< boost::shared_mutex > lockmap(map_.mutex);
     std::vector<boost::shared_ptr<ptam::KeyFrame> > wlkfs;
-    while (wlKeyFrames.size() > 0){
-        wlkfs.push_back(map_.vpKeyFrames[wlKeyFrames[0]]); // TODO: multiple cameras
-        wlKeyFrames.erase(wlKeyFrames.begin());
+    for (int i = 0; i < WlKfid.size(); i ++){
+        wlkfs.push_back(map_.vpKeyFrames[WlKfid[i]]); // TODO: multiple cameras
     }
-    lock.unlock();
+    lockmap.unlock();
 
     // add all keyframes in kfs, and clear it
     /// TODO： if there's kfs from additional cams, add them
@@ -132,37 +140,10 @@ void SLAMSystem::addKeyframes()
         kf = wlkfs[0];
         wlkfs.erase(wlkfs.begin());
 
+        // write access: unique lock
+        lockmap.lock();
+
         assert(kf->id == keyframes_.size());// Not added yet. strong assumption
-
-        // TODO: only do pgo when we have enough kfs (max kfs in the local map)
-        if (kf->id >= maxKfsInLMap-1) {// && kf->haveGroundData
-            pgoRunRequired = true;
-        }
-
-        // TODO: when PTAM send this KF without giving us an outgoing edge before.
-        /*/ This happens whenever the map is reset due to tracking failure.
-        if(false && ptam_edges_.size() <= kf->id) {
-            // Make sure there is really only one edge missing:
-            assert(ptam_edges_.size() == kf->id);
-
-            // Create this "motion model" edge: We cannot know the transform yet,
-            // need to wait for the next keyframe to compute it.
-            boost::shared_ptr<ptam::Edge> edge(new ptam::Edge);
-            edge->idA = kf->id;
-            edge->idB = kf->id + 1;
-            edge->type = ptam::EDGE_MOTIONMODEL;
-            edge->valid = false;
-            ptam_edges_.push_back(edge);
-        }*/
-        /*/ TODO: Check whether there is a "motion model" edge waiting to be completed:
-        if (false && kf->id > 0 && !ptam_edges_[kf->id - 1]->valid) {
-            // yes, indeed
-            boost::shared_ptr<ptam::Edge> we = ptam_edges_[kf->id - 1];
-            we->aTb = cs_geom::toSophusSE3(keyframes_[kf->id - 1]->se3CfromW*kf->se3CfromW.inverse());
-            we->valid = true;
-
-            pgoRunRequired = true;
-        }*/
 
         ///////////////////
         keyframes_.push_back(kf);
@@ -170,41 +151,48 @@ void SLAMSystem::addKeyframes()
         // add kf_additional only aside with cam1
         for (int cn = 0; cn < AddCamNumber; cn ++)
             if (map_.vpKeyFramessec[cn].size() >= kf->id+1){
-                boost::shared_ptr<ptam::KeyFrame> kf(new ptam::KeyFrame);
-                kf = map_.vpKeyFramessec[cn][kf->id];
-                keyframes_add_.push_back(kf);
+                boost::shared_ptr<ptam::KeyFrame> kfad(new ptam::KeyFrame);
+                kfad = map_.vpKeyFramessec[cn][kf->id];
+                keyframes_add_.push_back(kfad);
             }
 
         latestKFinMap_ = kf->id;
 
         // The actual work starts here: Finalize keyframe data.
         kf->finalizeKeyframeBackend();
-
-        /*if (saveKeyframes_) {
-            std::ofstream ofs((std::string("kf")+boost::lexical_cast<std::string>(kf->id)).c_str() , std::ios::out | std::ios::binary);
-            boost::archive::binary_oarchive oa(ofs);
-            oa << *kf;
-            ofs.close();
-        }*/
-
         /// TODO: detect loops with the additional kfs
+        /// TODO: add locks for kfs reading! now we share the kfs with the front end!
         // Now find some loops.
         // Implicit loops:
         static int freelocalnum = 5;
         static int localfreekfs = freelocalnum;
+        // copy the kf and the best matched kf. a bit waste of time
         int bestMatch = findBestKeyframeForMatching(*kf);
+        boost::shared_ptr<ptam::KeyFrame> kfnew(new ptam::KeyFrame);
+        boost::shared_ptr<ptam::KeyFrame> kfBestMatch(new ptam::KeyFrame);
+        *kfnew = *kf;
+        lockmap.unlock();
+
+        std::cout << "best match: " << bestMatch << std::endl;
+
         if ((localfreekfs >= freelocalnum) && bestMatch > -1) {
-            std::cout << "best match: " << bestMatch << std::endl;
-            boost::shared_ptr<ptam::Edge> edge = registrator_->tryAndMatch(*kf, *keyframes_[bestMatch]);
+            lockmap.lock();
+            *kfBestMatch = *keyframes_[bestMatch];
+            lockmap.unlock();
+
+            boost::shared_ptr<ptam::Edge> edge = registrator_->tryAndMatch(*kfnew, *kfBestMatch);
             if (edge) {
                 std::cout << "successfully matched with atb: \n" << edge->aTb.so3().log().norm()*180./M_PI
-                          << "\n" << edge->aTb.translation().norm() << "new edge got." << std::endl;
+                          << "\n" << edge->aTb.translation().norm() << std::endl << "new edge got." << std::endl;
+
+                lockmap.lock();
                 kf->edges.insert(make_pair(edge->idA, edge));
                 // TODO: add rotation item
                 double dist = edge->aTb.translation().norm();
                 kf->neighbor_ids_ordered_by_distance.insert(make_pair(dist, edge->idA));
+                lockmap.unlock();
 
-                double scendepth = (kf->dSceneDepthMean + keyframes_[bestMatch]->dSceneDepthMean) / 2.0;
+                double scendepth = (kfnew->dSceneDepthMean + kfBestMatch->dSceneDepthMean) / 2.0;
                 pgo_.addEdge(*edge, true, scendepth);
                 cout << "local loop edge added to pg." << endl;
                 pgoRunRequired = true;
@@ -226,18 +214,25 @@ void SLAMSystem::addKeyframes()
         if (!loopGot && closeLoops_ && (loopfreekfs >= freenum)) {
             std::cout << "Detecting large loop closure ..." << std::endl;
             // TODO: implement new LD method using online vocabulary
-            int loopMatch = loopDetector_->detectLoop(*kf);
+            int loopMatch = loopDetector_->detectLoop(*kfnew);
             if (loopMatch > 0) {
-                boost::shared_ptr<ptam::Edge> edge = registrator_->tryAndMatchLargeLoop(*kf, *keyframes_[loopMatch]);
+                lockmap.lock();
+                boost::shared_ptr<ptam::KeyFrame> kfLoopMatch(new ptam::KeyFrame);
+                *kfLoopMatch = *keyframes_[loopMatch];
+                lockmap.unlock();
+                boost::shared_ptr<ptam::Edge> edge = registrator_->tryAndMatchLargeLoop(*kfnew, *kfLoopMatch);
                 std::cout << "loop closure match: " << loopMatch << std::endl;
                 if (edge) {
                     std::cout << "successfully matched with atb: \n" << edge->aTb.rotationMatrix()
                               << "\n" << edge->aTb.translation() << "new edge got." << std::endl;
+
+                    lockmap.lock();
                     kf->edges.insert(make_pair(edge->idA, edge));
                     double dist = edge->aTb.translation().norm();
                     kf->neighbor_ids_ordered_by_distance.insert(make_pair(dist, edge->idA));
+                    lockmap.unlock();
 
-                    double scendepth = (kf->dSceneDepthMean + keyframes_[loopMatch]->dSceneDepthMean) / 2.0;
+                    double scendepth = (kfnew->dSceneDepthMean + kfLoopMatch->dSceneDepthMean) / 2.0;
                     pgo_.addEdge(*edge, true, scendepth);
 
                     pgoRunRequired = true;
@@ -246,17 +241,21 @@ void SLAMSystem::addKeyframes()
                     debugmarkLoopDetected = true;
                     loopfreekfs = 0;
                 }
+                else
+                    std::cout << "No large loop closure after trying to match. " << std::endl;
             }
+            else
+                std::cout << "No large loop closure detected. " << std::endl;
         }
 
         loopfreekfs ++;
         if (loopfreekfs > freenum+1) loopfreekfs = freenum+1;
     }
-    cout << "Keyframe added to the PG: "<< keyframes_.size() << endl;
 
     // add all edges to those kfs after all kfs have been added
     // for convinence of neighbor searching in defining sub-g, edges of a kf point back, not forward
     // edges added in loop closure must be consistent with this definition
+    lockmap.lock(); // read access
     for (int i = 0; i < ptam_edges_local_.size(); i ++){
         const boost::shared_ptr<ptam::Edge> edge = ptam_edges_local_[i];
         boost::shared_ptr<ptam::KeyFrame> ekf = keyframes_[ptam_edges_local_[i]->idB];
@@ -276,30 +275,17 @@ void SLAMSystem::addKeyframes()
             ekf->neighbor_ids_ordered_by_distance.insert(make_pair(dist, edge->idA));
         }
     }
+    cout << "Keyframe added to the PG: "<< keyframes_.size() << endl;
+
+    if (keyframes_.size() < maxKfsInLMap-1)
+        pgoRunRequired = false;
+
+    lockmap.unlock();
+
     for (int ee = ptam_edges_local_.size()-1; ee >=0; ee-- )
         pgo_.addEdge(*ptam_edges_local_[ee], true, ptam_edges_local_[ee]->dSceneDepthMean);
     ptam_edges_local_.clear();
 
-    // If this is an isolated new keyframe (e.g. because ptam reset itself),
-    // try to match it with the one before.
-//    int nOdom = countGoodOdometryEdges();
-//    if (nOdom == 0 && kf->id > 0) {
-//        cout << "MOTION MODEL EDGE" << endl;
-//        // TODO: RANSAC and PnP match should be done in the front end
-//        boost::shared_ptr<Edge> edge = registrator_->tryAndMatch(*kf, *keyframes_[kf->id - 1]);
-//        if (edge) {
-//            std::cout << "successfully matched with atb:" << std::endl;
-//            kf->edges.insert(make_pair(edge->idB, edge));
-//            double dist = sqrt(double(edge->aTb.translation().transpose()*edge->aTb.translation()));
-//            kf->neighbor_ids_ordered_by_distance.insert(make_pair(dist, edge->idB));
-
-//            pgo_.addEdge(*edge);
-//            pgoRunRequired = true;
-//        }
-//    }
-
-    if (keyframes_.size() < maxKfsInLMap-1)
-        pgoRunRequired = false;
     cout << "Edges added to the PG with loopdetected = " << pgoLoopRequired<< ", " << localoopGot << ", " << pgoRunRequired << endl;
 }
 
@@ -320,15 +306,19 @@ void SLAMSystem::runPGO()
         }
         else
         {// true uniform-cost search to define the adaptive window
+            // read access
+            boost::unique_lock< boost::shared_mutex > lock(map_.mutex);
             std::set<int> vids;
             defineSubGraph(vids, 500*maxKfsInLMap);
+            lock.unlock();
+
             kfinpgo = vids.size();
 
             pgo_.optimize_portion(vids);
             vids.clear();
 
             // write access
-            boost::unique_lock<boost::mutex> lock(syncMutex);
+            lock.lock();
             pgo_.applyResult(keyframes_, keyframeUpdatedPoses);
 
             setGMapUpdated(true);
@@ -436,7 +426,7 @@ int SLAMSystem::findBestKeyframeForMatching(const ptam::KeyFrame& kf)
 
 bool SLAMSystem::relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, int minInliers)
 {
-    if (registrator_->tryToRelocalise(*goodkf, *kf, result, minInliers))
+    if (registrator_->tryToRelocalise(goodkf, kf, result, minInliers))
         return true;
     else
         return false;

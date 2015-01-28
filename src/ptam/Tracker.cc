@@ -326,6 +326,7 @@ void Tracker::TrackFrame(CVD::Image<CVD::byte> &imFrame, CVD::Image<uint16_t> &i
 void Tracker::TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Image<uint16_t> &imFrameD, bool isBgr)
 {
     mMessageForUser.str("");   // Wipe the user message clean
+    cout << "Doing tracking process ..." << endl;
 
     CVD::Image<CVD::byte> imFrame;
     imFrame.resize(imFrameRGB.size());
@@ -345,13 +346,12 @@ void Tracker::TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Imag
     copy(imFrameD, mCurrentKF->depthImage);
 
     initNewFrame();
-    if(!trackMap()) {
+    cout << "Main tracking process ..." << endl;
+    if(!trackMapDual()) {
         // If there is no map, try to make one.
         mMapMaker.InitFromRGBD(*mCurrentKF);
         mnKeyFrames = 1;
     }
-
-    processGUIEvents();
 };
 
 // use multiple rgb images, for RGB-D SLAM using multi-kinect with a backend for PGO
@@ -616,7 +616,6 @@ bool Tracker::trackMapDual() {
         else
             ApplyMotionModel();
 
-        cout << "Doing tracking process ..." << endl;
         TrackMap();               //  These three lines do the main tracking work.
         cout << "Tracking process done." << endl;
 
@@ -669,9 +668,21 @@ bool Tracker::trackMapDual() {
         {
             TrackMap();
             AssessTrackingQuality();
+
+            { // Provide some feedback for the user:
+                mMessageForUser << "Tracking Map, quality ";
+                if(mTrackingQuality == GOOD)  mMessageForUser << "good.";
+                if(mTrackingQuality == DODGY) mMessageForUser << "poor.";
+                if(mTrackingQuality == BAD)   mMessageForUser << "bad.";
+                mMessageForUser << " Found:";
+                for(int i=0; i<LEVELS; i++) mMessageForUser << " " << manMeasFound[i] << "/" << manMeasAttempted[i];
+                //	    mMessageForUser << " Found " << mnMeasFound << " of " << mnMeasAttempted <<". (";
+                mMessageForUser << " Map: " << mMap.vpPoints.size() << "P, " << mMap.vpKeyFrames.size() << "KF" ;
+            }
+            cout << "Tracked position after recovery: " << endl
+                    << mCurrentKF->se3CfromW.inverse().get_translation() << endl;
         }
     }
-//    cout<< "AddNewKeyFrame ok!"<<endl;
 
     tracking_map = true;
 
@@ -721,7 +732,7 @@ bool Tracker::AttemptRecovery()
             for (int i = 0; i < AddCamNumber; i ++){
                 if (bRelocGoodsec)
                     break;
-                boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
+                lock.lock();
                 pClosest = mMap.vpKeyFramessec[i][mMap.vpKeyFramessec[i].size() - 1];
                 mGoodKFtoTracksec[i] = pClosest;
                 lock.unlock();
@@ -788,13 +799,15 @@ bool Tracker::AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_
     // write access: unique lock
     boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
     goodkf->finalizeKeyframeBackend();
+    boost::shared_ptr<KeyFrame> goodkftrack(new KeyFrame);
+    *goodkftrack = *goodkf;
     lock.unlock();
 
     cout << "goodkf id: " << goodkf->id << endl;
     kf->finalizeKeyframekpts();
     Sophus::SE3d relPoseAB;
 
-    if (mMapMaker.relocaliseRegister(goodkf, kf, relPoseAB, minInliers)){
+    if (mMapMaker.relocaliseRegister(goodkftrack, kf, relPoseAB, minInliers)){
         mse3Best = cs_geom::toToonSE3(relPoseAB);
         return true;
     }
@@ -1754,6 +1767,10 @@ void Tracker::TrackMap()
     }
 //    mse3Cam1FromCam2 = mse3Cam1FromCam2Update;
 //    trackerlog << "Tracked pose: \n" << mse3CamFromWorld << endl;
+
+    lock.lock();
+    *mMap.mCurrentkf = *mCurrentKF;
+    lock.unlock();
 
     // Record successful measurements. Use the KeyFrame-Measurement struct for this.
     mCurrentKF->mMeasurements.clear();

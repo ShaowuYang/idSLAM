@@ -236,8 +236,8 @@ void KeyFrame::MakeKeyFrame(CVD::BasicImage<CVD::byte> &im, const sensor_msgs::P
 			octChannel = i;
 	
 	static gvar3<double> gvdCandidateMinSTScore("MapMaker.CandidateMinShiTomasiScore", 70, SILENT);
-	
-	// Create pyramid images and reset everything
+
+    // Create pyramid images and reset everything
 	for(int l=0; l<LEVELS; l++) {
 		Level &lev = aLevels[l];
 		if(l!=0) {
@@ -324,14 +324,14 @@ void KeyFrame::finalizeKeyframeBackend()
 
     mapPoints.clear();
     for(const_meas_it it = mMeasurements.begin(); it != mMeasurements.end(); it++) {
-        const boost::shared_ptr<MapPoint>& point = it->first;
+        boost::shared_ptr<MapPoint> point = it->first;
         if (point->pPatchSourceKF.lock() &&// source kf not removed
-                !point->sourceKfIDtransfered && // avoid re-send
+//                !point->sourceKfIDtransfered && // avoid re-send
                 point->pPatchSourceKF.lock()->id == id) {// point belongs to this kf
 
             // relative pose of the map points to source kf:
 //            point->v3RelativePos = se3CfromW*point->v3WorldPos;
-//            point->irCenterZero = LevelZeroPosIR(point->irCenter,point->nSourceLevel);
+            point->irCenterZero = LevelZeroPosIR(point->irCenter,point->nSourceLevel);
 
             mapPoints.push_back(point);
         }
@@ -343,7 +343,7 @@ void KeyFrame::finalizeKeyframeBackend()
     std::vector<std::vector<cv::KeyPoint> >mpKpts(LEVELS);
     for (uint i = 0; i < mapPoints.size(); i++) {
         int l = mapPoints[i]->nSourceLevel;
-        cv::KeyPoint kp(cv::Point2f(mapPoints[i]->irCenter[0], mapPoints[i]->irCenter[1]),
+        cv::KeyPoint kp(cv::Point2f(mapPoints[i]->irCenterZero[0], mapPoints[i]->irCenterZero[1]),
                         (1 << l)*10, // TODO: feature size to be adjusted
                         -1, 0,
                         l);
@@ -353,19 +353,18 @@ void KeyFrame::finalizeKeyframeBackend()
     }
 
     // compute descriptors of map points and all corners(for loop detection)
+    Level &lev = aLevels[0];
+    ImageRef irsize = lev.im.size();
+
+    // Make sure image is actually copied:
+    cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
+                        (void*) lev.im.data(), lev.im.row_stride()).clone();
     std::vector<boost::shared_ptr<MapPoint> > mpNew;
     mpKeypoints.clear();
     keypoints.clear();
-    for (uint l = 0; l < LEVELS; l++) {
+    for (uint l = 0; l < 2; l++) {
         cv::Mat levDesc;
         // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
-        Level &lev = aLevels[l];
-        ImageRef irsize = lev.im.size();
-
-        // Make sure image is actually copied:
-        cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
-                            (void*) lev.im.data(), lev.im.row_stride()).clone();
-
         extractor->compute(cv_im, mpKpts[l], levDesc);
 
         assert(mpKpts[l].size() == levDesc.rows);
@@ -380,20 +379,23 @@ void KeyFrame::finalizeKeyframeBackend()
         assert(mpDescriptors.rows == mpKeypoints.size());
 
         // for all corners
+        Level &lev1 = aLevels[l];
         int scaleFactor = (1 << l);
         std::vector<cv::KeyPoint> kpts;
-        kpts.resize(lev.vMaxCorners.size());
+        kpts.resize(lev1.vMaxCorners.size());
 
         for (uint k = 0; k < kpts.size(); k++) {
-            kpts[k].pt.x = lev.vMaxCorners[k].x*scaleFactor;
-            kpts[k].pt.y = lev.vMaxCorners[k].y*scaleFactor;
+            kpts[k].pt.x = lev1.vMaxCorners[k].x*scaleFactor;
+            kpts[k].pt.y = lev1.vMaxCorners[k].y*scaleFactor;
             kpts[k].octave = l;
             kpts[k].angle = -1;
             kpts[k].size = (1 << l)*10; // setting this is required for DescriptorExtractors to work.
 
             // Abuse response field, but we have to keep this keypoint's depth somewhere
-            kpts[k].response = lev.vMaxCornersDepth[k];
+            kpts[k].response = lev1.vMaxCornersDepth[k];
         }
+        cout << "IN the current kf, mpKpts, keypoints: "<<
+                mpKpts[l].size() << ", " << kpts.size() << endl;
 
         cv::Mat levkpDesc;
         // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
@@ -408,6 +410,7 @@ void KeyFrame::finalizeKeyframeBackend()
     mapPoints = mpNew;
 
     cout << "mapPoints: " << mapPoints.size() << endl;
+    cout << "IN the current kf, all keypoints: "<< keypoints.size() << endl;
 
     // extract depth again
     kpDepth.resize(keypoints.size());
@@ -423,30 +426,29 @@ void KeyFrame::finalizeKeyframekpts()
     boost::scoped_ptr<cv::DescriptorExtractor> extractor(new cv::BriefDescriptorExtractor(32));
 
     // compute descriptors of all corners
+    // Make sure image is actually copied:
+    Level &lev = aLevels[0];
+    ImageRef irsize = lev.im.size();
+    cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
+                        (void*) lev.im.data(), lev.im.row_stride()).clone();
     keypoints.clear();
-    for (uint l = 0; l < LEVELS; l++) {
-        // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
-        Level &lev = aLevels[l];
-        ImageRef irsize = lev.im.size();
-
-        // Make sure image is actually copied:
-        cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
-                            (void*) lev.im.data(), lev.im.row_stride()).clone();
+    for (uint l = 0; l < 2; l++) {
+        Level &lev1 = aLevels[l];
 
         // for all corners
         int scaleFactor = (1 << l);
         std::vector<cv::KeyPoint> kpts;
-        kpts.resize(lev.vMaxCorners.size());
+        kpts.resize(lev1.vMaxCorners.size());
 
         for (uint k = 0; k < kpts.size(); k++) {
-            kpts[k].pt.x = lev.vMaxCorners[k].x;//*scaleFactor;
-            kpts[k].pt.y = lev.vMaxCorners[k].y;//*scaleFactor;
+            kpts[k].pt.x = lev1.vMaxCorners[k].x*scaleFactor;
+            kpts[k].pt.y = lev1.vMaxCorners[k].y*scaleFactor;
             kpts[k].octave = l;
             kpts[k].angle = -1;
             kpts[k].size = (1 << l)*10; // setting this is required for DescriptorExtractors to work.
 
             // Abuse response field, but we have to keep this keypoint's depth somewhere
-            kpts[k].response = lev.vMaxCornersDepth[k];
+            kpts[k].response = lev1.vMaxCornersDepth[k];
         }
 
         cout << "IN the current kf, keypoints: "<< kpts.size() << endl;

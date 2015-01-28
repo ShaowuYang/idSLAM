@@ -32,7 +32,9 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
             const int& ind = sampleInd[i];
             const Eigen::Vector3d& mpa = cs_geom::toEigenVec(kfa.mapPoints[matches[ind].queryIdx]->v3RelativePos);
             mapPointsA[i]   = cv::Point3f(mpa[0], mpa[1], mpa[2]);
-            imagePointsB[i] = kfb.keypoints[matches[ind].trainIdx].pt;
+            int scale = 1;// << kfb.keypoints[matches[ind].trainIdx].octave;
+            imagePointsB[i].x = kfb.keypoints[matches[ind].trainIdx].pt.x * scale;
+            imagePointsB[i].y = kfb.keypoints[matches[ind].trainIdx].pt.y * scale;
         }
 
         cv::Mat rvec(3,1,cv::DataType<double>::type);
@@ -63,7 +65,8 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
         const cv::DMatch& match = matches[oInd[i]];
         const Eigen::Vector3d& mpa   = cs_geom::toEigenVec(kfa.mapPoints[match.queryIdx]->v3RelativePos);
         const cv::Point2f&     imbcv = kfb.keypoints[match.trainIdx].pt;
-        Eigen::Vector2d imb(imbcv.x, imbcv.y);
+        int scale = 1;// << kfb.keypoints[match.trainIdx].octave;
+        Eigen::Vector2d imb(imbcv.x * scale, imbcv.y * scale);
 
         // update score for all hypotheses w.r.t. observation oInd(i)
         for (int h = 0; h < (int) hyp.size(); h++) {
@@ -105,7 +108,10 @@ std::vector<cv::DMatch> Registrator3P::getInliers(const ptam::KeyFrame& kfa, con
         const cv::DMatch& m = matches[i];
 
         const Eigen::Vector3d& mpa   = cs_geom::toEigenVec(kfa.mapPoints[m.queryIdx]->v3RelativePos);
-        const cv::Point2f&     imbcv = kfb.keypoints[m.trainIdx].pt;
+        cv::Point2f     imbcv;
+        int scale = 1;// << kfb.keypoints[m.trainIdx].octave;
+        imbcv.x = kfb.keypoints[m.trainIdx].pt.x * scale;
+        imbcv.y = kfb.keypoints[m.trainIdx].pt.y * scale;
         Eigen::Vector2d ipb(imbcv.x, imbcv.y);
 
         Eigen::Vector2d err = cam_[kfb.nSourceCamera].project3DtoPixel(relPoseBA*mpa) - ipb;;
@@ -120,10 +126,12 @@ std::vector<cv::DMatch> Registrator3P::getInliers(const ptam::KeyFrame& kfa, con
 }
 
 bool Registrator3P::solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
-                                  const std::vector<cv::DMatch>& matches, Sophus::SE3d &result, int minInliers)
+                                  const std::vector<cv::DMatch>& matches, Sophus::SE3d &result,
+                                    std::vector<int>& inliers, double minInliers)
 {
     if (matches.size() < 5)
         return false;
+    inliers.clear();
 
     std::vector<cv::Point3f> mapPointsA(matches.size());
     std::vector<cv::Point2f> imagePointsB(matches.size());
@@ -132,16 +140,23 @@ bool Registrator3P::solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFr
         const int& ind = i;
         const Eigen::Vector3d& mpa = cs_geom::toEigenVec(kfa.mapPoints[matches[ind].queryIdx]->v3RelativePos);
         mapPointsA[i]   = cv::Point3f(mpa[0], mpa[1], mpa[2]);
-        imagePointsB[i] = kfb.keypoints[matches[ind].trainIdx].pt;
+        int scale = 1;// << kfb.keypoints[matches[ind].trainIdx].octave;
+        imagePointsB[i].x = kfb.keypoints[matches[ind].trainIdx].pt.x * scale;
+        imagePointsB[i].y = kfb.keypoints[matches[ind].trainIdx].pt.y * scale;
+        std::cout << "map point: " << mapPointsA[i] << std::endl;
+        std::cout << "image point: " << imagePointsB[i].x << ", " << imagePointsB[i].y << std::endl;
     }
 
     cv::Mat rvec(3,1,cv::DataType<double>::type);
     cv::Mat tvec(3,1,cv::DataType<double>::type);
-    std::vector<int> inliers;
     /// here we need the model of camera B!
     int camNum = kfb.nSourceCamera;
-    cv::solvePnPRansac(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(), rvec, tvec,  false, 300, 6.0, minInliers*5, inliers, cv::EPNP);
-    if (inliers.size() > minInliers) {
+    std::cout << "OpenCV RANSAC..." << std::endl;
+    cv::solvePnPRansac(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(),
+                       rvec, tvec,  false, 100, 4.0,
+                       int(mapPointsA.size()*0.8), inliers, cv::EPNP);
+    std::cout << "Inliers in RANSAC relative pose estimation: " << inliers.size() << std::endl;
+    if (inliers.size() > matches.size() * minInliers) {
         Eigen::Vector3d r;
         Sophus::SE3 se3; // TBA
         cv::cv2eigen(rvec, r);
@@ -151,4 +166,23 @@ bool Registrator3P::solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFr
         return true;
     }
     return false;
+}
+
+void Registrator3P::getObserv(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
+                                                  const std::vector<cv::DMatch>& matches,
+                                                  const std::vector<int> inliers,
+                                                  std::vector<Observation>& obs)
+{
+    for (uint i = 0; i < inliers.size(); i++) {
+        const cv::DMatch& m = matches[inliers[i]];
+
+        const Eigen::Vector3d& mpa   = cs_geom::toEigenVec(kfa.mapPoints[m.queryIdx]->v3RelativePos);
+        cv::Point2f     imbcv;
+        int scale = 1;// << kfb.keypoints[m.trainIdx].octave;
+        imbcv.x = kfb.keypoints[m.trainIdx].pt.x * scale;
+        imbcv.y = kfb.keypoints[m.trainIdx].pt.y * scale;
+        Eigen::Vector2d ipb(imbcv.x, imbcv.y);
+
+        obs.push_back(Observation(mpa, cam_[kfb.nSourceCamera].unprojectPixel(ipb)));
+    }
 }

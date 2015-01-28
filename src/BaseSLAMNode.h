@@ -71,6 +71,7 @@ protected:
     ros::Publisher cam_transform_pub_;
     ros::Publisher robot_to_world_trans_pub_;
     ros::Publisher vis_pointcloud_pub_;
+    ros::Publisher vis_crtpointcloud_pub_;
 
     // ROS Service Servers
     ros::ServiceServer mapping_serv_;

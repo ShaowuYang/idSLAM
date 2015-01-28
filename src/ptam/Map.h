@@ -49,6 +49,8 @@ struct Map
   std::vector<boost::shared_ptr<MapPoint> > vpPoints;
   std::vector<boost::shared_ptr<KeyFrame> > vpKeyFrames;
   std::vector<boost::shared_ptr<KeyFrame> > vpKeyFramessec[AddCamNumber];
+  boost::shared_ptr<KeyFrame> mCurrentkf;
+  boost::shared_ptr<KeyFrame> mCurrentkfsec[AddCamNumber];
 
   bool bGood;
 

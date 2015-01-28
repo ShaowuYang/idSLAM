@@ -10,7 +10,6 @@ set(G2O_LIBRARIES
 add_library(backend_slam
 #  Keyframe.cpp
   PGOptimizer.cpp
-  PlaneEdge.cpp
   SLAMSystem.cpp
 )
 

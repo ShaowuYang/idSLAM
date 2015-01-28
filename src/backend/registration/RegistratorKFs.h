@@ -14,21 +14,22 @@ namespace backend {
 class RegistratorKFs {
 public:
     RegistratorKFs(const cs_geom::Camera * cam,
-                   int nMinInliers = 30, double threshPx = 3.0, double maxErrAngle_ = 10.0*M_PI/180.0,
-                   bool useSIM3 = false);
+                   double nMinInliers = 0.5, double threshPx = 3.0, double maxErrAngle_ = 10.0*M_PI/180.0,
+                   bool useSIM3 = false, double maxerrdis = 0.2);
 
     boost::shared_ptr<ptam::Edge> tryAndMatch(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
     boost::shared_ptr<ptam::Edge> tryAndMatchLargeLoop(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
-    bool tryToRelocalise(const ptam::KeyFrame& goodkf, const ptam::KeyFrame& kf, Sophus::SE3d &result, int minInliers = 50);
+    bool tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, int minInliers = 50);
 
 protected:
     boost::scoped_ptr<cv::DescriptorMatcher> matcher_;
     boost::scoped_ptr<Registrator3P>    reg_3p_;
     boost::scoped_ptr<RegistratorSIM3>  reg_sim3_;
 
-    int nMinInliers_;
+    double nMinInliers_;
     double threshPx_;
     double maxErrAngle_;
+    double maxErrDis_;
 };
 
 }

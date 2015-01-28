@@ -7,9 +7,6 @@
 #include <cs_geometry/Camera.h>
 #include <ptam/KeyFrame.h>
 
-#include <registration/Registrator5P.h>
-#include <registration/RegistratorBAPTAM.h>
-
 #include "DLoopDetector.h"
 #include "TemplatedLoopDetector.h"
 

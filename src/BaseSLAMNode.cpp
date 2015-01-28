@@ -77,6 +77,7 @@ void BaseSLAMNode::onInit()
     cam_transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/ptam/transform",1);
     robot_to_world_trans_pub_= nh_.advertise<geometry_msgs::TransformStamped>("/ptam/robot_to_world",1);
     vis_pointcloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("ptam/pointcloud2", 1);
+    vis_crtpointcloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("ptam/crtpointcloud2", 1);
 
     // setup provided services
     mapping_serv_ = nh_.advertiseService("set_mapping_enabled",&BaseSLAMNode::SetMappingEnabled,this);

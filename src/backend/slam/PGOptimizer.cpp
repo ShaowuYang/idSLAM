@@ -13,8 +13,6 @@
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
 #include <cs_geometry/Conversions.h>
 
-#include "PlaneEdge.h"
-
 using namespace backend;
 using namespace std;
 
