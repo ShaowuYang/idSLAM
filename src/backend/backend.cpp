@@ -109,7 +109,7 @@ void LoopClosing::addEdges(const std::vector<ptam::Edge> msg)
         slam_.wlEdges.push_back(edges[i]);
 }
 
-bool LoopClosing::relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, int minInliers)
+bool LoopClosing::relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, double minInliers)
 {
     if ( slam_.relocaliseRegister(goodkf, kf, result, minInliers))
         return true;

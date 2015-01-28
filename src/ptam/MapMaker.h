@@ -120,7 +120,7 @@ public:
 //  sendKfCbFunction sendKfCallback;
 //  sendEdgesCbFunction sendEdgesCallback;
 
-  bool relocaliseRegister(const boost::shared_ptr<KeyFrame> goodkf, const boost::shared_ptr<KeyFrame> kf, Sophus::SE3d &result, int minInliers = 50); // register the relocalisation module for the front-end
+  bool relocaliseRegister(const boost::shared_ptr<KeyFrame> goodkf, const boost::shared_ptr<KeyFrame> kf, Sophus::SE3d &result, double minInliers = .50); // register the relocalisation module for the front-end
   void sendKfCallback(boost::shared_ptr<const ptam::KeyFrame> kf, bool sendpoints = false);// send kf to the backend
   void sendEdgesCallback(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs, const int maxkfsize = 5);// send all edges in BA to backend
 //  void sendKfPoints(boost::shared_ptr<const ptam::KeyFrame> kf);// update old kf points

@@ -216,10 +216,14 @@ void SLAMSystem::addKeyframes()
             // TODO: implement new LD method using online vocabulary
             int loopMatch = loopDetector_->detectLoop(*kfnew);
             if (loopMatch > 0) {
+                cout << "A large loop candidate detected with kf: "<< loopMatch << endl;
+
                 lockmap.lock();
                 boost::shared_ptr<ptam::KeyFrame> kfLoopMatch(new ptam::KeyFrame);
                 *kfLoopMatch = *keyframes_[loopMatch];
                 lockmap.unlock();
+                cout << "loop kf candidate copied for matching." << endl;
+
                 boost::shared_ptr<ptam::Edge> edge = registrator_->tryAndMatchLargeLoop(*kfnew, *kfLoopMatch);
                 std::cout << "loop closure match: " << loopMatch << std::endl;
                 if (edge) {
@@ -424,7 +428,7 @@ int SLAMSystem::findBestKeyframeForMatching(const ptam::KeyFrame& kf)
     return bestInd;
 }
 
-bool SLAMSystem::relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, int minInliers)
+bool SLAMSystem::relocaliseRegister(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, double minInliers)
 {
     if (registrator_->tryToRelocalise(goodkf, kf, result, minInliers))
         return true;

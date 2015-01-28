@@ -7,6 +7,7 @@
 
 using namespace backend;
 using namespace cs_geom;
+using namespace std;
 
 
 #define N_SAMPLES 4
@@ -41,6 +42,7 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
         cv::Mat tvec(3,1,cv::DataType<double>::type);
         /// here we need the model of camera B!
         int camNum = kfb.nSourceCamera;
+        cout << "cv::solvePnP......" << endl;
         if (cv::solvePnP(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(), rvec, tvec,  false, cv::EPNP)) {
             Sophus::SE3d se3;
             Eigen::Vector3d r;
@@ -131,7 +133,6 @@ bool Registrator3P::solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFr
 {
     if (matches.size() < 5)
         return false;
-    inliers.clear();
 
     std::vector<cv::Point3f> mapPointsA(matches.size());
     std::vector<cv::Point2f> imagePointsB(matches.size());
@@ -143,15 +144,12 @@ bool Registrator3P::solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFr
         int scale = 1;// << kfb.keypoints[matches[ind].trainIdx].octave;
         imagePointsB[i].x = kfb.keypoints[matches[ind].trainIdx].pt.x * scale;
         imagePointsB[i].y = kfb.keypoints[matches[ind].trainIdx].pt.y * scale;
-        std::cout << "map point: " << mapPointsA[i] << std::endl;
-        std::cout << "image point: " << imagePointsB[i].x << ", " << imagePointsB[i].y << std::endl;
     }
 
     cv::Mat rvec(3,1,cv::DataType<double>::type);
     cv::Mat tvec(3,1,cv::DataType<double>::type);
     /// here we need the model of camera B!
     int camNum = kfb.nSourceCamera;
-    std::cout << "OpenCV RANSAC..." << std::endl;
     cv::solvePnPRansac(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(),
                        rvec, tvec,  false, 100, 4.0,
                        int(mapPointsA.size()*0.8), inliers, cv::EPNP);
