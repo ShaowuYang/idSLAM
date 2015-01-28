@@ -710,12 +710,11 @@ bool Tracker::AttemptRecovery()
     bool bRelocGood = false;
     bool bRelocGoodsec = false;
     int nAdCamGoodnum = 0;
-    int minInliers = 30;
     TooN::SE3<> mbestpose;
     SE3<> se3Best;
     static gvar3<int> gvnUsePnPrecovery("Tracker.usePnPrecover", 1, SILENT);
-    static gvar3<int> gvnMinInliers("Tracker.MinInliers", 30, SILENT);
-    minInliers = *gvnMinInliers;
+    static gvar3<double> gvnMinInliers("Tracker.MinInliers", 0.5, SILENT);
+    double minInliers = *gvnMinInliers;
 
     /// use multi image to relocalize the system
     /// use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
@@ -794,7 +793,7 @@ bool Tracker::AttemptRecovery()
     return true;
 }
 
-bool Tracker::AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_ptr<KeyFrame> kf, TooN::SE3<> &mse3Best, int minInliers)
+bool Tracker::AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_ptr<KeyFrame> kf, TooN::SE3<> &mse3Best, double minInliers)
 {
     // write access: unique lock
     boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);

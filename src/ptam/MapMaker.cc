@@ -622,7 +622,7 @@ void MapMaker::sendEdgesCallback(const std::vector<boost::shared_ptr<ptam::KeyFr
         mbackend_.addEdges(edges);
 }
 
-bool MapMaker::relocaliseRegister(const boost::shared_ptr<KeyFrame> goodkf, const boost::shared_ptr<KeyFrame> kf, Sophus::SE3d &result, int minInliers)
+bool MapMaker::relocaliseRegister(const boost::shared_ptr<KeyFrame> goodkf, const boost::shared_ptr<KeyFrame> kf, Sophus::SE3d &result, double minInliers)
 {
     if ( mbackend_.relocaliseRegister(goodkf, kf, result, minInliers))
         return true;

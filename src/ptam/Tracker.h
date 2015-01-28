@@ -220,7 +220,7 @@ protected:
   
   // Relocalisation functions:
   bool AttemptRecovery();         // Called by TrackFrame if tracking is lost.
-  bool AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_ptr<KeyFrame> kf, TooN::SE3<> &mse3Best, int minInliers = 50);
+  bool AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_ptr<KeyFrame> kf, TooN::SE3<> &mse3Best, double minInliers = 0.50);
   bool mbJustRecoveredSoUseCoarse;// Always use coarse tracking after recovery!
 
   // Frame-to-frame motion init:

@@ -67,13 +67,14 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& 
 }
 
 bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa, const boost::shared_ptr<ptam::KeyFrame> kfb,
-                                             Sophus::SE3d &result, int minInliers)
+                                             Sophus::SE3d &result, double minInliers)
 {
     std::vector<cv::DMatch> matchesAB;
 
     // match
     matcher_->match(kfa->mpDescriptors, kfb->kpDescriptors, matchesAB);
 
+    std::cout << "Matches found for relocalization: " << matchesAB.size() << std::endl;
     // RANSAC A->B:
     Sophus::SE3d relPoseAB;
     std::vector<int> inliers;
@@ -89,45 +90,28 @@ bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa
 boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
 {
     boost::shared_ptr<ptam::Edge> edge;
-//    if (abs(kfa.id - kfb.id) < 20)
+//    if (abs(kfa.id - kfb.id) < 20) // we need this
 //        return edge;
 
     std::vector<cv::DMatch> matchesAB, matchesBA;
-    std::vector<cv::DMatch> matchesABin, matchesBAin;
-    std::vector<Observation> obsAB, obsBA;
 
-    // match both ways
 //    matcher_->match(kfa.mpDesc, kfb.kpDesc, matchesAB);
     matcher_->match(kfb.mpDescriptors, kfa.kpDescriptors, matchesBA);
 
-    // RANSAC A->B:
-//    Sophus::SE3d relPoseAB = reg_3p_->solve(kfa, kfb, matchesAB);
-//    matchesABin = reg_3p_->getInliers(kfa, kfb, matchesAB, relPoseAB, threshPx_, obsAB);
-
-////    std::cout << "inliers: " << matchesABin.size() << std::endl;
-//    if (matchesABin.size() < nMinInliers_)
-//        return edge;
-
-    // RANSAC B->A:
-    Sophus::SE3d relPoseBA = reg_3p_->solve(kfb, kfa, matchesBA);
-    matchesBAin = reg_3p_->getInliers(kfb, kfa, matchesBA, relPoseBA, threshPx_, obsBA);
-
-//    std::cout << "inliers: " << matchesBAin.size() << std::endl;
-    if (matchesBAin.size() < matchesBA.size() * nMinInliers_)
+    std::cout << "large loop inliers: " << matchesBA.size() << std::endl;
+    if (matchesBA.size() < kfb.mpDescriptors.rows * nMinInliers_)
         return edge;
 
-    // compute angular error between both relative poses
-//    Sophus::SO3d err = relPoseAB.so3()*relPoseBA.so3();
-//    double theta;
-//    Sophus::SO3d::logAndTheta(err, &theta);
-//    if (std::abs(theta) > maxErrAngle_)
-//        return edge;
+    // RANSAC B->A:
+    Sophus::SE3d relPoseBA;
+    std::vector<int> inliersBA;
+    if (reg_3p_->solvePnP_RANSAC(kfb, kfa, matchesBA, relPoseBA, inliersBA, nMinInliers_)){
+        // change a, b order to make this edge consist with the definition for backward neighbours
+        edge.reset(new ptam::Edge(kfa.id, kfb.id, ptam::EDGE_LOOP, relPoseBA));
+    }
+    else
+        return edge;
 
-    // Both RANSAC poses agree. Refine
-//    reg_sim3_->solve(obsAB, obsBA);
-
-    // change a, b order to make this edge consist with the definition for backward neighbours
-    edge.reset(new ptam::Edge(kfb.id, kfa.id, ptam::EDGE_LOOP, relPoseBA));
     return edge;
 }
 } // namespace
