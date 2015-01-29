@@ -325,12 +325,15 @@ void KeyFrame::finalizeKeyframeBackend()
     mapPoints.clear();
     for(const_meas_it it = mMeasurements.begin(); it != mMeasurements.end(); it++) {
         boost::shared_ptr<MapPoint> point = it->first;
-        if (point->pPatchSourceKF.lock() &&// source kf not removed
+        if (point->pPatchSourceKF.lock() //&& source kf not removed
 //                !point->sourceKfIDtransfered && // avoid re-send
-                point->pPatchSourceKF.lock()->id == id) {// point belongs to this kf
+//                point->pPatchSourceKF.lock()->id == id
+                )
+        {// point belongs to this kf
 
-            // relative pose of the map points to source kf:
-//            point->v3RelativePos = se3CfromW*point->v3WorldPos;
+            // relative pose of the map points to this kf! (not neccecerrily the source kf!):
+            if (point->pPatchSourceKF.lock()->id != id)
+                point->v3RelativePos = se3CfromW*point->v3WorldPos;
             point->irCenterZero = LevelZeroPosIR(point->irCenter,point->nSourceLevel);
 
             mapPoints.push_back(point);
