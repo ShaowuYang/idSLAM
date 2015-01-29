@@ -365,6 +365,8 @@ void KeyFrame::finalizeKeyframeBackend()
     std::vector<boost::shared_ptr<MapPoint> > mpNew;
     mpKeypoints.clear();
     keypoints.clear();
+    mpDescriptors.release();
+    kpDescriptors.release();
     for (uint l = 0; l < 2; l++) {
         cv::Mat levDesc;
         // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
@@ -413,7 +415,8 @@ void KeyFrame::finalizeKeyframeBackend()
     mapPoints = mpNew;
 
     cout << "mapPoints: " << mapPoints.size() << endl;
-    cout << "IN the current kf, all keypoints: "<< keypoints.size() << endl;
+    cout << "IN the current kf, all describ. all keypoints: "
+         << kpDescriptors.rows << ", " << keypoints.size() << endl;
 
     // extract depth again
     kpDepth.resize(keypoints.size());
@@ -426,7 +429,7 @@ void KeyFrame::finalizeKeyframeBackend()
 
 void KeyFrame::finalizeKeyframekpts()
 {
-    boost::scoped_ptr<cv::DescriptorExtractor> extractor(new cv::BriefDescriptorExtractor(32));
+    static boost::scoped_ptr<cv::DescriptorExtractor> extractor(new cv::BriefDescriptorExtractor(32));
 
     // compute descriptors of all corners
     // Make sure image is actually copied:
@@ -435,6 +438,7 @@ void KeyFrame::finalizeKeyframekpts()
     cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
                         (void*) lev.im.data(), lev.im.row_stride()).clone();
     keypoints.clear();
+    kpDescriptors.release();
     for (uint l = 0; l < 2; l++) {
         Level &lev1 = aLevels[l];
 
@@ -454,7 +458,7 @@ void KeyFrame::finalizeKeyframekpts()
             kpts[k].response = lev1.vMaxCornersDepth[k];
         }
 
-        cout << "IN the current kf, keypoints: "<< kpts.size() << endl;
+        cout << "in the current kf, keypoints: "<< kpts.size() << endl;
 
         cv::Mat levkpDesc;
         // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
@@ -466,7 +470,7 @@ void KeyFrame::finalizeKeyframekpts()
         kpDescriptors.push_back(levkpDesc);
         keypoints.insert( keypoints.end(), kpts.begin(), kpts.end() );
     }
-    cout << "IN the current kf, all keypoints: "<< keypoints.size() << endl;
+    cout << "in the current kf for reloc., all kpdesc. keypoints: " << kpDescriptors.rows << ", " << keypoints.size() << endl;
 
     // extract depth again
     kpDepth.resize(keypoints.size());
