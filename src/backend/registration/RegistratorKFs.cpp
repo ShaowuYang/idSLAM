@@ -1,4 +1,5 @@
 #include "RegistratorKFs.h"
+using namespace std;
 
 namespace backend {
 
@@ -23,13 +24,13 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchRANSAC(const ptam::KeyF
     matcher_->match(kfa.mpDescriptors, kfb.kpDescriptors, matchesAB);
     matcher_->match(kfb.mpDescriptors, kfa.kpDescriptors, matchesBA);
 
-    std::cout << "kpts, matches sizes: " << kfa.mpDescriptors.rows << ", " << kfb.mpDescriptors.rows
+    std::cout << "mpts, matches sizes: " << kfa.mpDescriptors.rows << ", " << kfb.mpDescriptors.rows
             << ", " << matchesAB.size() << ", " << matchesBA.size() << std::endl;
 
     // RANSAC A->B:
     Sophus::SE3d relPoseAB;
     std::vector<int> inliers;
-    std::cout << "doing RANSAC " << std::endl;
+    std::cout << "doing RANSAC A to B" << std::endl;
     if (reg_3p_->solvePnP_RANSAC(kfa, kfb, matchesAB, relPoseAB, inliers, nMinInliers_)){
         reg_3p_->getObserv(kfa, kfb, matchesAB, inliers, obsAB);
     }
@@ -41,12 +42,12 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchRANSAC(const ptam::KeyF
     // RANSAC B->A:
     Sophus::SE3d relPoseBA;
     std::vector<int> inliersBA;
+    std::cout << "doing RANSAC B to A" << std::endl;
     if (reg_3p_->solvePnP_RANSAC(kfb, kfa, matchesBA, relPoseBA, inliersBA, nMinInliers_)){
         reg_3p_->getObserv(kfb, kfa, matchesBA, inliersBA, obsBA);
     }
     else
         return edge;
-    std::cout << "inliers: " << inliersBA.size() << std::endl;
 
     std::cout << "inliers obsBA: " << obsBA.size() << std::endl;
 
@@ -123,7 +124,7 @@ bool RegistratorKFs::tryToRelocaliseRANSAC(const boost::shared_ptr<ptam::KeyFram
     // RANSAC A->B:
     Sophus::SE3d relPoseAB;
     std::vector<int> inliers;
-    if (reg_3p_->solvePnP_RANSAC(*kfa, *kfb, matchesAB, relPoseAB, inliers, minInliers)){
+    if (reg_3p_->solvePnP_RANSAC(*kfa, *kfb, matchesAB, relPoseAB, inliers, minInliers, threshPx_)){
         result = relPoseAB;
         return true;
     }
@@ -143,19 +144,30 @@ bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa
     std::cout << "Matches found for relocalization: " << matchesAB.size() << std::endl;
     // RANSAC A->B:
     Sophus::SE3d relPoseAB = reg_3p_->solve(*kfa, *kfb, matchesAB);
+    std::cout << "RANSAC done for relocalization: " << std::endl;
+
+    matchesABin = reg_3p_->getInliers(*kfa, *kfb, matchesAB, relPoseAB, threshPx_, obsAB);
+    bool bReloc = reg_3p_->solvePnP(*kfa, *kfb, matchesABin, relPoseAB);
+    std::cout << "relocalization refined by PnP " << std::endl;
+    if (!bReloc) {
+        std::cout << "No reloc. candidate got from PnP" << std::endl;
+        return false;
+    }
+
     double dis = relPoseAB.translation().norm();
     if (abs(dis) > 1.0){
         std::cout << "Too far away from the reference kf: "<< dis << std::endl;
         return false;
     }
 
-    matchesABin = reg_3p_->getInliers(*kfa, *kfb, matchesAB, relPoseAB, threshPx_, obsAB);
     if (matchesABin.size() > matchesAB.size() * minInliers){
         result = relPoseAB;
         return true;
     }
-    else
+    else{
+        std::cout << "Too few inliers from PnP" << std::endl;
         return false;
+    }
 }
 
 // for detected large loop, we expect there's significant pose drift.
@@ -180,11 +192,11 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoopRANSAC(const p
     if (reg_3p_->solvePnP_RANSAC(kfb, kfa, matchesBA, relPoseBA, inliersBA, nMinInliers_)){
         // change a, b order to make this edge consist with the definition for backward neighbours
         edge.reset(new ptam::Edge(kfa.id, kfb.id, ptam::EDGE_LOOP, relPoseBA));
+        return edge;
     }
     else
         return edge;
 
-    return edge;
 }
 
 boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
@@ -209,9 +221,11 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::K
     if (matchesBAin.size() < matchesBA.size() * nMinInliers_)
         return edge;
     else{
-        relPoseBA = reg_3p_->solvePnP(kfb, kfa, matchesBAin);
+        if (!reg_3p_->solvePnP(kfb, kfa, matchesBAin, relPoseBA))
+            return edge;
         // change a, b order to make this edge consist with the definition for backward neighbours
         edge.reset(new ptam::Edge(kfa.id, kfb.id, ptam::EDGE_LOOP, relPoseBA));
+        return edge;
     }
 }
 } // namespace

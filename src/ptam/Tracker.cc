@@ -719,7 +719,7 @@ bool Tracker::AttemptRecovery()
     /// use multi image to relocalize the system
     /// use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
     if (*gvnUsePnPrecovery){
-        // write access: unique lock
+        // read access: unique lock
         boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
 //        boost::shared_ptr<KeyFrame> pClosest = mMapMaker.ClosestKeyFrame(mCurrentKF);
         boost::shared_ptr<KeyFrame> pClosest = mMap.vpKeyFrames[mMap.vpKeyFrames.size() - 1];

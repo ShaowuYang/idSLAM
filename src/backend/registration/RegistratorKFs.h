@@ -14,7 +14,7 @@ namespace backend {
 class RegistratorKFs {
 public:
     RegistratorKFs(const cs_geom::Camera * cam,
-                   double nMinInliers = 0.5, double threshPx = 3.0, double maxErrAngle_ = 10.0*M_PI/180.0,
+                   double nMinInliers = 0.5, double threshPx = 6.0, double maxErrAngle_ = 10.0*M_PI/180.0,
                    bool useSIM3 = false, double maxerrdis = 0.2);
 
     boost::shared_ptr<ptam::Edge> tryAndMatch(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
