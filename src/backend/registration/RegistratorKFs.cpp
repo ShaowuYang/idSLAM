@@ -12,7 +12,7 @@ RegistratorKFs::RegistratorKFs(const cs_geom::Camera *cam,
     reg_sim3_.reset(new RegistratorSIM3(useSIM3));
 }
 
-boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
+boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchRANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
 {
     boost::shared_ptr<ptam::Edge> edge;
 
@@ -66,7 +66,52 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& 
     return edge;
 }
 
-bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa, const boost::shared_ptr<ptam::KeyFrame> kfb,
+boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
+{
+    boost::shared_ptr<ptam::Edge> edge;
+
+    std::vector<cv::DMatch> matchesAB, matchesBA;
+    std::vector<cv::DMatch> matchesABin, matchesBAin;
+    std::vector<Observation> obsAB, obsBA;
+
+    // match both ways
+    matcher_->match(kfa.mpDescriptors, kfb.kpDescriptors, matchesAB);
+    matcher_->match(kfb.mpDescriptors, kfa.kpDescriptors, matchesBA);
+
+    std::cout << "mpts, matches sizes: " << kfa.mpDescriptors.rows << ", " << kfb.mpDescriptors.rows
+            << ", " << matchesAB.size() << ", " << matchesBA.size() << std::endl;
+
+    // RANSAC A->B:
+    Sophus::SE3d relPoseAB = reg_3p_->solve(kfa, kfb, matchesAB);
+    matchesABin = reg_3p_->getInliers(kfa, kfb, matchesAB, relPoseAB, threshPx_, obsAB);
+    std::cout << "inliers: " << matchesABin.size() << std::endl;
+    if (matchesABin.size() < matchesAB.size() * nMinInliers_)
+         return edge;
+
+    // RANSAC B->A:
+    Sophus::SE3d relPoseBA = reg_3p_->solve(kfb, kfa, matchesBA);
+    matchesBAin = reg_3p_->getInliers(kfb, kfa, matchesBA, relPoseBA, threshPx_, obsBA);
+    std::cout << "inliers: " << matchesBAin.size() << std::endl;
+    if (matchesBAin.size() < matchesBA.size() * nMinInliers_)
+        return edge;
+
+    // compute angular error between both relative poses
+    Sophus::SO3d err = relPoseAB.so3()*relPoseBA.so3();
+    double theta;
+    Sophus::SO3d::logAndTheta(err, &theta);
+    double errdis = (relPoseAB.translation() - relPoseBA.translation()).norm();
+    if (std::abs(theta) > maxErrAngle_ || errdis > maxErrDis_)
+        return edge;
+
+    // Both RANSAC poses agree. Refine
+    reg_sim3_->solve(obsAB, obsBA);
+
+    // change a, b order to make this edge consist with the definition for backward neighbours
+    edge.reset(new ptam::Edge(kfb.id, kfa.id, ptam::EDGE_LOOP, reg_sim3_->aTb_se3().inverse()));
+    return edge;
+}
+
+bool RegistratorKFs::tryToRelocaliseRANSAC(const boost::shared_ptr<ptam::KeyFrame> kfa, const boost::shared_ptr<ptam::KeyFrame> kfb,
                                              Sophus::SE3d &result, double minInliers)
 {
     std::vector<cv::DMatch> matchesAB;
@@ -86,8 +131,35 @@ bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa
         return false;
 }
 
+bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa, const boost::shared_ptr<ptam::KeyFrame> kfb,
+                                             Sophus::SE3d &result, double minInliers)
+{
+    std::vector<cv::DMatch> matchesAB;
+    std::vector<cv::DMatch> matchesABin;
+    std::vector<Observation> obsAB;
+    // match
+    matcher_->match(kfa->mpDescriptors, kfb->kpDescriptors, matchesAB);
+
+    std::cout << "Matches found for relocalization: " << matchesAB.size() << std::endl;
+    // RANSAC A->B:
+    Sophus::SE3d relPoseAB = reg_3p_->solve(*kfa, *kfb, matchesAB);
+    double dis = relPoseAB.translation().norm();
+    if (abs(dis) > 1.0){
+        std::cout << "Too far away from the reference kf: "<< dis << std::endl;
+        return false;
+    }
+
+    matchesABin = reg_3p_->getInliers(*kfa, *kfb, matchesAB, relPoseAB, threshPx_, obsAB);
+    if (matchesABin.size() > matchesAB.size() * minInliers){
+        result = relPoseAB;
+        return true;
+    }
+    else
+        return false;
+}
+
 // for detected large loop, we expect there's significant pose drift.
-boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
+boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoopRANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
 {
     boost::shared_ptr<ptam::Edge> edge;
 //    if (abs(kfa.id - kfb.id) < 20) // we need this
@@ -113,6 +185,34 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::K
         return edge;
 
     return edge;
+}
+
+boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatchLargeLoop(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb)
+{
+    boost::shared_ptr<ptam::Edge> edge;
+//    if (abs(kfa.id - kfb.id) < 20) // we need this
+//        return edge;
+
+    std::vector<cv::DMatch> matchesAB, matchesBA;
+    std::vector<cv::DMatch> matchesABin, matchesBAin;
+    std::vector<Observation> obsAB, obsBA;
+
+//    matcher_->match(kfa.mpDesc, kfb.kpDesc, matchesAB);
+    matcher_->match(kfb.mpDescriptors, kfa.kpDescriptors, matchesBA);
+
+    std::cout << "large loop inliers: " << matchesBA.size() << std::endl;
+
+    // RANSAC B->A:
+    Sophus::SE3d relPoseBA = reg_3p_->solve(kfb, kfa, matchesBA);
+    matchesBAin = reg_3p_->getInliers(kfb, kfa, matchesBA, relPoseBA, threshPx_, obsBA);
+    std::cout << "inliers: " << matchesBAin.size() << std::endl;
+    if (matchesBAin.size() < matchesBA.size() * nMinInliers_)
+        return edge;
+    else{
+        relPoseBA = reg_3p_->solvePnP(kfb, kfa, matchesBAin);
+        // change a, b order to make this edge consist with the definition for backward neighbours
+        edge.reset(new ptam::Edge(kfa.id, kfb.id, ptam::EDGE_LOOP, relPoseBA));
+    }
 }
 } // namespace
 

@@ -18,8 +18,11 @@ public:
                    bool useSIM3 = false, double maxerrdis = 0.2);
 
     boost::shared_ptr<ptam::Edge> tryAndMatch(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
+    boost::shared_ptr<ptam::Edge> tryAndMatchRANSAC(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
     boost::shared_ptr<ptam::Edge> tryAndMatchLargeLoop(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
+    boost::shared_ptr<ptam::Edge> tryAndMatchLargeLoopRANSAC(const ptam::KeyFrame& kf1, const ptam::KeyFrame& kf2);
     bool tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, double minInliers = .50);
+    bool tryToRelocaliseRANSAC(const boost::shared_ptr<ptam::KeyFrame> goodkf, const boost::shared_ptr<ptam::KeyFrame> kf, Sophus::SE3d &result, double minInliers = .50);
 
 protected:
     boost::scoped_ptr<cv::DescriptorMatcher> matcher_;

@@ -41,6 +41,7 @@ public:
 
     // Try to find kfa's map points to kfb's corners. Return: ^A T_B
     Sophus::SE3d solve(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb, const std::vector<cv::DMatch>& matches);
+    Sophus::SE3d solvePnP(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb, const std::vector<cv::DMatch>& matches);
     std::vector<cv::DMatch> getInliers(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kfb,
                                        const std::vector<cv::DMatch>& matches,
                                        const Sophus::SE3d& relPoseBA,
