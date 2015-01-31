@@ -2848,7 +2848,6 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
     for (int i = 0; i < nKfmin; i ++){
         pK = mvpKeyFrameQueue[0];
         mvpKeyFrameQueue.erase(mvpKeyFrameQueue.begin());
-        cout << "current kf and existing kfs: " << pK->id << ", " << mMap.vpKeyFrames[mMap.vpKeyFrames.size()-1]->id << endl;
 //        if (i != 0) /// in this case, not likely to add it
             neednewkf = NeedNewKeyFrame(pK);
         cout << "need new kf from first cam?: " << neednewkf << endl;

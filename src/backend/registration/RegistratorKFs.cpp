@@ -147,6 +147,12 @@ bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa
     std::cout << "RANSAC done for relocalization: " << std::endl;
 
     matchesABin = reg_3p_->getInliers(*kfa, *kfb, matchesAB, relPoseAB, threshPx_, obsAB);
+    cout << "Inliers for reloc.: " << matchesABin.size() << endl;
+    if (matchesABin.size() < matchesAB.size() * minInliers){
+        std::cout << "Too few inliers from PnP" << std::endl;
+        return false;
+    }
+
     bool bReloc = reg_3p_->solvePnP(*kfa, *kfb, matchesABin, relPoseAB);
     std::cout << "relocalization refined by PnP " << std::endl;
     if (!bReloc) {
@@ -160,14 +166,8 @@ bool RegistratorKFs::tryToRelocalise(const boost::shared_ptr<ptam::KeyFrame> kfa
         return false;
     }
 
-    if (matchesABin.size() > matchesAB.size() * minInliers){
-        result = relPoseAB;
-        return true;
-    }
-    else{
-        std::cout << "Too few inliers from PnP" << std::endl;
-        return false;
-    }
+    result = relPoseAB;
+    return true;
 }
 
 // for detected large loop, we expect there's significant pose drift.

@@ -20,6 +20,7 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
 
     // Generate nHyp_ hypotheses:
     std::vector<Hypothesis3P> hyp;
+    nHyp_ = matches.size() * N_SAMPLES;
     while (hyp.size() < nHyp_) {
         std::vector<int> sampleInd;
 

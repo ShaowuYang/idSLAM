@@ -79,7 +79,8 @@ struct Point
 // computation intermediates.
 struct Meas
 {
-  inline Meas() : bBad(false){nSourceCamera = 0; mAssociated = false;}
+  inline Meas() : bBad(false){nSourceCamera = 0; mAssociated = false;
+                             bdepth = false;}
   inline Meas(int nPoint, int nCam) : p(nPoint), c(nCam), bBad(false)  {nSourceCamera = 0;};
   virtual void ProjectAndFindSquaredError(const std::vector<Point>& points, std::vector<Camera>& cameras,
                                                  CameraModel* calib) = 0;
@@ -117,6 +118,7 @@ struct Meas
   // for dual camera case
   int nSourceCamera;
   bool mAssociated;
+  bool bdepth; // a depth measure?
 };
 
 struct Meas2d : public Meas
@@ -344,7 +346,8 @@ struct MeasDepth: public Meas
     double dEpsilon;
     Vector<6> v6A;
     Vector<3> v3B;
-    inline MeasDepth(int nPoint, int nCam,  double dDepth, double dSigmaSquared) : Meas(nPoint,nCam), dFound(dDepth) { dSqrtInvNoise = sqrt(1.0/dSigmaSquared); };
+    inline MeasDepth(int nPoint, int nCam,  double dDepth, double dSigmaSquared) : Meas(nPoint,nCam), dFound(dDepth) {
+        dSqrtInvNoise = sqrt(1.0/dSigmaSquared); bdepth = true;};
     inline virtual void ProjectAndFindSquaredError(const std::vector<Point>& points, std::vector<Camera>& cameras,
                                                    CameraModel* calib)
     {
@@ -460,6 +463,7 @@ protected:
   int mnCamsToUpdate;
   int mnStartRow;
   double mdSigmaSquared;
+  double mdSigmaSquaredDepth;
   double mdLambda;
   double mdLambdaFactor;
   bool mbConverged;

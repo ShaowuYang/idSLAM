@@ -332,8 +332,8 @@ void KeyFrame::finalizeKeyframeBackend()
         {// point belongs to this kf
 
             // relative pose of the map points to this kf! (not neccecerrily the source kf!):
-            if (point->pPatchSourceKF.lock()->id != id)
-                point->v3RelativePos = se3CfromW*point->v3WorldPos;
+//            if (point->pPatchSourceKF.lock()->id != id)
+            point->v3RelativePos = se3CfromW*point->v3WorldPos;
             point->irCenterZero = LevelZeroPosIR(point->irCenter,point->nSourceLevel);
 
             mapPoints.push_back(point);
