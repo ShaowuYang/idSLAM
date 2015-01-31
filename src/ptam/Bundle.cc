@@ -219,6 +219,7 @@ bool Bundle::Do_LM_Step(bool *pbAbortSignal)
     //  Actual work starts a bit further down - first we have to work out the
     //  projections and errors for each point, so we can do tukey reweighting
     vector<double> vdErrorSquared;
+    vector<double> vdErrorSquaredDepth;
     for(list<Meas*>::iterator itr = mMeasList.begin(); itr!=mMeasList.end(); itr++)
     {
         Meas* meas = *itr;
@@ -227,14 +228,20 @@ bool Bundle::Do_LM_Step(bool *pbAbortSignal)
         else
             meas->ProjectAndFindSquaredError(mvPoints,mvCameras,mCameraSec[(*itr)->nSourceCamera-1].get());
 
-        if(!meas->bBad)
-            vdErrorSquared.push_back(meas->dErrorSquared);
+        if(!meas->bBad){
+            if (!meas->bdepth)
+                vdErrorSquared.push_back(meas->dErrorSquared);
+            else
+                vdErrorSquaredDepth.push_back(meas->dErrorSquared);
+        }
     };
 
     // Projected all points and got vector of errors; find the median,
     // And work out robust estimate of sigma, then scale this for the tukey
     // estimator
     mdSigmaSquared = MEstimator::FindSigmaSquared(vdErrorSquared);
+    if (vdErrorSquaredDepth.size())
+        mdSigmaSquaredDepth = MEstimator::FindSigmaSquared(vdErrorSquaredDepth);
 
     // Initially the median error might be very small - set a minimum
     // value so that good measurements don't get erased!
@@ -242,6 +249,8 @@ bool Bundle::Do_LM_Step(bool *pbAbortSignal)
     const double dMinSigmaSquared = *gvdMinSigma * *gvdMinSigma;
     if(mdSigmaSquared < dMinSigmaSquared)
         mdSigmaSquared = dMinSigmaSquared;
+    if(mdSigmaSquaredDepth < dMinSigmaSquared)
+        mdSigmaSquaredDepth = dMinSigmaSquared;
 
 
     //  OK - good to go! weights can now be calced on second run through the loop.
@@ -276,10 +285,15 @@ bool Bundle::Do_LM_Step(bool *pbAbortSignal)
         // And also weight the error vector v2Epsilon.
         // That makes everything else automatic.
         // Calc the square root of the tukey weight:
-        double dWeight= MEstimator::SquareRootWeight(meas->dErrorSquared, mdSigmaSquared);
+        double mdsigmaSq;
+        if (meas->bdepth)
+            mdsigmaSq = mdSigmaSquaredDepth;
+        else
+            mdsigmaSq = mdSigmaSquared;
+        double dWeight = MEstimator::SquareRootWeight(meas->dErrorSquared, mdsigmaSq);
         // Re-weight error:
-        if (meas->nSourceCamera)
-            dWeight = dWeight * 0.6;
+//        if (meas->nSourceCamera)
+//            dWeight = dWeight * 0.6;
 
         meas->SetWeight(dWeight);
 
@@ -289,7 +303,7 @@ bool Bundle::Do_LM_Step(bool *pbAbortSignal)
             continue;
         }
 
-        dCurrentError += MEstimator::ObjectiveScore(meas->dErrorSquared, mdSigmaSquared);
+        dCurrentError += MEstimator::ObjectiveScore(meas->dErrorSquared, mdsigmaSq);
 
         // To re-weight the jacobians, I'll just re-weight the camera param matrix
         // This is only used for the jacs and will save a few fmuls

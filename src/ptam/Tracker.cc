@@ -346,7 +346,6 @@ void Tracker::TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Imag
     copy(imFrameD, mCurrentKF->depthImage);
 
     initNewFrame();
-    cout << "Main tracking process ..." << endl;
     if(!trackMapDual()) {
         // If there is no map, try to make one.
         mMapMaker.InitFromRGBD(*mCurrentKF);
@@ -617,7 +616,6 @@ bool Tracker::trackMapDual() {
             ApplyMotionModel();
 
         TrackMap();               //  These three lines do the main tracking work.
-        cout << "Tracking process done." << endl;
 
         // implement the scale factor from last image before add a new keyframe.
         // this would effect both the pose estimation of the keyframe and those new map points
@@ -757,6 +755,7 @@ bool Tracker::AttemptRecovery()
         mbJustRecoveredSoUseCoarse = true;
         cout << "Recovering seems to be success using PnP method." << endl;
         trackerlog << "Recovering seems to be success using PnP method." << endl;
+        trackerlog << mse3CamFromWorld.inverse().get_translation() << endl;
         return true;
     }
 
@@ -1992,6 +1991,9 @@ Vector<6> Tracker::CalcPoseUpdate(vector<boost::shared_ptr<MapPoint> > vTD, doub
 {
     static  gvar3<int> gvnUseDepthTracking("Tracker.UseDepth",0,SILENT);
     static gvar3<int> gvnUse3DTracking("Tracker.Use3D",0,SILENT);
+    static gvar3<int> gvnUseDiffMEstimate("Tracker.UseDiffMEstimate",0,SILENT);
+    static bool bUseDiffMEstimate = *gvnUseDiffMEstimate && *gvnUseDepthTracking;
+
 
     // Which M-estimator are we using?
     int nEstimator = 0;
@@ -2014,6 +2016,7 @@ Vector<6> Tracker::CalcPoseUpdate(vector<boost::shared_ptr<MapPoint> > vTD, doub
     // Find the covariance-scaled reprojection error for each measurement.
     // Also, store the square of these quantities for M-Estimator sigma squared estimation.
     vector<double> vdErrorSquared;
+    vector<double> vdErrorSquaredDepth;
     for(unsigned int f=0; f<vTD.size(); f++)
     {
         TrackerData &TD = vTD[f]->TData;
@@ -2028,7 +2031,10 @@ Vector<6> Tracker::CalcPoseUpdate(vector<boost::shared_ptr<MapPoint> > vTD, doub
             vdErrorSquared.push_back(TD.v2Error_CovScaled * TD.v2Error_CovScaled);
             // depth error:
             double depthError_CovScaled = TD.dSqrtInvDepthNoise*(TD.dFoundDepth - TD.v3Cam[2]);
-            vdErrorSquared.push_back(depthError_CovScaled*depthError_CovScaled);
+            if (!bUseDiffMEstimate)
+                vdErrorSquared.push_back(depthError_CovScaled*depthError_CovScaled);
+            else
+                vdErrorSquaredDepth.push_back(depthError_CovScaled*depthError_CovScaled);
         } else if (*gvnUse3DTracking == 1 && TD.dFoundDepth > 0.0) {
             TD.v3Error_CovScaled = (TD.dSqrtInvDepthNoise+TD.dSqrtInvNoise)*(TD.v3Found - TD.v3Cam);
             vdErrorSquared.push_back(TD.v3Error_CovScaled * TD.v3Error_CovScaled);
@@ -2043,12 +2049,16 @@ Vector<6> Tracker::CalcPoseUpdate(vector<boost::shared_ptr<MapPoint> > vTD, doub
 
     // What is the distribution of errors?
     double dSigmaSquared;
+    double dSigmaSquaredDepth;
     if(dOverrideSigma > 0)
         dSigmaSquared = dOverrideSigma; // Bit of a waste having stored the vector of square errors in this case!
     else
     {
-        if (nEstimator == 0)
+        if (nEstimator == 0){
             dSigmaSquared = Tukey::FindSigmaSquared(vdErrorSquared);
+            if (bUseDiffMEstimate && vdErrorSquaredDepth.size()>0)
+                dSigmaSquaredDepth = Tukey::FindSigmaSquared(vdErrorSquaredDepth);
+        }
         else if(nEstimator == 1)
             dSigmaSquared = Cauchy::FindSigmaSquared(vdErrorSquared);
         else if(nEstimator == 2)
@@ -2074,8 +2084,11 @@ Vector<6> Tracker::CalcPoseUpdate(vector<boost::shared_ptr<MapPoint> > vTD, doub
 
         double dErrorSq;
         double dWeight;
+        double dErrorSqDepth;
+        double dWeightDepth;
 
         bool bUse3DTracking = (*gvnUse3DTracking == 1) && (TD.dFoundDepth > 0.0);
+        bool bUseDiffErr = bUseDiffMEstimate && (TD.dFoundDepth > 0.0);
 
         if (bUse3DTracking) {
             Vector<3> &v3 = TD.v3Error_CovScaled;
@@ -2097,8 +2110,8 @@ Vector<6> Tracker::CalcPoseUpdate(vector<boost::shared_ptr<MapPoint> > vTD, doub
         else
             assert(false);
 
-        if (vTD[f]->nSourceCamera) /// TODO: I will remove this line!
-            dWeight = dWeight *0.6;
+//        if (vTD[f]->nSourceCamera) /// TODO: remove this line!
+//            dWeight = dWeight *0.6;
 
         // Inlier/outlier accounting, only really works for cut-off estimators such as Tukey.
         if(dWeight == 0.0)
@@ -2121,6 +2134,7 @@ Vector<6> Tracker::CalcPoseUpdate(vector<boost::shared_ptr<MapPoint> > vTD, doub
             Vector<2> &v2 = TD.v2Error_CovScaled;
             wls.add_mJ(v2[0], TD.dSqrtInvNoise * m26Jac[0], dWeight); // These two lines are currently
             wls.add_mJ(v2[1], TD.dSqrtInvNoise * m26Jac[1], dWeight); // the slowest bit of poseits
+            // TODO: also add depth measurement in the tracker
         }
 
     }
