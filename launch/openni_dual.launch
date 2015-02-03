@@ -1,0 +1,32 @@
+<!-- Entry point for using OpenNI devices -->
+<launch>
+
+  <!-- "camera" should uniquely identify the device. All topics are pushed down
+       into the "camera" namespace, and it is prepended to tf frame ids. -->
+    <arg name="camera" default="camera" />
+    <arg name="camera0" default="camera0" />
+    <arg name="camera1" default="camera1" />
+  <!-- Parameters possible to change-->
+    <arg name="camera_id" default="A00362A02368044A" /><!-- here you can change 1@0 by the serial number -->
+    <arg name="camera0_id" default="1@8" /><!-- here you can change 2@0 by the serial number -->
+    <arg name="camera1_id" default="3@0" /><!-- here you can change 3@0 by the serial number -->
+    <arg name="depth_registration" default="true" />
+    <arg name="tf_prefix" default="" />
+
+
+  <!-- Launching first kinect-->
+    <include file="$(find openni_launch)/launch/openni.launch">
+        <arg name="device_id" value="$(arg camera_id)" />
+        <arg name="camera" value="$(arg camera)" />
+        <arg name="depth_registration" value="$(arg depth_registration)" />
+     </include>
+
+ <!-- Launching second kinect-->
+    <include file="$(find openni_launch)/launch/openni.launch">
+        <arg name="device_id" value="$(arg camera0_id)" />
+        <arg name="camera" value="$(arg camera0)" />
+        <arg name="depth_registration" value="$(arg depth_registration)" />
+     </include>
+</launch>	
+
+
