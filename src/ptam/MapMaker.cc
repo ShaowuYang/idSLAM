@@ -810,9 +810,9 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
             p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
 
             Vector<3> v3CamPos = p->v3Center_NC*depth;// Xc
-            p->v3WorldPos = v3CamPos;// Xc
+            p->v3RelativePos = v3CamPos;// Xc
             p->v3SourceKFfromeWorld = pkFirst->se3CfromW;
-            p->v3RelativePos = pkFirst->se3CfromW * p->v3WorldPos;
+            p->v3WorldPos = pkFirst->se3CfromW.inverse() * v3CamPos;
 
             normalize(p->v3Center_NC);
             normalize(p->v3OneDownFromCenter_NC);
