@@ -298,7 +298,7 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
                                                const ros::Publisher &point_pub, const std::string& world_frame, const ros::Publisher &camera_pubsec,
                                                const bool dualcamera)
 {
-    bool useDifWorldFrame = true; // use a different world frame for rviz visualization
+    bool useDifWorldFrame = false; // use a different world frame for rviz visualization
 
     static visualization_msgs::Marker camera_marker;
     static visualization_msgs::Marker camera_markersec[AddCamNumber];// second camera
@@ -733,12 +733,14 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
     if (true)//(!dualcamera)
     {
         SE3<> camPose = tracker->GetCurrentPose().inverse();
-        Matrix<3> datam = TooN::Data(0, 0, 1,//Rww1, because the roll and pitch angles are in
-                                     -1, 0, 0, // a world frame which pointing downward.
-                                     0, -1, 0);
-        SO3<> rot = SO3<>();
-        rot = datam;
-        camPose = rot * camPose;
+        if (useDifWorldFrame){
+            Matrix<3> datam = TooN::Data(0, 0, 1,//Rww1, because the roll and pitch angles are in
+                                         -1, 0, 0, // a world frame which pointing downward.
+                                         0, -1, 0);
+            SO3<> rot = SO3<>();
+            rot = datam;
+            camPose = rot * camPose;
+        }
         Vector<3> T = camPose.get_translation();
         geometry_msgs::Point camPos = geometry_msgs_point(T);
         campath_marker.points.push_back(camPos);
@@ -869,7 +871,6 @@ void MapVisualization::renderDebugImageSec(cv::Mat& rgb_cv, const Tracker* track
 
         cv::circle(rgb_cv,cv::Point(x,y),4,cv::Scalar(0,255,255));
     }
-    cout << "kf.mMeasurements size: " << kf.mMeasurements.size() << endl;
 }
 
 void MapVisualization::renderRefImage(cv::Mat& rgb_cv, const Tracker* tracker) {

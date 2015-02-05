@@ -411,10 +411,19 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
 
     if(!trackMapDual()) {
         // If there is no map, try to make one.
-        if ((adcamIndex.size() == AddCamNumber) && mMapMaker.InitFromRGBD(*mCurrentKF, mCurrentKFsec)){
+        TooN::SE3<> IniPose = TooN::SE3<>();
+        IniPose.get_translation()[1] = 0.5;
+        TooN::Matrix<3> datam = TooN::Data(0, -1.0, 0,//Rww1, because the roll and pitch angles are in
+                              0, 0, -1.0, // a world frame which pointing downward.
+                              1.0, 0, 0);
+        IniPose.get_rotation() = datam;
+        if ((adcamIndex.size() == AddCamNumber) && mMapMaker.InitFromRGBD(*mCurrentKF, mCurrentKFsec, IniPose)){
             mnKeyFrames = 1;
-            for (int i = 0; i < AddCamNumber; i ++)
+            mse3CamFromWorld = mMap.vpKeyFrames[0]->se3CfromW;
+            for (int i = 0; i < AddCamNumber; i ++){
+                mse3CamFromWorldsec[i] = mse3Cam1FromCam2[i].inverse()*mse3CamFromWorld;
                 mnKeyFramessec[i] = 1;
+            }
         }
     }
 
