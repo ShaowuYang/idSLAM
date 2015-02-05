@@ -799,6 +799,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
             boost::shared_ptr<MapPoint> p(new MapPoint());
 
             // Patch source stuff:
+            p->nSourceCamera = 0;
             p->pPatchSourceKF = pkFirst;
             p->nSourceLevel = l;
             p->v3Normal_NC = makeVector( 0,0,-1);
@@ -855,22 +856,22 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
     mMap.vpKeyFrames.push_back(pkFirst);
 
     // Also add kfs from those additional cameras
-    for (int i = 0; i < AddCamNumber; i ++){
-        boost::shared_ptr<KeyFrame> pkFirst(new KeyFrame());
-        *pkFirst = *adkfs[i];
-        pkFirst->SBI = kf.SBI;
-        pkFirst->bFixed = true;
-        pkFirst->se3CfromW = mse3Cam2FromCam1[i] * worldPos;
+    for (int cn = 0; cn < AddCamNumber; cn ++){
+        boost::shared_ptr<KeyFrame> pkSec(new KeyFrame());
+        *pkSec = *adkfs[cn];
+        pkSec->SBI = adkfs[cn]->SBI;
+        pkSec->bFixed = true;
+        pkSec->se3CfromW = mse3Cam2FromCam1[cn] * worldPos;
 
         // Construct map from key points
         PatchFinder finder;
         double dSumDepth = 0.0;
         double dSumDepthSquared = 0.0;
         int nMeas = 0;
-        pcount[i+1] = 0;
+        pcount[cn+1] = 0;
         for(unsigned int l = 0; l < LEVELS; l++) {
             lcount[l] = 0;
-            Level& lev = kf.aLevels[l];
+            Level& lev = adkfs[cn]->aLevels[l];
             const int nLevelScale = LevelScale(l);
 
             for (unsigned int i = 0; i < lev.vMaxCorners.size(); i++)
@@ -883,7 +884,8 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
                 boost::shared_ptr<MapPoint> p(new MapPoint());
 
                 // Patch source stuff:
-                p->pPatchSourceKF = pkFirst;
+                p->nSourceCamera = cn + 1;
+                p->pPatchSourceKF = pkSec;
                 p->nSourceLevel = l;
                 p->v3Normal_NC = makeVector( 0,0,-1);
                 p->irCenter = lev.vMaxCorners[i];
@@ -893,9 +895,9 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
                 p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
 
                 Vector<3> v3CamPos = p->v3Center_NC*depth;// Xc
-                p->v3WorldPos = v3CamPos;// Xc
-                p->v3SourceKFfromeWorld = pkFirst->se3CfromW;
-                p->v3RelativePos = pkFirst->se3CfromW * p->v3WorldPos;
+                p->v3RelativePos = v3CamPos;
+                p->v3WorldPos = pkSec->se3CfromW.inverse() * v3CamPos; // Xw
+                p->v3SourceKFfromeWorld = pkSec->se3CfromW;
 
                 normalize(p->v3Center_NC);
                 normalize(p->v3OneDownFromCenter_NC);
@@ -907,7 +909,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
                 finder.MakeTemplateCoarseNoWarp(*p);
                 finder.MakeSubPixTemplate();
                 finder.SetSubPixPos(vec(p->irCenter));
-                //bool bGood = finder.IterateSubPixToConvergence(*pkFirst,10);
+                //bool bGood = finder.IterateSubPixToConvergence(*pkSec,10);
                 //        if(!bGood)
                 //          {
                 //            delete p; continue;
@@ -924,20 +926,20 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
                 mFirst.v2RootPos = vec(irCenterl0); // wrt pyramid level 0
                 mFirst.bSubPix = true;
                 mFirst.dDepth = depth;
-                pkFirst->mMeasurements[p] = mFirst;
-                p->MMData.sMeasurementKFs.insert(pkFirst);
-                pcount[i+1]++;
+                pkSec->mMeasurements[p] = mFirst;
+                p->MMData.sMeasurementKFs.insert(pkSec);
+                pcount[cn+1]++;
             }
         }
 
-        pkFirst->dSceneDepthMean = dSumDepth / nMeas;
-        pkFirst->dSceneDepthSigma = sqrt((dSumDepthSquared / nMeas) - (pkFirst->dSceneDepthMean) * (pkFirst->dSceneDepthMean));
+        pkSec->dSceneDepthMean = dSumDepth / nMeas;
+        pkSec->dSceneDepthSigma = sqrt((dSumDepthSquared / nMeas) - (pkSec->dSceneDepthMean) * (pkSec->dSceneDepthMean));
 
-        RefreshSceneDepth(pkFirst);
-        pkFirst->id = 0;
-        secKFid[i] ++;
+        RefreshSceneDepth(pkSec);
+        pkSec->id = 0;
+        secKFid[cn] ++;
 
-        mMap.vpKeyFramessec[i].push_back(pkFirst);
+        mMap.vpKeyFramessec[cn].push_back(pkSec);
     }
 
     mMap.bGood = true;

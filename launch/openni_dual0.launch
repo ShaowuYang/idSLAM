@@ -11,22 +11,37 @@
     <arg name="camera0_id" default="2@0	" /><!-- here you can change 2@0 by the serial number -->
     <arg name="camera1_id" default="3@0" /><!-- here you can change 3@0 by the serial number -->
     <arg name="depth_registration" default="true" />
+    <arg name="nodelet_manager"   default="idslam_nodelet" />
     <arg name="tf_prefix" default="" />
 
 
+  <!-- Worker threads for the nodelet manager -->
+  <arg name="num_worker_threads" default="10" />
+
+    <!-- Start nodelet manager in top-level namespace -->
+    <arg name="manager" default="$(arg nodelet_manager)" />
+    <arg name="debug" default="false" /> <!-- Run manager in GDB? -->
+
+    <include file="$(find rgbd_launch)/launch/includes/manager.launch.xml">
+      <arg name="name"                value="$(arg manager)" />
+      <arg name="debug"               value="$(arg debug)" />
+      <arg name="num_worker_threads"  value="$(arg num_worker_threads)" />
+    </include>
+
   <!-- Launching first kinect-->
-    <include file="$(find openni_launch)/launch/openni.launch">
+    <include file="$(find openni_launch)/launch/opennidual.launch">
         <arg name="device_id" value="$(arg camera_id)" />
         <arg name="camera" value="$(arg camera)" />
         <arg name="depth_registration" value="$(arg depth_registration)" />
      </include>
 
   <!-- Launching second kinect-->
-    <include file="$(find openni_launch)/launch/openni.launch">
+    <include file="$(find openni_launch)/launch/opennidual.launch">
         <arg name="device_id" value="$(arg camera0_id)" />
         <arg name="camera" value="$(arg camera0)" />
         <arg name="depth_registration" value="$(arg depth_registration)" />
      </include>
+
 </launch>	
 
 

@@ -606,6 +606,14 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
         unsigned int ii = 0;
         for (unsigned int i = 0; i <nCams0; i ++){
             SE3<> camPose = map->vpKeyFrames[i]->se3CfromW.inverse();
+            if (useDifWorldFrame){
+                Matrix<3> datam = TooN::Data(0, 0, 1.0,//Rww1, because the roll and pitch angles are in
+                                             -1.0, 0, 0, // a world frame which pointing downward.
+                                             0, -1.0, 0);
+                SO3<> rot = SO3<>();
+                rot = datam;
+                camPose = rot * camPose;
+            }
             Vector<3> T = camPose.get_translation();
             geometry_msgs::Point camPos;
 
@@ -618,6 +626,16 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
                 camPose = map->vpKeyFramessec[cn][i]->se3CfromW.inverse();
             else
                 camPose = tracker->GetCurrentPosesec(cn).inverse();
+
+            if (useDifWorldFrame){
+                Matrix<3> datam = TooN::Data(0, 0, 1.0,//Rww1, because the roll and pitch angles are in
+                                             -1.0, 0, 0, // a world frame which pointing downward.
+                                             0, -1.0, 0);
+                SO3<> rot = SO3<>();
+                rot = datam;
+                camPose = rot * camPose;
+            }
+
             Vector<3> T = camPose.get_translation();
             geometry_msgs::Point camPos;
 
@@ -712,7 +730,7 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
     lock.unlock();
 
     /// camera path, chose one camera for visualizaiton
-    if (!dualcamera)
+    if (true)//(!dualcamera)
     {
         SE3<> camPose = tracker->GetCurrentPose().inverse();
         Matrix<3> datam = TooN::Data(0, 0, 1,//Rww1, because the roll and pitch angles are in
@@ -851,6 +869,7 @@ void MapVisualization::renderDebugImageSec(cv::Mat& rgb_cv, const Tracker* track
 
         cv::circle(rgb_cv,cv::Point(x,y),4,cv::Scalar(0,255,255));
     }
+    cout << "kf.mMeasurements size: " << kf.mMeasurements.size() << endl;
 }
 
 void MapVisualization::renderRefImage(cv::Mat& rgb_cv, const Tracker* tracker) {
