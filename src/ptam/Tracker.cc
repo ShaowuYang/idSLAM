@@ -1117,11 +1117,14 @@ void Tracker::TrackMap()
 
     // For dual image, PVS should be searched on individual images.
     // For all points in the map..
-    /// TODO: search all mp in all cameras now
+    /// search all mp in all cameras now
+    /// when there's no overlapping FOV, each point has a single trakerdata,
+    /// otherwise, multiple trackerdata can be coded, or a more straightforward way is
+    /// only track the point in one camera
     for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
     {
         // if its source camera is not the the one this keyframe is made, skip.
-        if (!mMap.vpPoints[i]->nSourceCamera)
+        if (true)//(!mMap.vpPoints[i]->nSourceCamera)
         {
             boost::shared_ptr<MapPoint> p= mMap.vpPoints[i];
             TrackerData &TData = p->TData;
@@ -1138,40 +1141,84 @@ void Tracker::TrackMap()
                 p->refreshed = true;
             }
 
-            // Project according to current view, and if it's not in the image, skip.
-            TData.Project(p->v3WorldPos, mse3CamFromWorld, mCamera.get());
-            if(!TData.bInImage) {
-                continue;
-            }
-
-            // Hack by Jonathan Klimesch: Need to see a point from roughly the same angle.
-            double cosAngle;
+            /// each mp should be checked for each camera
+            /// First, for the master camera
             {
-                Vector<3> z;
-                z[0] = z[1] = 0.0; z[2] = 1.0;
-                boost::shared_ptr<KeyFrame> kf = p->pPatchSourceKF.lock();
-                if(kf.get() == NULL)
+                // Project according to current view, and if it's not in the image, skip.
+                TData.Project(p->v3WorldPos, mse3CamFromWorld, mCamera.get());
+                if(!TData.bInImage) {
                     continue;
+                }
 
-                //            cosAngle = (mCurrentKF->se3CfromW.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
-                cosAngle = (mse3CamFromWorld.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
-            }
-            if (cosAngle < 0) { // |angle| > 90°
+                // Hack by Jonathan Klimesch: Need to see a point from roughly the same angle.
+                double cosAngle;
+                {
+                    Vector<3> z;
+                    z[0] = z[1] = 0.0; z[2] = 1.0;
+                    boost::shared_ptr<KeyFrame> kf = p->pPatchSourceKF.lock();
+                    if(kf.get() == NULL)
+                        continue;
+
+                    //            cosAngle = (mCurrentKF->se3CfromW.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
+                    cosAngle = (mse3CamFromWorld.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
+                }
+                if (cosAngle < 0) { // |angle| > 90°
+                    continue;
+                }
+
+                // Calculate camera projection derivatives of this point.
+                TData.GetDerivsUnsafe(mCamera.get());
+
+                // And check what the PatchFinder (included in TrackerData) makes of the mappoint in this view..
+                TData.nSearchLevel = TData.Finder.CalcSearchLevelAndWarpMatrix(*p, mse3CamFromWorld, TData.m2CamDerivs);
+                if(TData.nSearchLevel == -1) {
+                    continue;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
+                }
+                // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
+                TData.bSearched = false;
+                TData.bFound = false;
+                avPVS[TData.nSearchLevel].push_back(p);
                 continue;
             }
+            if (mUsingDualImg)
+                for (int cn = 0; cn < AddCamNumber; cn ++)
+                {
+                    // Project according to current view, and if it's not in the image, skip.
+                    TData.Project(p->v3WorldPos, mse3CamFromWorldsec[cn], mCameraSec[cn].get());
+                    if(!TData.bInImage) {
+                        continue;
+                    }
 
-            // Calculate camera projection derivatives of this point.
-            TData.GetDerivsUnsafe(mCamera.get());
+                    // Hack by Jonathan Klimesch: Need to see a point from roughly the same angle.
+                    double cosAngle;
+                    {
+                        Vector<3> z;
+                        z[0] = z[1] = 0.0; z[2] = 1.0;
+                        boost::shared_ptr<KeyFrame> kf = p->pPatchSourceKF.lock();
+                        if(kf.get() == NULL)
+                            continue;
 
-            // And check what the PatchFinder (included in TrackerData) makes of the mappoint in this view..
-            TData.nSearchLevel = TData.Finder.CalcSearchLevelAndWarpMatrix(*p, mse3CamFromWorld, TData.m2CamDerivs);
-            if(TData.nSearchLevel == -1) {
-                continue;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
-            }
-            // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
-            TData.bSearched = false;
-            TData.bFound = false;
-            avPVS[TData.nSearchLevel].push_back(p);
+                        //            cosAngle = (mCurrentKF->se3CfromW.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
+                        cosAngle = (mse3CamFromWorldsec[cn].get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
+                    }
+                    if (cosAngle < 0) { // |angle| > 90°
+                        continue;
+                    }
+
+                    // Calculate camera projection derivatives of this point.
+                    TData.GetDerivsUnsafe(mCameraSec[cn].get());
+
+                    // And check what the PatchFinder (included in TrackerData) makes of the mappoint in this view..
+                    TData.nSearchLevel = TData.Finder.CalcSearchLevelAndWarpMatrix(*p, mse3CamFromWorldsec[cn], TData.m2CamDerivs);
+                    if(TData.nSearchLevel == -1) {
+                        continue;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
+                    }
+                    // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
+                    TData.bSearched = false;
+                    TData.bFound = false;
+                    avPVSsec[cn][TData.nSearchLevel].push_back(p);
+                    break;
+                }
         }
         else if (mUsingDualImg)// on the second image
         {

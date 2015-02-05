@@ -796,8 +796,8 @@ void MapVisualization::renderDebugImage(cv::Mat& rgb_cv, const Tracker* tracker,
     for (unsigned int i = 0; i < map->vpPoints.size(); i++) {
         MapPoint &p= *(map->vpPoints[i]);
 
-        if (p.nSourceCamera)// not from the master camera
-            continue;
+//        if (p.nSourceCamera)// not from the master camera
+//            continue;
 
         p.TData.Project(p.v3WorldPos, kf.se3CfromW, camera.get());
         if (!p.TData.bInImage) {
@@ -849,8 +849,8 @@ void MapVisualization::renderDebugImageSec(cv::Mat& rgb_cv, const Tracker* track
     for (unsigned int i = 0; i < map->vpPoints.size(); i++) {
         MapPoint &p= *(map->vpPoints[i]);
 
-        if (!p.nSourceCamera)// from the master camera
-            continue;
+//        if (!p.nSourceCamera)// from the master camera
+//            continue;
 
         p.TData.Project(p.v3WorldPos, kf.se3CfromW, camerasec[p.nSourceCamera - 1].get());
         if (!p.TData.bInImage) {
