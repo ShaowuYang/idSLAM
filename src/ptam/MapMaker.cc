@@ -3042,10 +3042,10 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         ReFindInSingleKeyFrame(pK2[cn]);//
 
         cout << "Adding map points from sec cam keyframe..." << endl;
-        AddSomeMapPoints(3, cn);       // .. and add more map points by epipolar search.
-        AddSomeMapPoints(0, cn);
-        AddSomeMapPoints(1, cn);
-        AddSomeMapPoints(2, cn);
+        AddSomeMapPoints(3, cn+1);       // .. and add more map points by epipolar search.
+        AddSomeMapPoints(0, cn+1);
+        AddSomeMapPoints(1, cn+1);
+        AddSomeMapPoints(2, cn+1);
         cout << "Added map points from sec cam keyframe..."<< mMap.vpKeyFramessec[cn].size() << endl;
     }
 
