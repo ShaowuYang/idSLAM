@@ -72,7 +72,7 @@ void BaseSLAMNode::onInit()
 
     // setup published topics
     point_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/ptam/points", 1);
-    cam_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/ptam/cameras", 1);
+    cam_marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/ptam/camera", 1);
     cam_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("/ptam/pose",1);
     cam_transform_pub_ = nh_.advertise<geometry_msgs::TransformStamped>("/ptam/transform",1);
     robot_to_world_trans_pub_= nh_.advertise<geometry_msgs::TransformStamped>("/ptam/robot_to_world",1);

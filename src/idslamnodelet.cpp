@@ -80,6 +80,7 @@ public:
 
         cam_posewithcov_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/ptam_world_cov",1);
         quad_pose_pub_ = nh_.advertise<geometry_msgs::TransformStamped>(pose_,1);
+        cam_marker_pub_sec = nh_.advertise<visualization_msgs::Marker>("/ptam/camerasec", 1);
 
         rgbSubscriber_   = it.subscribe("rgb", 1, boost::bind(&idslamnodelet::rgbCallback, this, _1));
         depthSubscriber_ = it.subscribe("depth", 1, boost::bind(&idslamnodelet::depthCallback, this, _1));
@@ -201,6 +202,8 @@ public:
     void param_ini(){
         secondimgcame = false;
         thirdimgcame = false;
+        secondepthcame = false;
+        thirdepthcame = false;
         isviconcall = false;
         isimage_ini_call = false;
         ispose_predicted_ekfcall = false;
@@ -218,7 +221,10 @@ public:
         frameBW_.resize(size);
         frameRGB_sec.resize(size);
         frameBW_sec.resize(size);
+        frameRGB_third.resize(size);
         frameDepth_.resize(size);
+        frameDepth_sec.resize(size);
+        frameDepth_third.resize(size);
     }
 
     SE3<> Load_cam_para()
@@ -270,6 +276,9 @@ public:
             campara_temp.get_rotation() = cam;
             campara.push_back(campara_temp);
         }
+        cout << "Camera relative pose loaded: translation and rotoation: " << endl;
+        cout << campara_temp.get_translation() << endl;
+        cout << campara_temp.get_rotation() << endl;
 
         return campara;//Tic
     }
@@ -474,7 +483,10 @@ public:
         }
     }
     void depthCallback1(const sensor_msgs::ImageConstPtr& depth_img_msg) {
+        secondcamlock.lock();
         lastDepth1_ = depth_img_msg;
+        secondcamlock.unlock();
+        secondepthcame = true;
     }
     void rgbCallback2(const sensor_msgs::ImageConstPtr& rgb_img_msg) {
         if ( lastDepth2_ ){
@@ -485,7 +497,10 @@ public:
         }
     }
     void depthCallback2(const sensor_msgs::ImageConstPtr& depth_img_msg) {
+        thirdcamlock.lock();
         lastDepth2_ = depth_img_msg;
+        thirdcamlock.unlock();
+        thirdepthcame = true;
     }
 
     // The image callback function for the master camera/ downward looking camera
@@ -523,19 +538,22 @@ public:
         curthirdimg_good = false;
         if ( isdualcam )// && isFinishIniPTAMwithcircle)
         {
-            if ( secondimgcame ) {
+            if ( secondimgcame && secondepthcame ) {
                 double imginterval = fabs(img_msg->header.stamp.toSec()-img_secmsg->header.stamp.toSec());
                 if ( imginterval < intervalmax_imgdual)
                 {
+                    cout << "got img from secondcam..." << endl;
                     secondcamlock.lock();
                     convertImage(img_secmsg, 1);
                     convertImage(lastDepth1_, 4);
+                    cout << "proccessed img from secondcam..." << endl;
                     secondimgcame = false;
+                    secondepthcame = false;
                     secondcamlock.unlock();
                     cursecimg_good = true;// only when img is synchronised and ptam ini already
                 }
             }
-            if ( thirdimgcame ) {
+            if ( thirdimgcame && thirdepthcame ) {
                 double imginterval = fabs(img_msg->header.stamp.toSec()-img_3->header.stamp.toSec());
                 if ( imginterval < intervalmax_imgdual)
                 {
@@ -543,6 +561,7 @@ public:
                     convertImage(img_secmsg, 2);
                     convertImage(lastDepth2_, 5);
                     thirdimgcame = false;
+                    thirdepthcame = false;
                     thirdcamlock.unlock();
                     curthirdimg_good = true;// only when img is synchronised and ptam ini already
                 }
@@ -611,8 +630,6 @@ public:
             if (cam_marker_pub_.getNumSubscribers() > 0 || point_marker_pub_.getNumSubscribers() > 0)
                 map_viz_->publishMapVisualization(map_.get(),tracker_.get(),cam_marker_pub_,point_marker_pub_,
                                                   world_frame_, cam_marker_pub_sec, isdualcam);
-            if ((landingpad_marker_pub_.getNumSubscribers() > 0) && tracker_->isLandingpadPoseGet)
-                map_viz_->publishlandingpad(tracker_.get(), landingpad_marker_pub_);
 
             // broadcast tf for rviz
             tf::TransformBroadcaster br;
@@ -639,7 +656,7 @@ public:
         if (show_debug_image_) {
             cv::Mat rgb_cv(480, 640, CV_8UC3, frameRGB_.data());
             map_viz_->renderDebugImage(rgb_cv,tracker_.get(),map_.get());
-            cv::imshow("downwards",rgb_cv);
+            cv::imshow("forward",rgb_cv);
             cv::waitKey(10);
 //            static int savedebugimg = 0;
 //            if (savedebugimg == 0){
@@ -649,7 +666,7 @@ public:
             if (cursecimg_good){
                 cv::Mat rgb_cv(480, 640, CV_8UC3, frameRGB_sec.data());
                 map_viz_->renderDebugImageSec(rgb_cv,tracker_.get(),map_.get());
-                cv::imshow("forwards",rgb_cv);
+                cv::imshow("side0",rgb_cv);
                 cv::waitKey(10);
             }
         }
@@ -849,6 +866,8 @@ private:
 
     bool secondimgcame;// dual camera case
     bool thirdimgcame;
+    bool secondepthcame;// dual camera case
+    bool thirdepthcame;
 };
 
 

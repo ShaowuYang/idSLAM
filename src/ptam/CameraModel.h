@@ -6,7 +6,7 @@
 #include <string>
 #include <memory>
 
-#define AddCamNumber 2 // additional camera number, besides the main camera
+#define AddCamNumber 1 // additional camera number, besides the main camera
 
 namespace ptam{
 // Abstract base class for all camera models

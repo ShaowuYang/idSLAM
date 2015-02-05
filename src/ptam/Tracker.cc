@@ -233,7 +233,6 @@ void Tracker::TrackFrame(Image<byte> &imFrame)
 // use dual image: sec img with known extrinsic param w.r.t the main img
 void Tracker::TrackFrame(Image<byte> &imFrame, Image<byte> &imFramesec)
 {
-    cout << "Dual images received kfs 2..." <<"\n";
     mUsingDualImg = true;
     mMessageForUser.str("");   // Wipe the user message clean
     UpdateImageSize(imFrame.size());
@@ -358,6 +357,8 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
                          std::vector<CVD::Image<uint16_t> > &imFrameD,
                          std::vector<int> adcamIndex, bool isBgr)
 {
+    cout << "Dual images received" <<"\n";
+    mUsingDualImg = true;
     assert((imFrameRGB.size() == imFrameD.size())
            && (imFrameRGB.size() == (adcamIndex.size() + 1))
            && (imFrameRGB.size() > 0));
@@ -388,13 +389,13 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
     ActiveAdCamIndex = adcamIndex; // direct copy
     for (int i = 0; i < adcamIndex.size(); i ++) {
         CVD::Image<CVD::byte> imFrame;
-        imFrame.resize(imFrameRGB[i].size());
-        CVD::convert_image(imFrameRGB[i],imFrame);
+        imFrame.resize(imFrameRGB[i+1].size());
+        CVD::convert_image(imFrameRGB[i+1],imFrame);
 
         // Take the input video image, and convert it into the tracker's keyframe struct
         // This does things like generate the image pyramid and find FAST corners
         mCurrentKFsec[adcamIndex[i]]->mMeasurements.clear();
-        mCurrentKFsec[adcamIndex[i]]->MakeKeyFrame(imFrame,imFrameD[i],mCameraSec[adcamIndex[i]].get());
+        mCurrentKFsec[adcamIndex[i]]->MakeKeyFrame(imFrame,imFrameD[i + 1],mCameraSec[adcamIndex[i]].get());
         mCurrentKFsec[adcamIndex[i]]->rgbIsBgr_ = isBgr;
         mCurrentKFsec[adcamIndex[i]]->nSourceCamera = adcamIndex[i] + 1; // mCameraSec begin with 0, while nSourceCamera begin with 1!
 
@@ -635,7 +636,8 @@ bool Tracker::trackMapDual() {
             mMessageForUser << " Found:";
             for(int i=0; i<LEVELS; i++) mMessageForUser << " " << manMeasFound[i] << "/" << manMeasAttempted[i];
             //	    mMessageForUser << " Found " << mnMeasFound << " of " << mnMeasAttempted <<". (";
-            mMessageForUser << " Map: " << mMap.vpPoints.size() << "P, " << mMap.vpKeyFrames.size() << "KF" ;
+            mMessageForUser << " Map: " << mMap.vpPoints.size() << "P, " << mMap.vpKeyFrames.size()
+                            << "+" << mMap.vpKeyFramessec[0].size()<< "KF" ;
         }
 
         static gvar3<int> minInterval("Tracker.MinKeyFrameInterval", 20, SILENT);
@@ -1106,6 +1108,7 @@ void Tracker::TrackMap()
 
     // For dual image, PVS should be searched on individual images.
     // For all points in the map..
+    /// TODO: search all mp in all cameras now
     for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
     {
         // if its source camera is not the the one this keyframe is made, skip.
