@@ -2023,7 +2023,7 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
             TD.bDidSubPix = false;
         }
 
-        if (TD.dFoundDepth > 0.0) {
+        if ((TD.dFoundDepth > 0.0)&& TD.dFoundDepth < mMaxDepth) {
             if (!vTD[i]->nSourceCamera)
                 TD.v3Found = TD.dFoundDepth*unproject(mCamera->UnProject(ir(TD.v2Found)));
             else
