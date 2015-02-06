@@ -1,6 +1,6 @@
 Acknowledgement: 
 
-The code by Sebastian A. Scherer from the below previous work is partially used in the back-end:
+The code by Sebastian A. Scherer in the previous work [2] is partially used in the back-end of the work in [1].
 
 [1] Shaowu Yang, Sebastian A. Scherer, and Andreas Zell. Robust onboard visual SLAM for autonomous MAVs. 
 In 2014 International Conference on Intelligent Autonomous Systems (IAS-13), Padova, Italy, July 2014.
