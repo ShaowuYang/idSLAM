@@ -347,7 +347,14 @@ void Tracker::TrackFrame(CVD::Image<CVD::Rgb<CVD::byte> > &imFrameRGB, CVD::Imag
     initNewFrame();
     if(!trackMapDual()) {
         // If there is no map, try to make one.
-        mMapMaker.InitFromRGBD(*mCurrentKF);
+        TooN::SE3<> IniPose = TooN::SE3<>();
+        IniPose.get_translation()[1] = 0.5;
+        TooN::Matrix<3> datam = TooN::Data(0, -1.0, 0,//Rww1, because the roll and pitch angles are in
+                              0, 0, -1.0, // a world frame which pointing downward.
+                              1.0, 0, 0);
+        IniPose.get_rotation() = datam;
+        mMapMaker.InitFromRGBD(*mCurrentKF, IniPose);
+        mse3CamFromWorld = mMap.vpKeyFrames[0]->se3CfromW;
         mnKeyFrames = 1;
     }
 };
@@ -1123,12 +1130,10 @@ void Tracker::TrackMap()
     /// only track the point in one camera
     for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
     {
-        // if its source camera is not the the one this keyframe is made, skip.
-        if (true)//(!mMap.vpPoints[i]->nSourceCamera)
-        {
-            boost::shared_ptr<MapPoint> p= mMap.vpPoints[i];
-            TrackerData &TData = p->TData;
+        boost::shared_ptr<MapPoint> p= mMap.vpPoints[i];
+        TrackerData &TData = p->TData;
 
+        if (!p->nSourceCamera){
             if (p->sourceKfIDtransfered && !p->refreshed){
                 p->v3Center_NC = unproject(mCamera->UnProject(p->pPatchSourceKF.lock()->mMeasurements[p].v2RootPos));
                 p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(p->pPatchSourceKF.lock()->mMeasurements[p].v2RootPos + vec(ImageRef(p->pPatchSourceKF.lock()->mMeasurements[p].nLevel,0))));
@@ -1140,55 +1145,68 @@ void Tracker::TrackMap()
 
                 p->refreshed = true;
             }
+        }
+        else {
+            int adcamIndex = p->nSourceCamera - 1;
 
-            /// each mp should be checked for each camera
-            /// First, for the master camera
+            if (p->sourceKfIDtransfered && !p->refreshed){
+                p->v3Center_NC = unproject(mCameraSec[adcamIndex]->UnProject(p->pPatchSourceKF.lock()->mMeasurements[p].v2RootPos));
+                p->v3OneRightFromCenter_NC = unproject(mCameraSec[adcamIndex]->UnProject(p->pPatchSourceKF.lock()->mMeasurements[p].v2RootPos + vec(ImageRef(p->pPatchSourceKF.lock()->mMeasurements[p].nLevel,0))));
+                p->v3OneDownFromCenter_NC  = unproject(mCameraSec[adcamIndex]->UnProject(p->pPatchSourceKF.lock()->mMeasurements[p].v2RootPos + vec(ImageRef(0,p->pPatchSourceKF.lock()->mMeasurements[p].nLevel))));
+                normalize(p->v3Center_NC);
+                normalize(p->v3OneDownFromCenter_NC);
+                normalize(p->v3OneRightFromCenter_NC);
+                p->RefreshPixelVectors();
+
+                p->refreshed = true;
+            }
+        }
+
+        /// each mp should be checked for each camera
+        /// First, for the master camera
+        // Project according to current view, and if it's not in the image, skip.
+        TData.Project(p->v3WorldPos, mse3CamFromWorld, mCamera.get());
+        if (TData.bInImage)
+        {
+            // Hack by Jonathan Klimesch: Need to see a point from roughly the same angle.
+            double cosAngle;
+            {
+                Vector<3> z;
+                z[0] = z[1] = 0.0; z[2] = 1.0;
+                boost::shared_ptr<KeyFrame> kf = p->pPatchSourceKF.lock();
+                if(kf.get() == NULL)
+                    continue;// done
+
+                //            cosAngle = (mCurrentKF->se3CfromW.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
+                cosAngle = (mse3CamFromWorld.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
+            }
+            if (cosAngle < 0) { // |angle| > 90°
+                continue; // done
+            }
+
+            // Calculate camera projection derivatives of this point.
+            TData.GetDerivsUnsafe(mCamera.get());
+
+            // And check what the PatchFinder (included in TrackerData) makes of the mappoint in this view..
+            TData.nSearchLevel = TData.Finder.CalcSearchLevelAndWarpMatrix(*p, mse3CamFromWorld, TData.m2CamDerivs);
+            if(TData.nSearchLevel == -1) {
+                continue;   // done. a negative search pyramid level indicates an inappropriate warp for this view, so skip.
+            }
+            // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
+            TData.bSearched = false;
+            TData.bFound = false;
+            p->nFoundCamera = 0;
+            avPVS[TData.nSearchLevel].push_back(p);
+
+            continue; // done
+        }
+        else if (mUsingDualImg)
+        {
+            for (int cn = 0; cn < AddCamNumber; cn ++)
             {
                 // Project according to current view, and if it's not in the image, skip.
-                TData.Project(p->v3WorldPos, mse3CamFromWorld, mCamera.get());
-                if(!TData.bInImage) {
-                    continue;
-                }
-
-                // Hack by Jonathan Klimesch: Need to see a point from roughly the same angle.
-                double cosAngle;
-                {
-                    Vector<3> z;
-                    z[0] = z[1] = 0.0; z[2] = 1.0;
-                    boost::shared_ptr<KeyFrame> kf = p->pPatchSourceKF.lock();
-                    if(kf.get() == NULL)
-                        continue;
-
-                    //            cosAngle = (mCurrentKF->se3CfromW.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
-                    cosAngle = (mse3CamFromWorld.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
-                }
-                if (cosAngle < 0) { // |angle| > 90°
-                    continue;
-                }
-
-                // Calculate camera projection derivatives of this point.
-                TData.GetDerivsUnsafe(mCamera.get());
-
-                // And check what the PatchFinder (included in TrackerData) makes of the mappoint in this view..
-                TData.nSearchLevel = TData.Finder.CalcSearchLevelAndWarpMatrix(*p, mse3CamFromWorld, TData.m2CamDerivs);
-                if(TData.nSearchLevel == -1) {
-                    continue;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
-                }
-                // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
-                TData.bSearched = false;
-                TData.bFound = false;
-                avPVS[TData.nSearchLevel].push_back(p);
-                continue;
-            }
-            if (mUsingDualImg)
-                for (int cn = 0; cn < AddCamNumber; cn ++)
-                {
-                    // Project according to current view, and if it's not in the image, skip.
-                    TData.Project(p->v3WorldPos, mse3CamFromWorldsec[cn], mCameraSec[cn].get());
-                    if(!TData.bInImage) {
-                        continue;
-                    }
-
+                TData.Project(p->v3WorldPos, mse3CamFromWorldsec[cn], mCameraSec[cn].get());
+                if (TData.bInImage){
                     // Hack by Jonathan Klimesch: Need to see a point from roughly the same angle.
                     double cosAngle;
                     {
@@ -1196,13 +1214,13 @@ void Tracker::TrackMap()
                         z[0] = z[1] = 0.0; z[2] = 1.0;
                         boost::shared_ptr<KeyFrame> kf = p->pPatchSourceKF.lock();
                         if(kf.get() == NULL)
-                            continue;
+                            break;
 
                         //            cosAngle = (mCurrentKF->se3CfromW.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
                         cosAngle = (mse3CamFromWorldsec[cn].get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
                     }
                     if (cosAngle < 0) { // |angle| > 90°
-                        continue;
+                        break;
                     }
 
                     // Calculate camera projection derivatives of this point.
@@ -1211,16 +1229,18 @@ void Tracker::TrackMap()
                     // And check what the PatchFinder (included in TrackerData) makes of the mappoint in this view..
                     TData.nSearchLevel = TData.Finder.CalcSearchLevelAndWarpMatrix(*p, mse3CamFromWorldsec[cn], TData.m2CamDerivs);
                     if(TData.nSearchLevel == -1) {
-                        continue;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
+                        break;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
                     }
                     // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
                     TData.bSearched = false;
                     TData.bFound = false;
+                    p->nFoundCamera = cn + 1;
                     avPVSsec[cn][TData.nSearchLevel].push_back(p);
                     break;
                 }
+            }
         }
-        else if (mUsingDualImg)// on the second image
+        if (false)//else if (mUsingDualImg)// on the second image
         {
             boost::shared_ptr<MapPoint> p= mMap.vpPoints[i];
             TrackerData &TData = p->TData;
@@ -1270,6 +1290,7 @@ void Tracker::TrackMap()
             // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
             TData.bSearched = false;
             TData.bFound = false;
+            p->nFoundCamera = adcamIndex + 1;
             avPVSsec[adcamIndex][TData.nSearchLevel].push_back(p);
         }
     }
@@ -1319,6 +1340,8 @@ void Tracker::TrackMap()
         nCoarseRange *=2;
         mbJustRecoveredSoUseCoarse = false;
     };
+
+//    bTryCoarse = false;//debug
 
 //    if (bTryCoarse)
 //        cout << "Cam pose before coarse: " << mse3CamFromWorld << endl;
@@ -1413,8 +1436,8 @@ void Tracker::TrackMap()
     // coarse step for the second img, no matter wether master img has enough pvs or not
     // if not, do alone, otherwise, add pvs to the pvss from the master img.
     /// only consider one of the additional cameras
-    if (mUsingDualImg){
-        if(bTryCoarse && (avPVSsec[0][LEVELS-1].size() + avPVSsec[0][LEVELS-2].size()) > *gvnCoarseMin )
+    if (bTryCoarse && mUsingDualImg){
+        if((avPVSsec[0][LEVELS-1].size() + avPVSsec[0][LEVELS-2].size()) > *gvnCoarseMin )
         {
             use_seccam_track = use_seccamonly;
             // Now, fill the vNextToSearch struct with an appropriate number of
@@ -1472,14 +1495,14 @@ void Tracker::TrackMap()
                             if(vIterationSet[i]->TData.bFound)
                             {
                                 if (use_seccam_track){//if only try using second img
-                                    if (vIterationSet[i]->nSourceCamera)// second img
-                                        vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[0], mCameraSec[0].get());
+                                    if (vIterationSet[i]->nFoundCamera)// second img
+                                        vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[vIterationSet[i]->nFoundCamera -1], mCameraSec[vIterationSet[i]->nFoundCamera - 1].get());
 //                                    else
 //                                        vIterationSet[i]->TData.bFound = false;
                                 }else
                                 {
-                                    if (vIterationSet[i]->nSourceCamera)// second img
-                                        vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[0], mCameraSec[0].get());
+                                    if (vIterationSet[i]->nFoundCamera)// second img
+                                        vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[vIterationSet[i]->nFoundCamera -1], mCameraSec[vIterationSet[i]->nFoundCamera -1].get());
                                     else
                                         vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
                                 }
@@ -1488,7 +1511,7 @@ void Tracker::TrackMap()
                     for(unsigned int i=0; i<vIterationSet.size(); i++)
                         if(vIterationSet[i]->TData.bFound){
                             if (use_seccam_track){
-                                if (vIterationSet[i]->nSourceCamera){
+                                if (vIterationSet[i]->nFoundCamera){
                                     if (poseupdate_cam2)
                                         vIterationSet[i]->TData.CalcJacobian();
                                     else
@@ -1498,7 +1521,7 @@ void Tracker::TrackMap()
 //                                    vIterationSet[i]->TData.bFound = false;
                             }else
                             {
-                                if (vIterationSet[i]->nSourceCamera)// sec img
+                                if (vIterationSet[i]->nFoundCamera)// sec img
                                     vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2[0].inverse());
                                 else
                                     vIterationSet[i]->TData.CalcJacobian();
@@ -1539,8 +1562,12 @@ void Tracker::TrackMap()
                 { // Re-project the points on all but the first iteration.
                     // This should be bases on different camera model.
                     for(unsigned int i=0; i<vIterationSet.size(); i++)
-                        if(vIterationSet[i]->TData.bFound)
-                            vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+                        if(vIterationSet[i]->TData.bFound){
+                            if (vIterationSet[i]->nFoundCamera)// second img
+                                vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[vIterationSet[i]->nFoundCamera - 1], mCameraSec[vIterationSet[i]->nFoundCamera - 1].get());
+                            else
+                                vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+                        }
                 }
                 for(unsigned int i=0; i<vIterationSet.size(); i++)
                     if(vIterationSet[i]->TData.bFound){
@@ -1581,9 +1608,13 @@ void Tracker::TrackMap()
     // What patches shall we use this time? The high-level ones are quite important,
     // so do all of these, with sub-pixel refinement.
     int l = LEVELS - 1;
-    if (mbDidCoarse)
+    if (mbDidCoarse){
         for(unsigned int i=0; i<avPVS[l].size(); i++)
-        avPVS[l][i]->TData.ProjectAndDerivs(avPVS[l][i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+            if (avPVS[l][i]->nFoundCamera)// second img
+                avPVS[l][i]->TData.ProjectAndDerivs(avPVS[l][i]->v3WorldPos, posesecCamFromWorld[avPVS[l][i]->nFoundCamera - 1], mCameraSec[avPVS[l][i]->nFoundCamera - 1].get());
+            else
+                avPVS[l][i]->TData.ProjectAndDerivs(avPVS[l][i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+    }
     SearchForPoints(avPVS[l], nFineRange, 8);
     for(unsigned int i=0; i<avPVS[l].size(); i++)
         vIterationSet.push_back(avPVS[l][i]);  // Again, plonk all searched points onto the (maybe already populate) vIterationSet.
@@ -1591,8 +1622,12 @@ void Tracker::TrackMap()
     if (mUsingDualImg)
         for (int cn = 0; cn < AddCamNumber; cn ++){
             if (mbDidCoarse)
-                for(unsigned int i=0; i<avPVSsec[cn][l].size(); i++)
-                    avPVSsec[cn][l][i]->TData.ProjectAndDerivs(avPVSsec[cn][l][i]->v3WorldPos, posesecCamFromWorld[cn], mCameraSec[cn].get());
+                for(unsigned int i=0; i<avPVSsec[cn][l].size(); i++){
+                    if (avPVSsec[cn][l][i]->nFoundCamera)// second img
+                        avPVSsec[cn][l][i]->TData.ProjectAndDerivs(avPVSsec[cn][l][i]->v3WorldPos, posesecCamFromWorld[avPVSsec[cn][l][i]->nFoundCamera - 1], mCameraSec[avPVSsec[cn][l][i]->nFoundCamera - 1].get());
+                    else
+                        avPVSsec[cn][l][i]->TData.ProjectAndDerivs(avPVSsec[cn][l][i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+                }
             SearchForPoints(avPVSsec[cn][l], nFineRange, 8, 1);
             for(unsigned int i=0; i<avPVSsec[cn][l].size(); i++)
                 vIterationSet.push_back(avPVSsec[cn][l][i]);  // Again, plonk all searched points onto the (maybe already populate) vIterationSet.
@@ -1635,12 +1670,20 @@ void Tracker::TrackMap()
     // If we did a coarse tracking stage: re-project and find derivs of fine points
     if(mbDidCoarse)
     {
-        for(unsigned int i=0; i<vNextToSearch.size(); i++)
-            vNextToSearch[i]->TData.ProjectAndDerivs(vNextToSearch[i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+        for(unsigned int i=0; i<vNextToSearch.size(); i++){
+            if (vNextToSearch[i]->nFoundCamera)// second img
+                vNextToSearch[i]->TData.ProjectAndDerivs(vNextToSearch[i]->v3WorldPos, posesecCamFromWorld[vNextToSearch[i]->nFoundCamera - 1], mCameraSec[vNextToSearch[i]->nFoundCamera - 1].get());
+            else
+                vNextToSearch[i]->TData.ProjectAndDerivs(vNextToSearch[i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+        }
         if (mUsingDualImg){
             for (int cn = 0; cn < AddCamNumber; cn ++)
-                for(unsigned int i=0; i<vNextToSearchsec[cn].size(); i++)
-                vNextToSearchsec[cn][i]->TData.ProjectAndDerivs(vNextToSearchsec[cn][i]->v3WorldPos, posesecCamFromWorld[cn], mCameraSec[cn].get());
+                for(unsigned int i=0; i<vNextToSearchsec[cn].size(); i++){
+                    if (vNextToSearchsec[cn][i]->nFoundCamera)// second img
+                        vNextToSearchsec[cn][i]->TData.ProjectAndDerivs(vNextToSearchsec[cn][i]->v3WorldPos, posesecCamFromWorld[vNextToSearchsec[cn][i]->nFoundCamera - 1], mCameraSec[vNextToSearchsec[cn][i]->nFoundCamera - 1].get());
+                    else
+                        vNextToSearchsec[cn][i]->TData.ProjectAndDerivs(vNextToSearchsec[cn][i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
+                }
         }
     }
 
@@ -1694,14 +1737,14 @@ void Tracker::TrackMap()
                     if(vIterationSet[i]->TData.bFound)
                     {
                         if (use_seccam_track){//if only try using second img
-                            if (vIterationSet[i]->nSourceCamera)// second img
-                                vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[vIterationSet[i]->nSourceCamera - 1], mCameraSec[vIterationSet[i]->nSourceCamera - 1].get());
+                            if (vIterationSet[i]->nFoundCamera)// second img
+                                vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[vIterationSet[i]->nFoundCamera - 1], mCameraSec[vIterationSet[i]->nFoundCamera - 1].get());
 //                            else
 //                                vIterationSet[i]->TData.bFound = false;
                         }else
                         {
-                            if (vIterationSet[i]->nSourceCamera)// second img
-                                vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[vIterationSet[i]->nSourceCamera - 1], mCameraSec[vIterationSet[i]->nSourceCamera - 1].get());
+                            if (vIterationSet[i]->nFoundCamera)// second img
+                                vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, posesecCamFromWorld[vIterationSet[i]->nFoundCamera - 1], mCameraSec[vIterationSet[i]->nFoundCamera - 1].get());
                             else
                                 vIterationSet[i]->TData.ProjectAndDerivs(vIterationSet[i]->v3WorldPos, mse3CamFromWorld, mCamera.get());
                         }
@@ -1712,8 +1755,8 @@ void Tracker::TrackMap()
                 for(unsigned int i=0; i<vIterationSet.size(); i++)
                     if(vIterationSet[i]->TData.bFound)
                     {
-                        if (vIterationSet[i]->nSourceCamera)// second img
-                            vIterationSet[i]->TData.LinearUpdate(v6LastUpdatesec[vIterationSet[i]->nSourceCamera - 1]);
+                        if (vIterationSet[i]->nFoundCamera)// second img
+                            vIterationSet[i]->TData.LinearUpdate(v6LastUpdatesec[vIterationSet[i]->nFoundCamera - 1]);
                         else
                             vIterationSet[i]->TData.LinearUpdate(v6LastUpdate);
                     }
@@ -1724,18 +1767,18 @@ void Tracker::TrackMap()
             for(unsigned int i=0; i<vIterationSet.size(); i++)
                 if(vIterationSet[i]->TData.bFound){
                     if (use_seccam_track){
-                        if (vIterationSet[i]->nSourceCamera)
+                        if (vIterationSet[i]->nFoundCamera)
                         {
                             if (poseupdate_cam2)
                                 vIterationSet[i]->TData.CalcJacobian();
                             else
-                                vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2Update[vIterationSet[i]->nSourceCamera - 1].inverse());
+                                vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2Update[vIterationSet[i]->nFoundCamera - 1].inverse());
                         }
 //                        else
 //                            vIterationSet[i]->TData.bFound = false;
                     }else
                     {
-                        if (vIterationSet[i]->nSourceCamera)// sec img
+                        if (vIterationSet[i]->nFoundCamera)// sec img
                         {
                             // if we want to track the error of cam2cam,
                             // we should not do this without an initial estimation of cam1 poseupdate
@@ -1743,10 +1786,10 @@ void Tracker::TrackMap()
                             // it's fine for poseupdate calculation, since we derivate the
                             // error at cam2cam error being zeros.
                             if (!erriter)
-                                vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2Update[vIterationSet[i]->nSourceCamera].inverse());
+                                vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2Update[vIterationSet[i]->nFoundCamera].inverse());
                             else
                                 vIterationSet[i]->TData.CalcJacobianWithErrorSec(
-                                            mse3Cam1FromCam2Update[vIterationSet[i]->nSourceCamera].inverse());//,
+                                            mse3Cam1FromCam2Update[vIterationSet[i]->nFoundCamera].inverse());//,
 //                                            SE3<>::exp(v6LastUpdate),
 //                                            SE3<>::exp(v6cam2camerror));
                         }
@@ -1825,10 +1868,6 @@ void Tracker::TrackMap()
 //    mse3Cam1FromCam2 = mse3Cam1FromCam2Update;
 //    trackerlog << "Tracked pose: \n" << mse3CamFromWorld << endl;
 
-    lock.lock();
-    *mMap.mCurrentkf = *mCurrentKF;
-    lock.unlock();
-
     // Record successful measurements. Use the KeyFrame-Measurement struct for this.
     mCurrentKF->mMeasurements.clear();
     if (mUsingDualImg)
@@ -1846,8 +1885,8 @@ void Tracker::TrackMap()
         m.bSubPix = (*it)->TData.bDidSubPix;
         m.dDepth = (*it)->TData.dFoundDepth;
         m.Source =  Measurement::SRC_TRACKER;
-        if ((*it)->nSourceCamera)// second img
-            mCurrentKFsec[(*it)->nSourceCamera-1]->mMeasurements[*it] = m;
+        if ((*it)->nFoundCamera)// second img
+            mCurrentKFsec[(*it)->nFoundCamera-1]->mMeasurements[*it] = m;
         else
             mCurrentKF->mMeasurements[*it] = m;
     }
@@ -1875,7 +1914,7 @@ void Tracker::TrackMap()
             if((*it)->TData.bFound)
             {
                 double z = (*it)->TData.v3Cam[2];
-                if (!(*it)->nSourceCamera){
+                if (!(*it)->nFoundCamera){
                     dSum+= z;
                     dSumSq+= z*z;
 
@@ -1884,12 +1923,12 @@ void Tracker::TrackMap()
                     nNum++;
                 }
                 else{
-                    dSumsec[(*it)->nSourceCamera-1]+= z;
-                    dSumSqsec[(*it)->nSourceCamera-1]+= z*z;
+                    dSumsec[(*it)->nFoundCamera-1]+= z;
+                    dSumSqsec[(*it)->nFoundCamera-1]+= z*z;
 
-                    buffvecsec[(*it)->nSourceCamera-1].push_back(z);//eth
+                    buffvecsec[(*it)->nFoundCamera-1].push_back(z);//eth
 
-                    nNumsec[(*it)->nSourceCamera-1]++;
+                    nNumsec[(*it)->nFoundCamera-1]++;
                 }
             };
 //        cout << "cam0 and cam1 nNum: " << nNum << ", " << nNumsec << endl;
@@ -1976,10 +2015,10 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
         manMeasAttempted[Finder.GetLevel()]++;  // Stats for tracking quality assessment
 
         bool bFound = false;
-        if (!vTD[i]->nSourceCamera)
+        if (!vTD[i]->nFoundCamera)
             bFound = Finder.FindPatchCoarse(ir(TD.v2Image), *mCurrentKF, nRange);
         else// search on the second image
-            bFound = Finder.FindPatchCoarse(ir(TD.v2Image), *mCurrentKFsec[vTD[i]->nSourceCamera - 1], nRange);
+            bFound = Finder.FindPatchCoarse(ir(TD.v2Image), *mCurrentKFsec[vTD[i]->nFoundCamera - 1], nRange);
         TD.bSearched = true;
         if(!bFound)
         {
@@ -1990,7 +2029,7 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
         TD.dFoundDepth = Finder.GetCoarseDepth();
 
         TD.bFound = true;
-        if (!vTD[i]->nSourceCamera)
+        if (!vTD[i]->nFoundCamera)
             TD.dSqrtInvNoise = (1.0 / Finder.GetLevelScale());
         else
             TD.dSqrtInvNoise = (1.0 / Finder.GetLevelScale());//considering cam2cam calibration error
@@ -2004,10 +2043,10 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
             TD.bDidSubPix = true;
             Finder.MakeSubPixTemplate();
             bool bSubPixConverges= false;
-            if (!vTD[i]->nSourceCamera)
+            if (!vTD[i]->nFoundCamera)
                 bSubPixConverges = Finder.IterateSubPixToConvergence(*mCurrentKF, nSubPixIts);
             else
-                bSubPixConverges = Finder.IterateSubPixToConvergence(*mCurrentKFsec[vTD[i]->nSourceCamera - 1], nSubPixIts);
+                bSubPixConverges = Finder.IterateSubPixToConvergence(*mCurrentKFsec[vTD[i]->nFoundCamera - 1], nSubPixIts);
             if(!bSubPixConverges)
             { // If subpix doesn't converge, the patch location is probably very dubious!
                 TD.bFound = false;
@@ -2024,10 +2063,10 @@ int Tracker::SearchForPoints(vector<boost::shared_ptr<MapPoint> >& vTD, int nRan
         }
 
         if ((TD.dFoundDepth > 0.0)&& TD.dFoundDepth < mMaxDepth) {
-            if (!vTD[i]->nSourceCamera)
+            if (!vTD[i]->nFoundCamera)
                 TD.v3Found = TD.dFoundDepth*unproject(mCamera->UnProject(ir(TD.v2Found)));
             else
-                TD.v3Found = TD.dFoundDepth*unproject(mCameraSec[vTD[i]->nSourceCamera - 1]->UnProject(ir(TD.v2Found)));
+                TD.v3Found = TD.dFoundDepth*unproject(mCameraSec[vTD[i]->nFoundCamera - 1]->UnProject(ir(TD.v2Found)));
 
             if (*gvnUseDepthTracking == 1 || *gvnUse3DTracking == 1) {
                 static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
@@ -2492,11 +2531,15 @@ void Tracker::MotionCheck()
 // *kfs should be treated seperately, but we simply add them at the same poses
 void Tracker::AddNewKeyFrame()
 {
-    if (mMapMaker.AddKeyFrame(*mCurrentKF)) {
-        mnLastKeyFrameDropped = mnFrame;
-        mnKeyFrames++;
-    } // else: mapmaker chose to ignore this keyframe, e.g. because mapping is disabled
-    if (mUsingDualImg)
+    if (mUsingDualImg){
+        for (int i = 0; i < AddCamNumber; i ++)
+            if (!mCurrentKFsec[i]->bNewsec)
+                return;// Now we force the system to add kfs from multi-cam together
+
+        if (mMapMaker.AddKeyFrame(*mCurrentKF)) {
+            mnLastKeyFrameDropped = mnFrame;
+            mnKeyFrames++;
+        } // else: mapmaker chose to ignore this keyframe, e.g. because mapping is disabled
         for (int i = 0; i < AddCamNumber; i ++) {
             if (!mCurrentKFsec[i]->bNewsec)
                 continue;
@@ -2506,6 +2549,13 @@ void Tracker::AddNewKeyFrame()
                 mnKeyFramessec[i]++;
             }
         }
+    }
+    else {
+        if (mMapMaker.AddKeyFrame(*mCurrentKF)) {
+            mnLastKeyFrameDropped = mnFrame;
+            mnKeyFrames++;
+        } // else: mapmaker chose to ignore this keyframe, e.g. because mapping is disabled
+    }
 }
 
 // Some heuristics to decide if tracking is any good, for this frame.

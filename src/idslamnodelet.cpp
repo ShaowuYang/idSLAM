@@ -615,8 +615,8 @@ public:
 
         // ignore those too low information, useful when landing
         // also currently, when outliers happen, should stop PTAM for safty.
-        if ((ini_one_circle_ && tracker_->GetCurrentPose().inverse().get_translation()[2] < 0.3)
-                ||(sqrt((camPosethis.get_translation()-camPoselast.get_translation())*
+        if (//(ini_one_circle_ && tracker_->GetCurrentPose().inverse().get_translation()[2] < 0.3)
+                (sqrt((camPosethis.get_translation()-camPoselast.get_translation())*
                         (camPosethis.get_translation()-camPoselast.get_translation()))>0.5))
         {
             isPTAMshouldstop = true;
@@ -626,26 +626,30 @@ public:
         else
             camPoselast = camPosethis;
 
+//        publishPosewithCovariance(msg_stamp);
+        cout << camPosethis.get_translation() << endl << camPosethis.get_rotation().get_matrix() << endl;
+
         if (sendvisual){// && !isPTAMshouldstop){
             if (cam_marker_pub_.getNumSubscribers() > 0 || point_marker_pub_.getNumSubscribers() > 0)
                 map_viz_->publishMapVisualization(map_.get(),tracker_.get(),cam_marker_pub_,point_marker_pub_,
                                                   world_frame_, cam_marker_pub_sec, isdualcam);
 
             // broadcast tf for rviz
-            tf::TransformBroadcaster br;
-            tf::Transform transform;
-            transform.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
-            tf::Quaternion q;
-            q.setRPY(3.14159265/2.0, 3.14159265, 3.14159265/2.0);
-            transform.setRotation(q);
-            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), world_frame_, "/rgbd_link"));
+//            tf::TransformBroadcaster br;
+//            tf::Transform transform;
+//            transform.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
+//            tf::Quaternion q;
+//            q.setRPY(3.14159265/2.0, 3.14159265, 3.14159265/2.0);
+//            transform.setRotation(q);
+//            br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), world_frame_, world_frame_));
 
             // TODO: use another thread to manage the point cloud, and publish it for Octomap-like mapper
             if (depth_msg && (vis_pointcloud_pub_.getNumSubscribers() > 0))
                 map_viz_->publishPointCloud(map_.get(), tracker_.get(), vis_pointcloud_pub_, "/rgbd_link",
                                             vis_publish_interval_, vis_pointcloud_step_, cellSize);
             if (depth_msg && (vis_crtpointcloud_pub_.getNumSubscribers() > 0))
-                map_viz_->publishCrtPointCloud(map_.get(), tracker_.get(), vis_crtpointcloud_pub_, "/rgbd_link");
+                map_viz_->publishCrtPointCloud(map_.get(), tracker_.get(),
+                                               vis_crtpointcloud_pub_, vis_crtpointcloud_pub_sec, world_frame_);
         }
 
         if (map_maker_->imageInputCount < 100)

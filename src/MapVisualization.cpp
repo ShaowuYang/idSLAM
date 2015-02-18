@@ -263,31 +263,48 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
 
 }
 
-void MapVisualization::publishCrtPointCloud(const Map* map, const Tracker* tracker, const ros::Publisher &vis_pointcloud_pub, const std::string& world_frame,
+void MapVisualization::publishCrtPointCloud(const Map* map, const Tracker* tracker, const ros::Publisher &vis_pointcloud_pub, const ros::Publisher &vis_pointcloud_pubsec, const std::string& world_frame,
                                                 double vis_publish_interval_)
 {
     static ros::Time lastCloudPublished_ = ros::Time(0);
     if (vis_pointcloud_pub.getNumSubscribers() > 0 &&
             (ros::Time::now() - lastCloudPublished_).toSec() >= vis_publish_interval_)
     {
-        static pcl::PointCloud<pcl::PointXYZRGB>::Ptr crtCloud(new pcl::PointCloud<pcl::PointXYZRGB>());
-
         // the current frame point cloud
-        cv::Mat rgb(map->mCurrentkf->rgbImage.size().y, map->mCurrentkf->rgbImage.size().x, CV_8UC3, map->mCurrentkf->rgbImage.data());
-        cv::Mat depth(map->mCurrentkf->depthImage.size().y, map->mCurrentkf->depthImage.size().x, CV_16UC1, map->mCurrentkf->depthImage.data());
+        const ptam::KeyFrame& kf1 = tracker->GetCurrentKeyFrame();
+        ptam::KeyFrame kf = kf1;
+        cv::Mat rgb(kf.rgbImage.size().y, kf.rgbImage.size().x, CV_8UC3, kf.rgbImage.data());
+        cv::Mat depth(kf.depthImage.size().y, kf.depthImage.size().x, CV_16UC1, kf.depthImage.data());
         const CameraModel& mcCamera = tracker->GetCamera();
 
         // TODO: make a list of pointclouds for each kf, only replace those have been changed in BA
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr thisCloud = geometry::PointClouds::rgbdToPointCloud(
-                    mcCamera, rgb, depth, map->mCurrentkf->se3CfromW.inverse(), map->mCurrentkf->rgbIsBgr_);
-        *crtCloud = *thisCloud;
+                    mcCamera, rgb, depth, kf.se3CfromW.inverse(), kf.rgbIsBgr_);
 
         sensor_msgs::PointCloud2Ptr msg(new sensor_msgs::PointCloud2());
-        pcl::toROSMsg(*crtCloud, *msg);
+        pcl::toROSMsg(*thisCloud, *msg);
         msg->header.frame_id = world_frame;//
         msg->header.stamp = ros::Time::now();
 
         vis_pointcloud_pub.publish(msg);
+
+        // other cameras
+        for (int cn = 0; cn < AddCamNumber; cn ++){
+            const ptam::KeyFrame& kf1 = tracker->GetCurrentsecKeyFrame();
+            ptam::KeyFrame kf = kf1;
+            cv::Mat rgbsec(kf.rgbImage.size().y, kf.rgbImage.size().x, CV_8UC3, kf.rgbImage.data());
+            cv::Mat depthsec(kf.depthImage.size().y, kf.depthImage.size().x, CV_16UC1, kf.depthImage.data());
+            const CameraModel& mcCamerasec = tracker->GetCameraSec(cn);
+
+            // TODO: make a list of pointclouds for each kf, only replace those have been changed in BA
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr thisCloudsec = geometry::PointClouds::rgbdToPointCloud(
+                        mcCamerasec, rgbsec, depthsec, kf.se3CfromW.inverse(), kf.rgbIsBgr_);
+            sensor_msgs::PointCloud2Ptr msgsec(new sensor_msgs::PointCloud2());
+            pcl::toROSMsg(*thisCloudsec, *msgsec);
+            msgsec->header.frame_id = world_frame;//
+            msgsec->header.stamp = ros::Time::now();
+            vis_pointcloud_pubsec.publish(msgsec);
+        }
 
         lastCloudPublished_ = ros::Time::now();
     }

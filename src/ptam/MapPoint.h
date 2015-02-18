@@ -48,6 +48,7 @@ struct MapPoint
     dCreationTime = CVD::timer.get_time();
 
     nSourceCamera = 0;// by default, its source camera is the master camera.
+    nFoundCamera = 0;
     sourceKfIDtransfered = false;
     bUpdated = false;
   };
@@ -69,6 +70,7 @@ struct MapPoint
   CVD::ImageRef irCenterZero; /// image-coords of the point in the pyramid level Zero
   // in dual camera case, also label the source kf from which camera it was made. maybe useful
   int nSourceCamera;
+  int nFoundCamera; /// In the current frame, from which camera it has been measured
   std::set<boost::weak_ptr<KeyFrame> > pSourceKFs; // all kfs measuring the map point
   bool sourceKfIDtransfered; // if transfered to other source kf, avoid re-send to the backend
   bool refreshed;// refreshed after the source kf id transfer?

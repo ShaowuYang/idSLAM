@@ -224,7 +224,7 @@ void MapMaker::run()
             // TODO: mark map points whose kf id had been transfored to be fixed in BA
             // chose adjusted or fixed kfs and do local BA
             cout << "Doing BA..." << endl;
-            BundleAdjustRecent();
+//            BundleAdjustRecent();
             didba = true;
             bFullBAfinished = false;
             cout<< "BA Done!"<<endl;
@@ -706,9 +706,9 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, const TooN::SE3<> &worldPos)
             p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
 
             Vector<3> v3CamPos = p->v3Center_NC*depth;// Xc
-            p->v3WorldPos = v3CamPos;// Xc
+            p->v3RelativePos = v3CamPos;// Xc
             p->v3SourceKFfromeWorld = pkFirst->se3CfromW;
-            p->v3RelativePos = pkFirst->se3CfromW * p->v3WorldPos;
+            p->v3WorldPos = pkFirst->se3CfromW.inverse() * v3CamPos;
 
             normalize(p->v3Center_NC);
             normalize(p->v3OneDownFromCenter_NC);
@@ -793,7 +793,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
         {
             double depth = lev.vMaxCornersDepth[i];
             // only consider corners with valid 3d position estimates
-            if ((depth <= 0.0) || (depth > 4.0))
+            if ((depth <= 0.0) || (depth > mMaxDepth))
                 continue;
 
             boost::shared_ptr<MapPoint> p(new MapPoint());
@@ -878,7 +878,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
             {
                 double depth = lev.vMaxCornersDepth[i];
                 // only consider corners with valid 3d position estimates
-                if ((depth <= 0.0) || (depth > 4.0))
+                if ((depth <= 0.0) || (depth > mMaxDepth))
                     continue;
 
                 boost::shared_ptr<MapPoint> p(new MapPoint());
@@ -2838,7 +2838,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
 
     // force directly add kfs from the two cams together if there's association! <= check based on both kfs
     // then the association number would match each kf's own number
-    /// TODO: allow individual additional kfs to be added, as I tried and abondoned before. This can improve the robustness of the system
+    /// TODO: allow individual additional kfs to be added, as I tried and abondoned before. This can improve the robustness of the system when kfs are lost commonly occures in a multi-cam system
     int nKfmin = mvpKeyFrameQueue.size();
     for (int i = 0; i < AddCamNumber; i ++){
         if (mvpKeyFrameQueueSec[i].size()== 0)

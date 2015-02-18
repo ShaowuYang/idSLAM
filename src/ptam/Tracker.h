@@ -69,6 +69,7 @@ public:
   void TrackFrame(CVD::Image<CVD::byte> &imFrame, const sensor_msgs::PointCloud& points);
 
   const CameraModel& GetCamera() const { return *mCamera; }
+  const CameraModel& GetCameraSec(int addcamnum) const { return *mCameraSec[addcamnum]; }
   int GetNFrame() const { return mnFrame; }
   int GetNLastKeyFrame() const { return mnLastKeyFrameDropped; }
   int GetNKeyFrames() const { return mnKeyFrames; }
