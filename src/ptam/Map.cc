@@ -26,12 +26,6 @@ void Map::Reset()
 
     erasedAllCallback = &emptyErasedAllCb;
 //    erasedKfCallback = &emptyErasedKfCb;
-    boost::shared_ptr<KeyFrame> kf_temp (new KeyFrame());
-    mCurrentkf = kf_temp;
-    for (int i = 0; i < AddCamNumber; i ++){
-        boost::shared_ptr<KeyFrame> kf_temp (new KeyFrame());
-        mCurrentkfsec[i] = kf_temp;
-    }
 
     lock.unlock();
 }

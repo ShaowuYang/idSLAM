@@ -171,7 +171,8 @@ void KeyFrame::MakeKeyFrame(BasicImage<byte> &im,CVD::BasicImage<uint16_t> &dept
             ImageRef irLev = lev.vCorners[i];
             ImageRef irL0 = LevelZeroPosIR(irLev,l);
             double d = depth[irL0]/1000.0;
-            d = isnan(d) ? 0.0 : d;
+            if (d = isnan(d) || d > mMaxDepth)
+                d = 0.0;
             lev.vCornersDepth[i] = d;
         }
     }

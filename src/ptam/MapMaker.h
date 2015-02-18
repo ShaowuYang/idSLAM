@@ -32,8 +32,6 @@
 #include <slam/SLAMSystem.h>
 #include <backend.h>
 
-#define mMaxDepth 3.5 // maximal depth allowed for using the depth measurement
-
 namespace ptam{
 //typedef boost::function<void(boost::shared_ptr<KeyFrame>)> sendKfCbFunction;
 //typedef boost::function<void(const std::vector<boost::shared_ptr<KeyFrame> >&)> sendEdgesCbFunction;

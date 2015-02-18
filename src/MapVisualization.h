@@ -21,7 +21,7 @@ public:
     void publishMapVisualization(const ptam::Map* map, const ptam::Tracker* tracker, const ros::Publisher &camera_pub, const ros::Publisher &point_pub, const std::string& world_frame, const ros::Publisher &camera_pubsec, const bool dualcamera=false);
     void publishlandingpad(const ptam::Tracker* tracker, const ros::Publisher &landingpad_pub);
     void publishPointCloud(const ptam::Map* map, const ptam::Tracker* tracker, const ros::Publisher &vis_pointcloud_pub, const std::string& world_frame, double vis_publish_interval_, int vis_pointcloud_step_, double cellSize = 0.02);
-    void publishCrtPointCloud(const ptam::Map* map, const ptam::Tracker* tracker, const ros::Publisher &vis_pointcloud_pub,
+    void publishCrtPointCloud(const ptam::Map* map, const ptam::Tracker* tracker, const ros::Publisher &vis_pointcloud_pub, const ros::Publisher &vis_pointcloud_pubsec,
                               const std::string& world_frame, double vis_publish_interval_ = 0.1);
 
     void renderDebugImage(cv::Mat& rgb_cv, const ptam::Tracker* tracker, const ptam::Map* map); // camera may not be const as it precaches data

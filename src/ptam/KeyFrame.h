@@ -36,6 +36,8 @@
 #include "CameraModel.h"
 #include "SmallBlurryImage.h"
 
+#define mMaxDepth 4.0 // maximal depth allowed for using the depth measurement
+
 namespace ptam{
 
 class MapPoint;
