@@ -13,7 +13,7 @@ using namespace ptam;
 PolynomialCamera::PolynomialCamera(const char* file):
 	onePixelDist(0), largestRadius(0), largestSqRadius(0), invalid(true), scalingFactor(1) {
 	
-    cout << "Read camera parameters..." << file <<"\n" << flush;
+    cout << "PTAM Read camera parameters..." << file <<"\n" << flush;
 	// Read camera parameters
 	FileStorage fs(file, CV_STORAGE_READ);
     if(!fs.isOpened()) {
@@ -23,7 +23,7 @@ PolynomialCamera::PolynomialCamera(const char* file):
 
 	fs["M1"] >> cameraMatrix;
 	fs["D1"] >> distCoeffs;
-	Mat_<int> matSize(2,1);
+    Mat_<int> matSize(2,1);
 	fs["size"] >> matSize;
 	defaultSize[0] = matSize(0);
 	defaultSize[1] = matSize(1);
