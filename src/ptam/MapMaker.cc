@@ -890,9 +890,9 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
                 p->v3Normal_NC = makeVector( 0,0,-1);
                 p->irCenter = lev.vMaxCorners[i];
                 ImageRef irCenterl0 = LevelZeroPosIR(p->irCenter,l);
-                p->v3Center_NC = unproject(mCamera->UnProject(irCenterl0));
-                p->v3OneDownFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(0,nLevelScale)));
-                p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
+                p->v3Center_NC = unproject(mCameraSec[cn]->UnProject(irCenterl0));
+                p->v3OneDownFromCenter_NC = unproject(mCameraSec[cn]->UnProject(irCenterl0 + ImageRef(0,nLevelScale)));
+                p->v3OneRightFromCenter_NC = unproject(mCameraSec[cn]->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
 
                 Vector<3> v3CamPos = p->v3Center_NC*depth;// Xc
                 p->v3RelativePos = v3CamPos;
