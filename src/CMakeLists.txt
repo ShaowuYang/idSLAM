@@ -53,6 +53,9 @@ rosbuild_link_boost(idslamnodelet signals)
 rosbuild_add_executable(cameras_calib Cameras_calib.cpp)
 target_link_libraries(cameras_calib ${COMMON_LIBRARIES})
 
+rosbuild_add_executable(kinect_calib kinect_calib.cpp)
+target_link_libraries(kinect_calib ${COMMON_LIBRARIES})
+
 #rosbuild_add_executable(rgbd_ptam_offline RGBDPTAMOffline.cpp)
 #target_link_libraries(rgbd_ptam_offline ${COMMON_LIBRARIES})
 

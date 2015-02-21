@@ -73,7 +73,7 @@ public:
         BaseSLAMNode::onInit();
 
         checkparam();
-        se3IMUfromcam = Load_cam_para();
+//        se3IMUfromcam = Load_cam_para();
         param_ini();
 
         image_transport::ImageTransport it(nh_);
@@ -257,6 +257,7 @@ public:
         vector<SE3<> > campara;
         ifstream cam_para_table;
         string table_path = cam_para_path_second;
+        cout << "Camera relative pose file: " << table_path.c_str() << endl;
         double temp1;
         cam_para_table.open(table_path.c_str());
         assert(cam_para_table.is_open());
@@ -626,7 +627,6 @@ public:
         else
             camPoselast = camPosethis;
 
-//        publishPosewithCovariance(msg_stamp);
         cout << camPosethis.get_translation() << endl << camPosethis.get_rotation().get_matrix() << endl;
 
         if (sendvisual){// && !isPTAMshouldstop){
