@@ -44,7 +44,7 @@ Sophus::SE3d Registrator3P::solve(const ptam::KeyFrame& kfa, const ptam::KeyFram
         cv::Mat tvec(3,1,cv::DataType<double>::type);
         /// here we need the model of camera B!
         int camNum = kfb.nSourceCamera;
-//        cout << "cv::solvePnP..." << endl;
+//        cout << "cv::solvePnP... cam " << camNum << endl;
         if (cv::solvePnP(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(), rvec, tvec,  false, cv::EPNP)) {
             Sophus::SE3d se3;
             Eigen::Vector3d r;
@@ -124,7 +124,7 @@ bool Registrator3P::solvePnP(const ptam::KeyFrame& kfa, const ptam::KeyFrame& kf
     cv::Mat tvec(3,1,cv::DataType<double>::type);
     /// here we need the model of camera B!
     int camNum = kfb.nSourceCamera;
-    //        cout << "cv::solvePnP..." << endl;
+//    cout << "cv::solvePnP...." << endl;
     if (cv::solvePnP(mapPointsA, imagePointsB, cam_[camNum].K(), cam_[camNum].D(), rvec, tvec,  false, cv::EPNP)) {
         Sophus::SE3d se3;
         Eigen::Vector3d r;

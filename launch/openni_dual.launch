@@ -27,6 +27,7 @@
         <arg name="camera" value="$(arg camera0)" />
         <arg name="depth_registration" value="$(arg depth_registration)" />
      </include>
+
 </launch>	
 
 

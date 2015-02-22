@@ -26,3 +26,5 @@ The following third-party libraries are used in this system:
 2. DBoW2 (http://webdiis.unizar.es/~dorian/index.php?p=32)
 
 3. g2o (http://openslam.org/g2o.html)
+
+4. Sophus (https://github.com/strasdat/Sophus)
