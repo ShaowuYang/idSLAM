@@ -2834,6 +2834,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
     bool neednewkf = true;
     bool neednewkfsec = true;
     bool usingDualimg = true;
+    bool needanykf = true;
     boost::shared_ptr<KeyFrame> pK, pK2[AddCamNumber];
 
     // force directly add kfs from the two cams together if there's association! <= check based on both kfs
@@ -2868,7 +2869,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         }
         else
             neednewkfsec = false;
-        neednewkf = neednewkf || neednewkfsec;
+        needanykf = neednewkf || neednewkfsec;
         cout << "need new kf from secon cam?: " << neednewkfsec << endl;
 
 //        // and every kf with a association in queuesec should correct its association number
@@ -2877,7 +2878,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
 //                mvpKeyFrameQueueSec[j]->nAssociatedKf --;
 //        }
 
-        if (neednewkf){// add this kf!
+        if (needanykf){// add this kf!
             // in dcslam system, the association number is useless
             if (usingDualimg){
 //                assert(mMap.vpKeyFrames.size() == mMap.vpKeyFramessec.size());
@@ -2907,7 +2908,7 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
     lockqueue.unlock();
     cout << "Adding Keyframes preparation done..." << endl;
 
-    if (!neednewkf)
+    if (!needanykf)
         return;
 
     //    pK = mvpKeyFrameQueue[0];
@@ -2943,11 +2944,13 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
     // And maybe we missed some - this now adds to the map itself, too.
     ReFindInSingleKeyFrame(pK);
 
-    AddSomeMapPoints(3);       // .. and add more map points by epipolar search.
-    AddSomeMapPoints(0);
-    AddSomeMapPoints(1);
-    AddSomeMapPoints(2);
-    cout << "Added map points from First cam keyframe..."<< mMap.vpKeyFrames.size() << endl;
+    if (neednewkf){
+        AddSomeMapPoints(3);       // .. and add more map points by epipolar search.
+        AddSomeMapPoints(0);
+        AddSomeMapPoints(1);
+        AddSomeMapPoints(2);
+        cout << "Added map points from First cam keyframe..."<< mMap.vpKeyFrames.size() << endl;
+    }
 
 //    // Remove old keyframes
 //    if (*gvnVOonly!=0)
@@ -3041,12 +3044,13 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         // And maybe we missed some - this now adds to the map itself, too.
         ReFindInSingleKeyFrame(pK2[cn]);//
 
-        cout << "Adding map points from sec cam keyframe..." << endl;
-        AddSomeMapPoints(3, cn+1);       // .. and add more map points by epipolar search.
-        AddSomeMapPoints(0, cn+1);
-        AddSomeMapPoints(1, cn+1);
-        AddSomeMapPoints(2, cn+1);
-        cout << "Added map points from sec cam keyframe..."<< mMap.vpKeyFramessec[cn].size() << endl;
+        if (neednewkfsec){
+            AddSomeMapPoints(3, cn+1);       // .. and add more map points by epipolar search.
+            AddSomeMapPoints(0, cn+1);
+            AddSomeMapPoints(1, cn+1);
+            AddSomeMapPoints(2, cn+1);
+            cout << "Added map points from sec cam keyframe..."<< mMap.vpKeyFramessec[cn].size() << endl;
+        }
     }
 
     mbBundleConverged_Full = false;

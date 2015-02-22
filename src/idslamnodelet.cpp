@@ -590,6 +590,8 @@ public:
                 DepthImages.push_back(frameDepth_sec);
                 adcamIndex.push_back(0);
             }
+            else
+                return; // currently, force using dual kinects
             if (curthirdimg_good) {
                 RGBimages.push_back(frameRGB_third);
                 DepthImages.push_back(frameDepth_third);

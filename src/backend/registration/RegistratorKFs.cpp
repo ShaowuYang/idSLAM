@@ -9,7 +9,7 @@ RegistratorKFs::RegistratorKFs(const cs_geom::Camera *cam,
     : nMinInliers_(nMinInliers), threshPx_(threshPx), maxErrAngle_(maxErrAngle), maxErrDis_(maxerrdis)
 {
     matcher_.reset(new cv::BFMatcher(cv::NORM_HAMMING, true));
-    reg_3p_.reset(new Registrator3P(cam));
+    reg_3p_.reset(new Registrator3P(cam, 1+AddCamNumber));
     reg_sim3_.reset(new RegistratorSIM3(useSIM3));
 }
 

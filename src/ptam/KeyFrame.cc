@@ -85,13 +85,13 @@ void KeyFrame::MakeKeyFrame_Lite(BasicImage<byte> &im, int nCam)
       else
       {
           if(i == 0)
-              fast_corner_detect_10(lev.im, lev.vCorners, 22);//10
+              fast_corner_detect_10(lev.im, lev.vCorners, 20);//10
           if(i == 1)
-              fast_corner_detect_10(lev.im, lev.vCorners, 20);//12
+              fast_corner_detect_10(lev.im, lev.vCorners, 18);//12
           if(i == 2)
               fast_corner_detect_10(lev.im, lev.vCorners, 14);
           if(i == 3)
-              fast_corner_detect_10(lev.im, lev.vCorners, 12);
+              fast_corner_detect_10(lev.im, lev.vCorners, 14);
       }
 
 //      std::cout << "lev size: " << lev.vCorners.size() << std::endl;

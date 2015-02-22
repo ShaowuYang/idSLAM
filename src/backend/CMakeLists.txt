@@ -23,7 +23,7 @@ include_directories(
   ${DBoW2_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
   ${G2O_INCLUDE_DIR}
-  ${CSPARSE_INCLUDE_DIR}
+#  ${CSPARSE_INCLUDE_DIR}
 )
 
 set(G2O_LIBRARIES
