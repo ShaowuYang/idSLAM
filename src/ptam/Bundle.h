@@ -346,6 +346,8 @@ struct MeasDepth: public Meas
     double dEpsilon;
     Vector<6> v6A;
     Vector<3> v3B;
+    SE3<> mse3Cam2FromCam1;
+
     inline MeasDepth(int nPoint, int nCam,  double dDepth, double dSigmaSquared) : Meas(nPoint,nCam), dFound(dDepth) {
         dSqrtInvNoise = sqrt(1.0/dSigmaSquared); bdepth = true;};
     inline virtual void ProjectAndFindSquaredError(const std::vector<Point>& points, std::vector<Camera>& cameras,
@@ -353,8 +355,15 @@ struct MeasDepth: public Meas
     {
         const Point& point = points[p];
         const Camera& cam = cameras[c];
+        mse3Cam2FromCam1 = cameras[c].se3C2fC1;// different for each kfs
+
         // Project the point.
-        v3Cam = cam.se3CfW * point.v3Pos;
+        // cam-to-cam transformation need to be considered for associated kf
+        if (!nSourceCamera || !mAssociated)// first cam or independent sencond cam
+            v3Cam = cam.se3CfW * point.v3Pos;
+        else// then we only stored the master camera pose, instead of the right cam pose
+            v3Cam = (mse3Cam2FromCam1*cam.se3CfW) * point.v3Pos;
+
         if(v3Cam[2] <= 0) {
             bBad = true;
             return;
@@ -377,20 +386,75 @@ struct MeasDepth: public Meas
 
     inline virtual void CalculateA()
     {
-        const Vector<4> v4Cam = unproject(v3Cam);
+//        const Vector<4> v4Cam = unproject(v3Cam);
+//        double dOneOverCameraZ = 1.0/v3Cam[2];
+//        for(int m = 0; m < 6; m++) {
+//            const Vector<4> v4Motion = SE3<>::generator_field(m, v4Cam);
+//            double dDepth = v4Motion[2] * dOneOverCameraZ;
+//            v6A[m] = dWeight*dSqrtInvNoise*dDepth;
+//        };
+
         double dOneOverCameraZ = 1.0/v3Cam[2];
+        const Vector<4> v4Cam = unproject(v3Cam);
+        Vector<3> v3Cam1;
+        if (mAssociated)// we calc. the Jac. WRT the pose of the master camera
+            v3Cam1 = mse3Cam2FromCam1.inverse() * v3Cam;
+        const Vector<4> v4Cam1 = unproject(v3Cam1);
+
         for(int m = 0; m < 6; m++) {
-            const Vector<4> v4Motion = SE3<>::generator_field(m, v4Cam);
+            Vector<4> v4Motion;
+            if (!mAssociated)
+                v4Motion = SE3<>::generator_field(m, v4Cam);
+            else
+                v4Motion = generate_J(m, (v4Cam1), mse3Cam2FromCam1.get_rotation().get_matrix());
+
             double dDepth = v4Motion[2] * dOneOverCameraZ;
             v6A[m] = dWeight*dSqrtInvNoise*dDepth;
         };
+    }
+
+    // get the Jacobian matrix, not considering h(Pc) yet
+    // similar to SE3<>::generator_field, but front multiplied with R(A) in it.
+    inline Vector<4> generate_J(int i, Vector<4> pos, Matrix<3> R){
+        Vector<4> result(Zeros);
+        if(i < 3){
+            result[0]=R(0, i);
+            result[1]=R(1, i);
+            result[2]=R(2, i);
+          return result;
+        }
+        switch(i){
+        case 3:
+            result[0]=-R(0, 1)*pos[2]+R(0, 2)*pos[1];
+            result[1]=-R(1, 1)*pos[2]+R(1, 2)*pos[1];
+            result[2]=-R(2, 1)*pos[2]+R(2, 2)*pos[1];
+            break;
+        case 4:
+            result[0]=R(0, 0)*pos[2]-R(0, 2)*pos[0];
+            result[1]=R(1, 0)*pos[2]-R(1, 2)*pos[0];
+            result[2]=R(2, 0)*pos[2]-R(2, 2)*pos[0];
+            break;
+        case 5:
+            result[0]=-R(0, 0)*pos[1]+R(0, 1)*pos[0];
+            result[1]=-R(1, 0)*pos[1]+R(1, 1)*pos[0];
+            result[2]=-R(2, 0)*pos[1]+R(2, 1)*pos[0];
+            break;
+        default:
+            break;
+        }
+        return result;
     }
 
     inline virtual void CalculateB(const Camera& cam)
     {
         double dOneOverCameraZ = 1.0/v3Cam[2];
         for(int m = 0; m < 3; m++) {
-            const Vector<3> v3Motion = cam.se3CfW.get_rotation().get_matrix().T()[m];
+            Vector<3> v3Motion;
+            if (!mAssociated)
+                v3Motion = cam.se3CfW.get_rotation().get_matrix().T()[m];
+            else
+                v3Motion = cam.se3CfW.get_rotation().get_matrix().T()[m];
+
             v3B[m] = dWeight*dSqrtInvNoise*v3Motion[2]*dOneOverCameraZ;
         };
     }
@@ -430,7 +494,7 @@ public:
   int AddPoint(Vector<3> v3Pos, bool bfixed=false);       // Add a map point.
   void AddMeas(int nCam, int nPoint, Vector<2> v2Pos, double dSigmaSquared, int nCamnum = 0, bool mAssociated = false); // Add a 2D measurement
   void AddMeas(int nCam, int nPoint, Vector<3> v3Pos, double dSigmaSquared, int nCamnum = 0); // Add a 3D measurement
-  void AddMeas(int nCam, int nPoint, double dDepth, double dSigmaSquared, int nCamnum = 0); // Add a depth measurement
+  void AddMeas(int nCam, int nPoint, double dDepth, double dSigmaSquared, int nCamnum = 0, bool mAssociated = false); // Add a depth measurement
   int Compute(bool *pbAbortSignal);    // Perform bundle adjustment. Aborts if *pbAbortSignal gets set to true. Returns number of accepted update iterations, or negative on error.
   inline bool Converged() { return mbConverged;}  // Has bundle adjustment converged?
   Vector<3> GetPoint(int n);       // Point coords after adjustment

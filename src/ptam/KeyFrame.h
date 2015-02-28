@@ -191,7 +191,7 @@ struct KeyFrame
   bool mAssociatedinFinalQueue;// better named mAssociatedinMap; whether its associated kf already been put in the final map kf queue?
   uint nAssociatedKf;// the serial number of the associated kf in its kf queue of the map
                 // it would have been much simpler if we use data structure of "map"!!
-  TooN::SE3<> se3Cam2fromCam1; // store each transformation, when assuming dual cameras not rigidly connected
+  TooN::SE3<> se3Cam2fromCam1; // store each transformation, when assuming dual cameras
 
   /// only for the back-end processes ///////////////
   void finalizeKeyframeBackend(); /// further process (compute descriptors of) the keyframe for the loop cloure detection

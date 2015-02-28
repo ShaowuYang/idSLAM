@@ -123,7 +123,7 @@ void Bundle::AddMeas(int nCam, int nPoint, Vector<3> v3Pos, double dSigmaSquared
 }
 
 // Add a depth measurement of one point with one camera
-void Bundle::AddMeas(int nCam, int nPoint, double dDepth, double dSigmaSquared, int nCamnum)
+void Bundle::AddMeas(int nCam, int nPoint, double dDepth, double dSigmaSquared, int nCamnum, bool mAssociated)
 {
     assert(nCam < (int) mvCameras.size());
     assert(nPoint < (int) mvPoints.size());
@@ -132,6 +132,10 @@ void Bundle::AddMeas(int nCam, int nPoint, double dDepth, double dSigmaSquared, 
     MeasDepth* m = new MeasDepth(nPoint, nCam, dDepth, dSigmaSquared);
     if (nCamnum)
         m->nSourceCamera = nCamnum;
+    if (nCamnum&&mAssociated)
+        m->mAssociated = true;
+    else
+        m->mAssociated = false;
     mMeasList.push_back(m);
 }
 
