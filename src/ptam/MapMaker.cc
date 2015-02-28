@@ -3981,20 +3981,20 @@ void MapMaker::BundleAdjust(set<boost::shared_ptr<KeyFrame> > sAdjustSet, set<bo
                 Measurement& m = it->second;
                 if (m.dDepth > 0.0) {
                     static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
-                    if (*gvnUseDepth) {
+                    if (*gvnUseDepth) {/// do main change to such measurements
                         double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
-                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, LevelScale(m.nLevel)*LevelScale(m.nLevel), cn);
-                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.dDepth, dStdDepth*dStdDepth, cn);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn+1, true);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.dDepth, dStdDepth*dStdDepth, cn+1, true);
                     } else if (*gvnUse3D) {
                         double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
                         Vector<3> v3RootPos = m.dDepth*unproject(mCameraSec[cn]->UnProject(m.v2RootPos));
-                        b.AddMeas(nKF_BundleID, nPoint_BundleID, v3RootPos,dStdDepth*dStdDepth, cn);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, v3RootPos,dStdDepth*dStdDepth, cn+1);
                     } else {// do main change to such measurement
-                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn, true);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn+1, true);
                     }
                 } else {
                     // do main change to such measurement
-                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn, true);
+                    b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn+1, true);
                 }
             }
         }

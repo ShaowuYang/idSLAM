@@ -631,6 +631,8 @@ public:
 
         cout << camPosethis.get_translation() << endl << camPosethis.get_rotation().get_matrix() << endl;
 
+        logPose(img_msg->header.stamp, SE3<>());
+
         if (sendvisual){// && !isPTAMshouldstop){
             if (cam_marker_pub_.getNumSubscribers() > 0 || point_marker_pub_.getNumSubscribers() > 0)
                 map_viz_->publishMapVisualization(map_.get(),tracker_.get(),cam_marker_pub_,point_marker_pub_,
@@ -735,7 +737,7 @@ private:
     // change to log quadrotor pose, not camera pose
     void logPose(ros::Time msgtime, SE3<> roboPose)
     {
-        SE3<> camPose = roboPose;//tracker_->GetCurrentPose().inverse();
+        SE3<> camPose = tracker_->GetCurrentPose().inverse();
 
         if (write_pos_) {//write_pos_
             btMatrix3x3 R(btScalar(camPose.get_rotation().get_matrix()(0,0)), btScalar(camPose.get_rotation().get_matrix()(0,1)), btScalar(camPose.get_rotation().get_matrix()(0,2)),
