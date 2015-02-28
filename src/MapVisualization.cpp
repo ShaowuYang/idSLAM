@@ -247,6 +247,17 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
                             mcCamera, rgb, depth, map->vpKeyFrames[i]->se3CfromW.inverse(), map->vpKeyFrames[i]->rgbIsBgr_, step);
                 *fullCloud += *thisCloud;
                 nfullcloud ++;
+
+                for (int cn = 0; cn < AddCamNumber; cn ++){
+                    cv::Mat rgb(map->vpKeyFramessec[cn][i]->rgbImage.size().y, map->vpKeyFramessec[cn][i]->rgbImage.size().x, CV_8UC3, map->vpKeyFramessec[cn][i]->rgbImage.data());
+                    cv::Mat depth(map->vpKeyFramessec[cn][i]->depthImage.size().y, map->vpKeyFramessec[cn][i]->depthImage.size().x, CV_16UC1, map->vpKeyFramessec[cn][i]->depthImage.data());
+                    const CameraModel& mcCamera = tracker->GetCameraSec(cn);
+
+                    // TODO: make a list of pointclouds for each kf, only replace those have been changed in BA
+                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr thisCloud = geometry::PointClouds::rgbdToPointCloud(
+                                mcCamera, rgb, depth, map->vpKeyFramessec[cn][i]->se3CfromW.inverse(), map->vpKeyFramessec[cn][i]->rgbIsBgr_, step);
+                    *fullCloud += *thisCloud;
+                }
             }
 
         sensor_msgs::PointCloud2Ptr msg(new sensor_msgs::PointCloud2());

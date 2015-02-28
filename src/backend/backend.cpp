@@ -148,7 +148,7 @@ void LoopClosing::publishTF(const ros::TimerEvent&)
 void LoopClosing::publishVis()
 {
     const std::vector<boost::shared_ptr<ptam::KeyFrame> >& kfs = slam_.keyframes();
-    bool useDifWorldFrame = true; // use a different world frame for rviz visualization
+    bool useDifWorldFrame = false; // use a different world frame for rviz visualization
 
     if (vis_kf_pub_.getNumSubscribers() > 0) {
         visualization_msgs::Marker kf_marker;

@@ -647,7 +647,7 @@ public:
 
             // TODO: use another thread to manage the point cloud, and publish it for Octomap-like mapper
             if (depth_msg && (vis_pointcloud_pub_.getNumSubscribers() > 0))
-                map_viz_->publishPointCloud(map_.get(), tracker_.get(), vis_pointcloud_pub_, "/rgbd_link",
+                map_viz_->publishPointCloud(map_.get(), tracker_.get(), vis_pointcloud_pub_, world_frame_,
                                             vis_publish_interval_, vis_pointcloud_step_, cellSize);
             if (depth_msg && (vis_crtpointcloud_pub_.getNumSubscribers() > 0))
                 map_viz_->publishCrtPointCloud(map_.get(), tracker_.get(),
