@@ -171,8 +171,9 @@ void KeyFrame::MakeKeyFrame(BasicImage<byte> &im,CVD::BasicImage<uint16_t> &dept
             ImageRef irLev = lev.vCorners[i];
             ImageRef irL0 = LevelZeroPosIR(irLev,l);
             double d = depth[irL0]/1000.0;
-            if (d = isnan(d) || d > mMaxDepth)
-                d = 0.0;
+//            if (d = isnan(d) || d > mMaxDepth)
+//                d = 0.0;
+            d = isnan(d) ? 0.0 : d;
             lev.vCornersDepth[i] = d;
         }
     }
@@ -369,6 +370,9 @@ void KeyFrame::finalizeKeyframeBackend()
     mpDescriptors.release();
     kpDescriptors.release();
     for (uint l = 0; l < 2; l++) {
+        if (!mpKpts[l].size())
+            continue;
+
         cv::Mat levDesc;
         // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
         extractor->compute(cv_im, mpKpts[l], levDesc);
@@ -458,6 +462,8 @@ void KeyFrame::finalizeKeyframekpts()
             // Abuse response field, but we have to keep this keypoint's depth somewhere
             kpts[k].response = lev1.vMaxCornersDepth[k];
         }
+        if (!kpts.size())
+            continue;
 
         cout << "in the current kf, keypoints: "<< kpts.size() << endl;
 

@@ -224,7 +224,7 @@ void MapMaker::run()
             // TODO: mark map points whose kf id had been transfored to be fixed in BA
             // chose adjusted or fixed kfs and do local BA
             cout << "Doing BA..." << endl;
-//            BundleAdjustRecent();
+            BundleAdjustRecent();
             didba = true;
             bFullBAfinished = false;
             cout<< "BA Done!"<<endl;
@@ -690,7 +690,7 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, const TooN::SE3<> &worldPos)
         {
             double depth = lev.vMaxCornersDepth[i];
             // only consider corners with valid 3d position estimates
-            if ((depth <= 0.0) || (depth > 4.0))
+            if ((depth <= 0.0) || (depth > mMaxDepth))
                 continue;
 
             boost::shared_ptr<MapPoint> p(new MapPoint());
@@ -764,6 +764,8 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
 {
     // write access: unique lock
     boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
+
+    mdWiggleScale = 0.1;
 
     mCamera->SetImageSize(kf.aLevels[0].im.size());
     for (int i = 0; i < AddCamNumber; i ++)
@@ -3044,7 +3046,8 @@ void MapMaker::AddKeyFrameFromTopOfQueue()
         // And maybe we missed some - this now adds to the map itself, too.
         ReFindInSingleKeyFrame(pK2[cn]);//
 
-        if (neednewkfsec){
+//        if (neednewkfsec)
+        {
             AddSomeMapPoints(3, cn+1);       // .. and add more map points by epipolar search.
             AddSomeMapPoints(0, cn+1);
             AddSomeMapPoints(1, cn+1);
@@ -3091,6 +3094,7 @@ bool MapMaker::AddPointDepth(boost::shared_ptr<KeyFrame> kSrc,
         v3Unprojected = unproject(mCamera->UnProject(v2RootPos));
     else
         v3Unprojected = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos));
+
     Vector<3> v3PosWorld = kSrc->se3CfromW.inverse()*(candidate.dDepth*v3Unprojected);
     Vector<3> v3PosTarget = kTarget->se3CfromW*v3PosWorld;
     ImageRef irTarget;
@@ -3352,6 +3356,8 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
         Vector<3> reprop = ReprojectPoint(tc12, nc1, nc2);
         if (reprop[2] <= std::max(0.0, tc12.inverse().get_translation()[2]))
             return false;
+        else if (sqrt(reprop*reprop) > *gvndSceneDepthMaxSecCam)
+            return false;
 
         v3New = kTarget->se3CfromW.inverse() * reprop;
 //        pos_log_ << "cam0 view angle: " << viewangle*180/3.14 << ", " << reprop
@@ -3375,6 +3381,8 @@ bool MapMaker::AddPointEpipolar(boost::shared_ptr<KeyFrame> kSrc,
 
         Vector<3> reprop = ReprojectPoint(tc12, nc1, nc2);
         if (reprop[2] <= std::max(0.0, tc12.inverse().get_translation()[2]))
+            return false;
+        else if (sqrt(reprop*reprop) > *gvndSceneDepthMaxSecCam)
             return false;
 
         v3New = kTarget->se3CfromW.inverse() * reprop;

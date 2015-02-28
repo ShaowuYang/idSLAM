@@ -117,15 +117,23 @@ bool RegistratorKFs::tryToRelocaliseRANSAC(const boost::shared_ptr<ptam::KeyFram
 {
     std::vector<cv::DMatch> matchesAB;
 
+    if (!kfa->mpDescriptors.rows || !kfb->kpDescriptors.rows)
+        return false;
     // match
     matcher_->match(kfa->mpDescriptors, kfb->kpDescriptors, matchesAB);
 
-    std::cout << "Matches found for relocalization: " << matchesAB.size() << std::endl;
+    std::cout << "Matches found for relocalization using opencv: " << matchesAB.size() << std::endl;
     // RANSAC A->B:
     Sophus::SE3d relPoseAB;
     std::vector<int> inliers;
     if (reg_3p_->solvePnP_RANSAC(*kfa, *kfb, matchesAB, relPoseAB, inliers, minInliers, threshPx_)){
         result = relPoseAB;
+
+        double dis = relPoseAB.translation().norm();
+        if (abs(dis) > 1.0){
+            std::cout << "Too far away from the reference kf: "<< dis << std::endl;
+            return false;
+        }
         return true;
     }
     else

@@ -762,9 +762,12 @@ bool Tracker::AttemptRecovery()
             return false;
         }
 
-        se3Best = mbestpose;
-        if (bRelocGoodsec)
+        if (bRelocGood)
+            se3Best =mGoodKFtoTracksec[nAdCamGoodnum]->se3CfromW.inverse() * mbestpose;
+        else if (bRelocGoodsec){
+            se3Best =mGoodKFtoTrack->se3CfromW.inverse() * mbestpose;
             se3Best = mse3Cam1FromCam2[nAdCamGoodnum] * se3Best;
+        }
         mse3CamFromWorld = se3Best; mse3StartPos = se3Best;
         mse3CamFromWorldPub = se3Best; mse3StartPos = se3Best;
         for (int i = 0; i < AddCamNumber; i ++)
@@ -1084,7 +1087,7 @@ void Tracker::TrackMap()
         manMeasAttempted[i] = manMeasFound[i] = 0;
 
     static gvar3<int> gvnTrackCam2camError("Tracker.TrackCam2camError", 0, SILENT);
-    bool TrackCam2camError = *gvnTrackCam2camError;
+    bool TrackCam2camError = false;// *gvnTrackCam2camError;
     // parameters used for debug
     bool use_seccam_track = false;// use only second camera for tracking, only for test
     bool poseupdate_cam2 = false;// use cam2 as main pose update cam?
@@ -1571,6 +1574,9 @@ void Tracker::TrackMap()
                 }
                 for(unsigned int i=0; i<vIterationSet.size(); i++)
                     if(vIterationSet[i]->TData.bFound){
+                        if (vIterationSet[i]->nFoundCamera)// sec img
+                            vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2[0].inverse());
+                        else
                             vIterationSet[i]->TData.CalcJacobian();
                     }
                 double dOverrideSigma = 0.0;
@@ -1786,7 +1792,7 @@ void Tracker::TrackMap()
                             // it's fine for poseupdate calculation, since we derivate the
                             // error at cam2cam error being zeros.
                             if (!erriter)
-                                vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2Update[vIterationSet[i]->nFoundCamera].inverse());
+                                vIterationSet[i]->TData.CalcJacobiansec(mse3Cam1FromCam2Update[vIterationSet[i]->nFoundCamera-1].inverse());
                             else
                                 vIterationSet[i]->TData.CalcJacobianWithErrorSec(
                                             mse3Cam1FromCam2Update[vIterationSet[i]->nFoundCamera].inverse());//,

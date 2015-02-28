@@ -17,7 +17,7 @@
 
         <param name="usingdualslam" type="bool" value="true" />
         <param name="sendvisual" type="bool" value="true" />
-        <param name="show_debug_image" type="bool" value="true" />
+        <param name="show_debug_image" type="bool" value="false" />
 	<param name="world_frame" type="string" value="/camera_link" />
         <param name="write_pos" type="bool" value="true" />
         <param name="use_artificial_ini" type="bool" value="false" />
