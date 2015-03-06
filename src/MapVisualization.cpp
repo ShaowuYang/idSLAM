@@ -248,6 +248,7 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
                 *fullCloud += *thisCloud;
                 nfullcloud ++;
 
+                if (tracker->mUsingDualImg)
                 for (int cn = 0; cn < AddCamNumber; cn ++){
                     cv::Mat rgb(map->vpKeyFramessec[cn][i]->rgbImage.size().y, map->vpKeyFramessec[cn][i]->rgbImage.size().x, CV_8UC3, map->vpKeyFramessec[cn][i]->rgbImage.data());
                     cv::Mat depth(map->vpKeyFramessec[cn][i]->depthImage.size().y, map->vpKeyFramessec[cn][i]->depthImage.size().x, CV_16UC1, map->vpKeyFramessec[cn][i]->depthImage.data());
