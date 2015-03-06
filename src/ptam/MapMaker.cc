@@ -3983,7 +3983,7 @@ void MapMaker::BundleAdjust(set<boost::shared_ptr<KeyFrame> > sAdjustSet, set<bo
                     static gvar3<double> gvdDepthErrorScale("Tracker.DepthErrorScale",0.0025,SILENT);
                     if (*gvnUseDepth) {/// do main change to such measurements
                         double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);
-                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, 4*LevelScale(m.nLevel)*LevelScale(m.nLevel), cn+1, true);
+                        b.AddMeas(nKF_BundleID, nPoint_BundleID, m.v2RootPos, LevelScale(m.nLevel)*LevelScale(m.nLevel), cn+1, true);
                         b.AddMeas(nKF_BundleID, nPoint_BundleID, m.dDepth, dStdDepth*dStdDepth, cn+1, true);
                     } else if (*gvnUse3D) {
                         double dStdDepth = m.dDepth*m.dDepth*(*gvdDepthErrorScale);

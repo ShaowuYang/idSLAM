@@ -575,8 +575,19 @@ public:
         if (!isdualcam) {
             if (!depth_msg)
                 tracker_->TrackFrame(frameBW_);
-            else
+            else{
+                ros::Time timevobegin=ros::Time::now();
+
                 tracker_->TrackFrame(frameRGB_, frameDepth_, rgbIsBgr_);
+
+                ros::Time timevoend = ros::Time::now();
+                ros::Duration timevo = timevoend - timevobegin;
+                double timecost_vo = timevo.toSec();
+                if (timecost.is_open()){
+                    timecost << msg_stamp << " "
+                             <<  timecost_vo << "\n";
+                }
+            }
         } else
         {
             std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > RGBimages;
@@ -598,7 +609,17 @@ public:
                 adcamIndex.push_back(1);
             }
 
+            ros::Time timevobegin=ros::Time::now();
+
             tracker_->TrackFrame(RGBimages, DepthImages, adcamIndex);
+
+            ros::Time timevoend = ros::Time::now();
+            ros::Duration timevo = timevoend - timevobegin;
+            double timecost_vo = timevo.toSec();
+            if (timecost.is_open()){
+                timecost << msg_stamp << " "
+                         <<  timecost_vo << "\n";
+            }
         }
 
         if (!isFinishIniPTAMwithcircle){

@@ -371,6 +371,8 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
            && (imFrameRGB.size() > 0));
     mMessageForUser.str("");   // Wipe the user message clean
 
+    ros::Time timevobegin=ros::Time::now();
+
     // Add the main camera data
     CVD::Image<CVD::byte> imFrame;
     imFrame.resize(imFrameRGB[0].size());
@@ -432,6 +434,17 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
                 mnKeyFramessec[i] = 1;
             }
         }
+    }
+
+    ros::Time timevoend = ros::Time::now();
+    ros::Duration timevo = timevoend - timevobegin;
+    timecost_vo = timevo.toSec();
+
+    if (trackerlog.is_open()){
+
+//        trackerlog <<timevobegin.toSec() << " "
+//                   << timecost_vo <<  " "
+//                   << "\n";
     }
 
     processGUIEvents();
@@ -1655,8 +1668,16 @@ void Tracker::TrackMap()
     // But we haven't got CPU to track _all_ patches in the map - arbitrarily limit
     // ourselves to 1000, and choose these randomly.
     // * randomly chose points from both img
+    int numFirstcam = 0;
+    int numSeccam = 0;/// a vector when more than one addcam
+    for (int i = 0; i < vIterationSet.size(); i ++){
+        if (vIterationSet[i]->nFoundCamera)
+            numSeccam ++;
+        else
+            numFirstcam ++;
+    }
     static gvar3<int> gvnMaxPatchesPerFrame("Tracker.MaxPatchesPerFrame", 1000, SILENT);
-    int nFinePatchesToUse = *gvnMaxPatchesPerFrame - vIterationSet.size();
+    int nFinePatchesToUse = *gvnMaxPatchesPerFrame - numFirstcam;//vIterationSet.size();
     if(nFinePatchesToUse < 0)
         nFinePatchesToUse = 0;
     if((int) vNextToSearch.size() > nFinePatchesToUse)
@@ -1665,12 +1686,13 @@ void Tracker::TrackMap()
         vNextToSearch.resize((int) nFinePatchesToUse); // Chop!
     };
     // and the second img, each chose nFinePatchesToUse/2
+    nFinePatchesToUse = *gvnMaxPatchesPerFrame/2 - numSeccam;
     for (int cn = 0; cn < AddCamNumber; cn ++)
-        if(mUsingDualImg && (int) vNextToSearchsec[cn].size() > nFinePatchesToUse/2)
+        if(mUsingDualImg && (int) vNextToSearchsec[cn].size() > nFinePatchesToUse)// nFinePatchesToUse/2
         {
             random_shuffle(vNextToSearchsec[cn].begin(), vNextToSearchsec[cn].end());
             // TODO: sort the set accordinig to its distance to the camera
-            vNextToSearchsec[cn].resize((int) nFinePatchesToUse/2); // Chop!
+            vNextToSearchsec[cn].resize((int) nFinePatchesToUse); // Chop! nFinePatchesToUse/2
         };
 
     // If we did a coarse tracking stage: re-project and find derivs of fine points
