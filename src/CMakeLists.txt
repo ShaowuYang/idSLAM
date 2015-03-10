@@ -12,19 +12,8 @@ include_directories(   ${PROJECT_SOURCE_DIR}/src
 rosbuild_add_library(nodebase BaseSLAMNode.cpp)
 rosbuild_add_library(conversions conversions/conversions.cpp)
 rosbuild_add_library(mapvis MapVisualization.cpp geometry/PointClouds.cpp)
-rosbuild_add_library(ODT
-    ODT/landing_object.cpp
-#    ODT/myfeature_descriptor.cpp
-#    ODT/mymatcher.cpp
-#    ODT/conversions_img.cpp
-    ODT/polygon.cpp
-    ODT/cvdopencv_helper.cpp
-    ODT/homographysolver.cpp
-    ODT/padtracker.cpp
-    ODT/MyOrb.cpp
-)
 
-set(COMMON_LIBRARIES nodebase ODT mapvis ptam backend conversions GVars3 cvd toontag)
+set(COMMON_LIBRARIES nodebase mapvis conversions GVars3 cvd toontag)
 
 add_subdirectory(backend)
 add_subdirectory(ptam)

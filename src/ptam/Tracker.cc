@@ -146,18 +146,6 @@ void Tracker::Reset()
 #endif
 }
 
-void Tracker::load_reflandingpad(string &path)
-{
-    //    static gvar3<string> gvnRefimgPath("Tracker.RefimgPath", "data/refpattern12.jpg", SILENT); // Max sub-pixel iterations for coarse features
-    Image<byte> refimg = img_load(path);
-    mReflandingpadFrame.mMeasurements.clear();
-    mReflandingpadFrame.MakeKeyFrame_Lite(refimg);
-    mReflandingpadFrame.MakeKeyFrame_Rest();
-
-    mMapMaker.AddReflandingpadFrame(mReflandingpadFrame);
-    ROS_INFO("Ref image of landing pad loaded.");
-}
-
 void Tracker::UpdateImageSize(const CVD::ImageRef& size)
 {
     if (mirSize.x == 0  && mirSize.y == 0) { // not yet initialized (before processing first image)
@@ -577,48 +565,6 @@ bool Tracker::trackMap() {
     }
 
     tracking_map = true;
-
-    // yang, should we do landing object detection here? if so, add the current keyframe and its pose to mapmaker
-    // so that the detection does not need to be in real-time
-    // this should be decided based on both time interval and distance interval(dis the camera travels)
-    double time_now = ros::Time::now().toSec();
-    static gvar3<double> gvnPadDetectFrameRate("Tracker.PadDetectMaxFrameRate", 10, SILENT);
-    if ((mTrackingQuality == GOOD) && !mMapMaker.isFinishPadDetection && istrackPad
-            && (time_now - time_last_detect.toSec()) > 1.0/(*gvnPadDetectFrameRate))
-    {
-        if (mMapMaker.AddObjectDetectionFrame(*mCurrentKF))
-            time_last_detect = ros::Time::now();
-    }
-    // yang, should we do landing object tracking here?
-    // add frame for tracking, so that we can use recent ref img and ESM for coarse pose estimation to locate the object in the map
-    //    if (mMapMaker.isObject_detected){
-    //        mMapMaker.AddPadTrackingFrame(*mCurrentKF);
-    //    }
-
-    // landingpad pose get?
-    if (mMapMaker.isLandingpadPoseGet){
-        mPadCenterWorld = mMapMaker.mPadCenterWorld;
-        mPadCornersWorld = mMapMaker.mPadCornersWorld;
-        isLandingpadPoseGet = true;
-        iniPadCameraPoseWorld = mMapMaker.iniPadCameraPoseWorld;
-
-        iniPadCenterWorld = mMapMaker.iniPadCenterWorld;
-
-        double dis2inipad = sqrt((mse3CamFromWorld.inverse().get_translation()-iniPadCenterWorld)
-                                 *(mse3CamFromWorld.inverse().get_translation()-iniPadCenterWorld));
-        static gvar3<double> gvnStopDetectionDisxy("MapMaker.StopDetectionDisxy", 0.4, SILENT);
-        static gvar3<int> gvnNeedStopDetection("MapMaker.NeedStopDetection", 1, SILENT);
-        if ((*gvnNeedStopDetection!=0) && (dis2inipad < *gvnStopDetectionDisxy))
-        {
-            isFinishPadDetection = true;
-            mMapMaker.isFinishPadDetection = true;
-        }
-
-        if (mMapMaker.isFinishPadDetection){
-            isFinishPadDetection = true;
-            finishPadCameraPoseWorld = mMapMaker.finishPadCameraPoseWorld;
-        }
-    }
 
     return true;
 }

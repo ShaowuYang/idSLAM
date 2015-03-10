@@ -20,6 +20,5 @@ target_link_libraries(ptam
     lapack
     GVars3
     cvd
-    ODT
     cs_geometry
 )
