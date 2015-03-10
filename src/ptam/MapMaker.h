@@ -90,13 +90,13 @@ public:
                       int ini_thresh, int ini_times);
 
   //////////////////////for landing pad detection//////////////////
-  bool AddObjectDetectionFrame(KeyFrame &k); // Pass only the current frame to the frame ready for landing
+//  bool AddObjectDetectionFrame(KeyFrame &k); // Pass only the current frame to the frame ready for landing
                                              // object detection.
-  bool AddReflandingpadFrame(KeyFrame &k);   // load the landing pad reference frame
-  void ComputeObjectDetectionFrame(KeyFrame &k); // do opencv related landing pad detection for current frame pad detection,
-                                                 // e.g. descriptors, match features, pose estimation.
-  bool AddPadTrackingFrame(KeyFrame &k);  // add every new frame for landing pad tracking
-  void TracklandingpadESM(KeyFrame &k);
+//  bool AddReflandingpadFrame(KeyFrame &k);   // load the landing pad reference frame
+//  void ComputeObjectDetectionFrame(KeyFrame &k); // do opencv related landing pad detection for current frame pad detection,
+//                                                 // e.g. descriptors, match features, pose estimation.
+//  bool AddPadTrackingFrame(KeyFrame &k);  // add every new frame for landing pad tracking
+//  void TracklandingpadESM(KeyFrame &k);
 
   bool isObject_detected;      // whether landing object is detected and ready for tracking.
   bool isLandingpadPoseGet; // if true, the pose of landing pad could be published
