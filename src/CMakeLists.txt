@@ -13,7 +13,7 @@ rosbuild_add_library(nodebase BaseSLAMNode.cpp)
 rosbuild_add_library(conversions conversions/conversions.cpp)
 rosbuild_add_library(mapvis MapVisualization.cpp geometry/PointClouds.cpp)
 
-set(COMMON_LIBRARIES nodebase mapvis conversions GVars3 cvd toontag)
+set(COMMON_LIBRARIES nodebase mapvis ptam backend conversions GVars3 cvd toontag)
 
 add_subdirectory(backend)
 add_subdirectory(ptam)

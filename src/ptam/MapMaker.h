@@ -28,7 +28,6 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/smart_ptr.hpp>
 
-#include <ODT/landing_object.h>
 #include <slam/SLAMSystem.h>
 #include <backend.h>
 
@@ -91,7 +90,7 @@ public:
 
   //////////////////////for landing pad detection//////////////////
 //  bool AddObjectDetectionFrame(KeyFrame &k); // Pass only the current frame to the frame ready for landing
-                                             // object detection.
+//                                             // object detection.
 //  bool AddReflandingpadFrame(KeyFrame &k);   // load the landing pad reference frame
 //  void ComputeObjectDetectionFrame(KeyFrame &k); // do opencv related landing pad detection for current frame pad detection,
 //                                                 // e.g. descriptors, match features, pose estimation.
@@ -229,7 +228,6 @@ protected:
   // for landing object tracking.
   boost::mutex object_keyframeMut;
   boost::mutex tracking_frameMut;
-  landing_object* mLandingPad; // landing pad object
   KeyFrame mObject_keyframe;   // image ready for landing object detection
   bool nullObject_keyframe;    //
   TooN::SE3<> mObject_keyframePose;
