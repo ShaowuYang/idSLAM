@@ -261,7 +261,6 @@ protected:
 
   ros::Time time_last_detect;// last ros time, when the last new frame is passed to mapmaker
   KeyFrame  mReflandingpadFrame;// ref image of the landing pad
-  cv::Mat matchedimg[objLEVEL];// matches for debug
 };
 } // namespace
 
