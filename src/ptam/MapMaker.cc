@@ -953,6 +953,206 @@ bool MapMaker::InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, co
     return true;
 }
 
+// ReInit the SLAM system using multiple kinects, old map retained, adding a new local map, which will join the old map when loop closing
+// 1. lock the old map: mappoints, kfs. locks being effect only in localisation
+// 2. add the new local map
+bool MapMaker::ReInitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, const TooN::SE3<> &worldPos)
+{
+    // write access: unique lock
+    boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
+    for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
+        mMap.vpPoints[i]->mblocked = true;
+    for (unsigned int i = 0; i < mMap.vpKeyFrames.size(); i ++)
+        mMap.vpKeyFrames[i]->mbKFlocked = true;
+    for (int cn = 0; cn < AddCamNumber; cn ++){
+        for (int j = 0; j < mMap.vpKeyFramessec[cn].size(); j ++)
+            mMap.vpKeyFramessec[cn][j]->mbKFlocked = true;
+    }
+    int mpcountold = mMap.vpPoints.size();
+
+    int pcount[AddCamNumber];
+
+    // need to copy this keyframe
+    boost::shared_ptr<KeyFrame> pkFirst(new KeyFrame());
+    *pkFirst = kf;
+    pkFirst->SBI = kf.SBI;
+    pkFirst->bFixed = true;
+    pkFirst->se3CfromW = worldPos;
+
+    // Construct map from key points
+    PatchFinder finder;
+    int lcount[LEVELS];
+    double dSumDepth = 0.0;
+    double dSumDepthSquared = 0.0;
+    int nMeas = 0;
+    pcount[0] = 0;
+    for(unsigned int l = 0; l < LEVELS; l++) {
+        lcount[l] = 0;
+        Level& lev = kf.aLevels[l];
+        const int nLevelScale = LevelScale(l);
+
+        for (unsigned int i = 0; i < lev.vMaxCorners.size(); i++)
+        {
+            double depth = lev.vMaxCornersDepth[i];
+            // only consider corners with valid 3d position estimates
+            if ((depth <= 0.0) || (depth > mMaxDepth))
+                continue;
+
+            boost::shared_ptr<MapPoint> p(new MapPoint());
+
+            // Patch source stuff:
+            p->nSourceCamera = 0;
+            p->pPatchSourceKF = pkFirst;
+            p->nSourceLevel = l;
+            p->v3Normal_NC = makeVector( 0,0,-1);
+            p->irCenter = lev.vMaxCorners[i];
+            ImageRef irCenterl0 = LevelZeroPosIR(p->irCenter,l);
+            p->v3Center_NC = unproject(mCamera->UnProject(irCenterl0));
+            p->v3OneDownFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(0,nLevelScale)));
+            p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
+
+            Vector<3> v3CamPos = p->v3Center_NC*depth;// Xc
+            p->v3RelativePos = v3CamPos;// Xc
+            p->v3SourceKFfromeWorld = pkFirst->se3CfromW;
+            p->v3WorldPos = pkFirst->se3CfromW.inverse() * v3CamPos;
+
+            normalize(p->v3Center_NC);
+            normalize(p->v3OneDownFromCenter_NC);
+            normalize(p->v3OneRightFromCenter_NC);
+            dSumDepth += depth;
+            dSumDepthSquared += depth*depth;
+            p->RefreshPixelVectors();
+            // Do sub-pixel alignment on the same image
+            finder.MakeTemplateCoarseNoWarp(*p);
+            finder.MakeSubPixTemplate();
+            finder.SetSubPixPos(vec(p->irCenter));
+            //bool bGood = finder.IterateSubPixToConvergence(*pkFirst,10);
+            //        if(!bGood)
+            //          {
+            //            delete p; continue;
+            //          }
+
+
+            mMap.vpPoints.push_back(p);
+
+            // Construct first measurement and insert into relevant DB:
+            Measurement mFirst;
+            mFirst.nLevel = l;
+            mFirst.Source = Measurement::SRC_ROOT;
+            //            assert(l == 0);
+            mFirst.v2RootPos = vec(irCenterl0); // wrt pyramid level 0
+            mFirst.bSubPix = true;
+            mFirst.dDepth = depth;
+            pkFirst->mMeasurements[p] = mFirst;
+            p->MMData.sMeasurementKFs.insert(pkFirst);
+            lcount[l]++;
+            pcount[0]++;
+        }
+    }
+
+    pkFirst->dSceneDepthMean = dSumDepth / nMeas;
+    pkFirst->dSceneDepthSigma = sqrt((dSumDepthSquared / nMeas) - (pkFirst->dSceneDepthMean) * (pkFirst->dSceneDepthMean));
+
+    RefreshSceneDepth(pkFirst);
+    mMap.vpKeyFrames.push_back(pkFirst);
+
+    // Also add kfs from those additional cameras
+    for (int cn = 0; cn < AddCamNumber; cn ++){
+        boost::shared_ptr<KeyFrame> pkSec(new KeyFrame());
+        *pkSec = *adkfs[cn];
+        pkSec->SBI = adkfs[cn]->SBI;
+        pkSec->bFixed = true;
+        pkSec->se3CfromW = mse3Cam2FromCam1[cn] * worldPos;
+
+        // Construct map from key points
+        PatchFinder finder;
+        double dSumDepth = 0.0;
+        double dSumDepthSquared = 0.0;
+        int nMeas = 0;
+        pcount[cn+1] = 0;
+        for(unsigned int l = 0; l < LEVELS; l++) {
+            lcount[l] = 0;
+            Level& lev = adkfs[cn]->aLevels[l];
+            const int nLevelScale = LevelScale(l);
+
+            for (unsigned int i = 0; i < lev.vMaxCorners.size(); i++)
+            {
+                double depth = lev.vMaxCornersDepth[i];
+                // only consider corners with valid 3d position estimates
+                if ((depth <= 0.0) || (depth > mMaxDepth))
+                    continue;
+
+                boost::shared_ptr<MapPoint> p(new MapPoint());
+
+                // Patch source stuff:
+                p->nSourceCamera = cn + 1;
+                p->pPatchSourceKF = pkSec;
+                p->nSourceLevel = l;
+                p->v3Normal_NC = makeVector( 0,0,-1);
+                p->irCenter = lev.vMaxCorners[i];
+                ImageRef irCenterl0 = LevelZeroPosIR(p->irCenter,l);
+                p->v3Center_NC = unproject(mCameraSec[cn]->UnProject(irCenterl0));
+                p->v3OneDownFromCenter_NC = unproject(mCameraSec[cn]->UnProject(irCenterl0 + ImageRef(0,nLevelScale)));
+                p->v3OneRightFromCenter_NC = unproject(mCameraSec[cn]->UnProject(irCenterl0 + ImageRef(nLevelScale,0)));
+
+                Vector<3> v3CamPos = p->v3Center_NC*depth;// Xc
+                p->v3RelativePos = v3CamPos;
+                p->v3WorldPos = pkSec->se3CfromW.inverse() * v3CamPos; // Xw
+                p->v3SourceKFfromeWorld = pkSec->se3CfromW;
+
+                normalize(p->v3Center_NC);
+                normalize(p->v3OneDownFromCenter_NC);
+                normalize(p->v3OneRightFromCenter_NC);
+                dSumDepth += depth;
+                dSumDepthSquared += depth*depth;
+                p->RefreshPixelVectors();
+                // Do sub-pixel alignment on the same image
+                finder.MakeTemplateCoarseNoWarp(*p);
+                finder.MakeSubPixTemplate();
+                finder.SetSubPixPos(vec(p->irCenter));
+                //bool bGood = finder.IterateSubPixToConvergence(*pkSec,10);
+                //        if(!bGood)
+                //          {
+                //            delete p; continue;
+                //          }
+
+
+                mMap.vpPoints.push_back(p);
+
+                // Construct first measurement and insert into relevant DB:
+                Measurement mFirst;
+                mFirst.nLevel = l;
+                mFirst.Source = Measurement::SRC_ROOT;
+                //            assert(l == 0);
+                mFirst.v2RootPos = vec(irCenterl0); // wrt pyramid level 0
+                mFirst.bSubPix = true;
+                mFirst.dDepth = depth;
+                pkSec->mMeasurements[p] = mFirst;
+                p->MMData.sMeasurementKFs.insert(pkSec);
+                pcount[cn+1]++;
+            }
+        }
+
+        pkSec->dSceneDepthMean = dSumDepth / nMeas;
+        pkSec->dSceneDepthSigma = sqrt((dSumDepthSquared / nMeas) - (pkSec->dSceneDepthMean) * (pkSec->dSceneDepthMean));
+
+        RefreshSceneDepth(pkSec);
+//        secKFid[cn] ++;
+
+        mMap.vpKeyFramessec[cn].push_back(pkSec);
+    }
+
+    lock.unlock();
+
+    cout << "  MapMaker: made RE-initial map from RGBD frame with " << mMap.vpPoints.size() - mpcountold << " points." << endl;
+    cout << "map points from each camera: " << pcount[0] << ", " ;
+    for (int i = 0; i < AddCamNumber; i ++)
+        cout << pcount[i] << ", ";
+    cout << std::endl;
+
+    return true;
+}
+
 // InitFromStereo() generates the initial match from two keyframes
 // and a vector of image correspondences. Uses the 
 bool MapMaker::InitFromStereo(KeyFrame &kF,
@@ -1931,6 +2131,8 @@ bool MapMaker::AddPointDepth(boost::shared_ptr<KeyFrame> kSrc,
     int nCam = kSrc->nSourceCamera;
     int nLevelScale = LevelScale(nLevel);
     Candidate &candidate = kSrc->aLevels[nLevel].vCandidates[nCandidate];
+    static gvar3<double> gvnUseMaxDepth("MapMaker.UseMaxDepth", 5.0, SILENT);
+
     const ImageRef& irLevelPos = candidate.irLevelPos;
     Vector<2> v2RootPos = LevelZeroPos(irLevelPos, nLevel);
 
@@ -1941,7 +2143,11 @@ bool MapMaker::AddPointDepth(boost::shared_ptr<KeyFrame> kSrc,
     else
         v3Unprojected = unproject(mCameraSec[nCam - 1]->UnProject(v2RootPos));
 
-    Vector<3> v3PosWorld = kSrc->se3CfromW.inverse()*(candidate.dDepth*v3Unprojected);
+    Vector<3> v3PoseCam = candidate.dDepth*v3Unprojected;
+    if (sqrt(v3PoseCam*v3PoseCam) > *gvnUseMaxDepth)
+        return false;
+
+    Vector<3> v3PosWorld = kSrc->se3CfromW.inverse()*v3PoseCam;
     Vector<3> v3PosTarget = kTarget->se3CfromW*v3PosWorld;
     ImageRef irTarget;
     if (!nCam)
@@ -2331,6 +2537,8 @@ vector<boost::shared_ptr<KeyFrame> > MapMaker::NClosestKeyFrames(boost::shared_p
         {
             if(mMap.vpKeyFrames[i] == k)
                 continue;
+            else if (mMap.vpKeyFrames[i]->mbKFlocked)
+                continue;
             double dDist = KeyFrameLinearDist(*k, *mMap.vpKeyFrames[i]);
             vKFandScores.push_back(make_pair(dDist, mMap.vpKeyFrames[i]));
         }
@@ -2339,6 +2547,8 @@ vector<boost::shared_ptr<KeyFrame> > MapMaker::NClosestKeyFrames(boost::shared_p
         for(unsigned int i=0; i<mMap.vpKeyFramessec[nCam-1].size(); i++)
         {
             if(mMap.vpKeyFramessec[nCam-1][i] == k)
+                continue;
+            else if (mMap.vpKeyFramessec[nCam-1][i]->mbKFlocked)
                 continue;
             double dDist = KeyFrameLinearDist(*k, *mMap.vpKeyFramessec[nCam-1][i]);
             vKFandScores.push_back(make_pair(dDist, mMap.vpKeyFramessec[nCam-1][i]));
@@ -2420,6 +2630,7 @@ bool MapMaker::NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
     bool neednew = false;
 
     //// TODO: distance threshold should be able to be configured from conf. file
+    static gvar3<double> maxDist("MapMaker.MaxKFDistErgent",1.0,SILENT);
 //    if ((kCurrent->se3CfromW.inverse().get_translation()[2]<0.3
 //         && KeyFrameDist(*kCurrent, *pClosest)>0.2)
 //            || (kCurrent->se3CfromW.inverse().get_translation()[2]<0.4
@@ -2430,7 +2641,7 @@ bool MapMaker::NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
 //                && KeyFrameDist(*kCurrent, *pClosest)> 0.8*kCurrent->se3CfromW.inverse().get_translation()[2])
 //            || (kCurrent->se3CfromW.inverse().get_translation()[2]>1.0
 //                &&KeyFrameDist(*kCurrent, *pClosest) > 0.9*kCurrent->se3CfromW.inverse().get_translation()[2]))
-        if ( KeyFrameDist(*kCurrent, *pClosest)>0.5)
+        if ( KeyFrameDist(*kCurrent, *pClosest)> *maxDist)
         neednew = true;
     return neednew;
     //  return KeyFrameDist(*kCurrent,*pClosest) > 0.2;//yang, 1.0;
@@ -2439,6 +2650,18 @@ bool MapMaker::NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
     //  if(dDist > GV2.GetDouble("MapMaker.MaxKFDistWiggleMult",1.0,SILENT) * mdWiggleScaleDepthNormalized)
     //    return true;
     //  return false;
+}
+
+bool MapMaker::NeedErgentKeyFrame(boost::shared_ptr<KeyFrame> kCurrent)
+{
+//    std::cout << "calculating the closest kf... " << endl;
+    boost::shared_ptr<KeyFrame> pClosest = ClosestKeyFrame(kCurrent,0.0);
+    bool neednew = false;
+
+    static gvar3<double> maxDist("MapMaker.MaxKFDistErgent",1.0,SILENT);
+    if ( KeyFrameDist(*kCurrent, *pClosest)> *maxDist*2)
+        neednew = true;
+    return neednew;
 }
 
 // Perform bundle adjustment on all keyframes, all map points
@@ -2494,7 +2717,11 @@ void MapMaker::BundleAdjustAllsec()
 void MapMaker::BundleAdjustRecent()
 {
     static gvar3<int> gvnWindowSize("MapMaker.RecentWindowSize", 4, SILENT);
-    if(mMap.vpKeyFrames.size() < *gvnWindowSize)
+    int nUnlockedkf = mMap.vpKeyFrames.size();
+    for (unsigned int i = 0; i < mMap.vpKeyFrames.size(); i ++)
+        if (mMap.vpKeyFrames[i]->mbKFlocked)
+            nUnlockedkf --;
+    if(nUnlockedkf < *gvnWindowSize)
     { // Ignore this unless map is big enough
         mbBundleConverged_Recent = true;
         return;
