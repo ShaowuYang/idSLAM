@@ -134,6 +134,8 @@ struct KeyFrame
       pointSent = false;
       rgbIsBgr_ = false;
       finalized = false;
+      finalizGoodkf = false;
+      mbKFlocked = false;
   }
   virtual ~KeyFrame() {};
   int id; // for a mappoint, it is the id of its source keyframe, it has to be updated whenever its current
@@ -203,6 +205,18 @@ struct KeyFrame
   cv::Mat kpDescriptors; /// for all corners
   std::vector<cv::KeyPoint> keypoints; /// all corners
   std::vector<float> kpDepth; /// Depth values at keypoint locations or 0 if unavailable.
+
+  /// for relocalization
+  void finalizeKeyframeGoodkf(); /// we only care about the zero-level features for relocalization
+  bool finalizGoodkf;
+  std::vector<boost::shared_ptr<MapPoint> > mapPointsFirstLevel;
+  std::vector<cv::KeyPoint> mpFirstKeypoints;
+  cv::Mat mpFDescriptors;
+  bool mbKFlocked; /// kf locked after failure
+
+  /// for debug only////
+  cv::Mat cvImgDebug;
+  //////////////////////
 
   typedef std::map<int, boost::shared_ptr<Edge> > EdgeMap;
   EdgeMap edges; // Outgoing edges to other keyframes

@@ -364,6 +364,7 @@ void KeyFrame::finalizeKeyframeBackend()
     // Make sure image is actually copied:
     cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
                         (void*) lev.im.data(), lev.im.row_stride()).clone();
+    cvImgDebug = cv_im;
     std::vector<boost::shared_ptr<MapPoint> > mpNew;
     mpKeypoints.clear();
     keypoints.clear();
@@ -432,6 +433,80 @@ void KeyFrame::finalizeKeyframeBackend()
     finalized = true;
 }
 
+void KeyFrame::finalizeKeyframeGoodkf()
+{
+    if(finalizGoodkf || !mMeasurements.size())
+        return;
+
+    mapPointsFirstLevel.clear();
+    for(const_meas_it it = mMeasurements.begin(); it != mMeasurements.end(); it++) {
+        boost::shared_ptr<MapPoint> point = it->first;
+        if (point->pPatchSourceKF.lock() //&& source kf not removed
+                )
+        {
+            // relative pose of the map points to this kf! (not neccecerrily the source kf!):
+//            if (point->pPatchSourceKF.lock()->id != id)
+            if (!point->nSourceLevel) // only points on level 0
+                continue;
+            point->v3RelativePos = se3CfromW*point->v3WorldPos;
+            point->irCenterZero = LevelZeroPosIR(point->irCenter,point->nSourceLevel);
+
+            mapPointsFirstLevel.push_back(point);
+        }
+    }
+    cout << "mapPoints for relocalization: " << mapPointsFirstLevel.size() << endl;
+
+    boost::scoped_ptr<cv::DescriptorExtractor> extractor(new cv::BriefDescriptorExtractor(32));
+
+    std::vector<cv::KeyPoint> mpKpts;
+    for (uint i = 0; i < mapPointsFirstLevel.size(); i++) {
+        int l = 0;
+        cv::KeyPoint kp(cv::Point2f(mapPointsFirstLevel[i]->irCenterZero[0], mapPointsFirstLevel[i]->irCenterZero[1]),
+                        (1 << l)*10, // TODO: feature size to be adjusted
+                        -1, 0,
+                        l);
+
+        kp.class_id = i; // store index of original map point
+        mpKpts.push_back(kp);
+    }
+
+    // compute descriptors of map points and all corners(for loop detection)
+    Level &lev = aLevels[0];
+    ImageRef irsize = lev.im.size();
+
+    // Make sure image is actually copied:
+    cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
+                        (void*) lev.im.data(), lev.im.row_stride()).clone();
+    cvImgDebug = cv_im;
+    std::vector<boost::shared_ptr<MapPoint> > mpNew;
+    mpFirstKeypoints.clear();
+    mpFDescriptors.release();
+
+    if (!mpKpts.size())
+        return;
+
+    cv::Mat levDesc;
+    // Warning: this modifies kpts (deletes keypoints for which it cannot compute a descriptor)
+    extractor->compute(cv_im, mpKpts, levDesc);
+
+    assert(mpKpts.size() == levDesc.rows);
+
+    mpFDescriptors.push_back(levDesc);
+
+    // Keep only map points with descriptors:
+    for (int i = 0; i < mpKpts.size(); i++) {
+        mpFirstKeypoints.push_back(mpKpts[i]);
+        mpNew.push_back(mapPointsFirstLevel[mpKpts[i].class_id]);
+    }
+    assert(mpFDescriptors.rows == mpFirstKeypoints.size());
+
+    mapPointsFirstLevel = mpNew;
+
+    cout << "mapPoints: " << mapPointsFirstLevel.size() << endl;
+
+    finalizGoodkf = true;
+}
+
 void KeyFrame::finalizeKeyframekpts()
 {
     static boost::scoped_ptr<cv::DescriptorExtractor> extractor(new cv::BriefDescriptorExtractor(32));
@@ -442,9 +517,10 @@ void KeyFrame::finalizeKeyframekpts()
     ImageRef irsize = lev.im.size();
     cv::Mat cv_im = cv::Mat(irsize[1], irsize[0], CV_8UC1,
                         (void*) lev.im.data(), lev.im.row_stride()).clone();
+    cvImgDebug = cv_im;
     keypoints.clear();
     kpDescriptors.release();
-    for (uint l = 0; l < 2; l++) {
+    for (uint l = 0; l < 1; l++) {
         Level &lev1 = aLevels[l];
 
         // for all corners

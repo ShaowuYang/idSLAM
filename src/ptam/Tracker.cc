@@ -85,6 +85,11 @@ Tracker::Tracker(Map &m, MapMaker &mm) :
     wls.clear();
     wls2.clear();
     tracking_map = false;
+    trackerlogdebug.open("trackerlogdebug.log");
+    if (trackerlogdebug.is_open()){
+        trackerlogdebug.setf(std::ios::fixed, std::ios::floatfield);
+        trackerlogdebug.precision(10);
+    }
     trackerlog.open("trackerlog.log");
     if (trackerlog.is_open()){
         trackerlog.setf(std::ios::fixed, std::ios::floatfield);
@@ -101,6 +106,8 @@ void Tracker::Reset()
     mbUserPressedSpacebar = false;
     mTrackingQuality = GOOD;
     mnLostFrames = 0;
+    mnFailureFrames = 0;
+    mbOldMaplocked = false;
     mdMSDScaledVelocityMagnitude = 0;
     mCurrentKF->dSceneDepthMean = 1.0;
     mCurrentKF->dSceneDepthSigma = 1.0;
@@ -360,6 +367,9 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
     mMessageForUser.str("");   // Wipe the user message clean
 
     ros::Time timevobegin=ros::Time::now();
+    if (trackerlog.is_open()){
+        trackerlog << "frame time: " << timevobegin.toSec() << " ";
+    }
 
     // Add the main camera data
     CVD::Image<CVD::byte> imFrame;
@@ -430,9 +440,9 @@ void Tracker::TrackFrame(std::vector<CVD::Image<CVD::Rgb<CVD::byte> > > &imFrame
 
     if (trackerlog.is_open()){
 
-//        trackerlog <<timevobegin.toSec() << " "
-//                   << timecost_vo <<  " "
-//                   << "\n";
+        trackerlog << "vo time: "
+                   << timecost_vo <<  " "
+                   << "\n";
     }
 
     processGUIEvents();
@@ -591,7 +601,14 @@ bool Tracker::trackMapDual() {
         else
             ApplyMotionModel();
 
+        ros::Time timetrack_b = ros::Time::now();
+
         TrackMap();               //  These three lines do the main tracking work.
+
+        ros::Time timetrackend = ros::Time::now();
+        ros::Duration timetrack = timetrackend - timetrack_b;
+        if (trackerlog.is_open())
+            trackerlog << "trackmap time: " << timetrack.toSec() << " ";
 
         // implement the scale factor from last image before add a new keyframe.
         // this would effect both the pose estimation of the keyframe and those new map points
@@ -626,7 +643,17 @@ bool Tracker::trackMapDual() {
             mMessageForUser << " Adding key-frame.";
             //			assert(mCurrentKF.aLevels[0].vCandidates.size() > 0);
             AddNewKeyFrame();
+        }
+        else if((mTrackingQuality == GOOD || mTrackingQuality == DODGY) && // too far away without a new keyframe, deem to fail pose tracking
+                mMapMaker.NeedErgentKeyFrame(mCurrentKF) &&
+                (mnFrame - mnLastKeyFrameDropped) > *minInterval  &&
+                mMapMaker.QueueSize() < 3)
+        {
+            mMessageForUser << " Adding Ergent key-frame.";
+            //			assert(mCurrentKF.aLevels[0].vCandidates.size() > 0);
+            AddNewKeyFrame();
         };
+        /// TODO: such Ergent keyframe should be handled in bundle adjustment and the backend
 
         /// TODO: record the most recent good kf for tracking recovery
 //        if (mTrackingQuality == GOOD){
@@ -639,8 +666,18 @@ bool Tracker::trackMapDual() {
     {
         mMessageForUser << "** Attempting recovery **.";
         //TODO: this should also use dual img
-        if(AttemptRecovery())
+        ros::Time timerecoverb = ros::Time::now();
+
+        bool mbrecovered = AttemptRecovery();
+
+        ros::Time timerecoverend = ros::Time::now();
+        ros::Duration timerecover = timerecoverend - timerecoverb;
+        if (trackerlog.is_open())
+            trackerlog << "recover time: " << timerecover.toSec() << "\n";
+
+        if(mbrecovered)
         {
+            mnFailureFrames = 0;
             TrackMap();
             AssessTrackingQuality();
 
@@ -656,6 +693,27 @@ bool Tracker::trackMapDual() {
             }
             cout << "Tracked position after recovery: " << endl
                     << mCurrentKF->se3CfromW.inverse().get_translation() << endl;
+        }
+        else { // handle complete failures: restart the SLAM by adding a new keyframe, old kfs should not be used
+            // for localization any more until a loop closing is done. A new local map is formed.
+            // such local map could be formed in a vector of maps.
+            // to simplify this problem. only one local map is retained. renew the local map if tracking fail again.
+            ApplyMotionModel();
+            mnFailureFrames ++;
+            trackerlogdebug << "apply motion model after failed to recover!" << endl;
+
+            if (mnFailureFrames > 1){
+                mnFailureFrames = 0;
+
+                // or we can say re-initialize the map: just more complex
+                // in the backend, links between this node to the previous ones should be handled
+                TooN::SE3<> IniPose = mse3CamFromWorld;
+                if (mMapMaker.ReInitFromRGBD(*mCurrentKF, mCurrentKFsec, IniPose)){
+                    mbOldMaplocked = true;
+                    mnLostFrames = 0;
+                    trackerlogdebug << "map re-initialized!" << endl;
+                }
+            }
         }
     }
 
@@ -691,6 +749,10 @@ bool Tracker::AttemptRecovery()
     static gvar3<double> gvnMinInliers("Tracker.MinInliers", 0.5, SILENT);
     double minInliers = *gvnMinInliers;
 
+    ros::Time trecoverb = ros::Time::now();
+    trackerlogdebug << trecoverb.toSec() << " Pose before Recovering: " << endl;
+    trackerlogdebug << mse3CamFromWorld.inverse().get_translation() << endl;
+
     /// use multi image to relocalize the system
     /// use new reloc. method: RANSAC+PnP w.r.t the lated well-tracked frame.
     if (*gvnUsePnPrecovery){
@@ -717,14 +779,14 @@ bool Tracker::AttemptRecovery()
             }
         if(!bRelocGood && !bRelocGoodsec){
             cout << "Recovering failed using PnP method." << endl;
-            trackerlog << "Recovering failed using PnP method." << endl;
+            trackerlogdebug << "Recovering failed using PnP method." << endl;
             return false;
         }
 
         if (bRelocGood)
-            se3Best =mGoodKFtoTracksec[nAdCamGoodnum]->se3CfromW.inverse() * mbestpose;
+            se3Best = mbestpose.inverse() * mGoodKFtoTrack->se3CfromW;
         else if (bRelocGoodsec){
-            se3Best =mGoodKFtoTrack->se3CfromW.inverse() * mbestpose;
+            se3Best = mbestpose.inverse() * mGoodKFtoTracksec[nAdCamGoodnum]->se3CfromW ;
             se3Best = mse3Cam1FromCam2[nAdCamGoodnum] * se3Best;
         }
         mse3CamFromWorld = se3Best; mse3StartPos = se3Best;
@@ -734,8 +796,8 @@ bool Tracker::AttemptRecovery()
         mv6CameraVelocity = Zeros;
         mbJustRecoveredSoUseCoarse = true;
         cout << "Recovering seems to be success using PnP method." << endl;
-        trackerlog << "Recovering seems to be success using PnP method." << endl;
-        trackerlog << mse3CamFromWorld.inverse().get_translation() << endl;
+        trackerlogdebug << "Recovering seems to be success using PnP method." << endl;
+        trackerlogdebug << mse3CamFromWorld.inverse().get_translation() << endl;
         return true;
     }
 
@@ -753,7 +815,7 @@ bool Tracker::AttemptRecovery()
             }
         if(!bRelocGood && !bRelocGoodsec){
             cout << "Recovering failed using PTAM method." << endl;
-            trackerlog << "Recovering failed using PTAM method." << endl;
+            trackerlogdebug << "Recovering failed using PTAM method." << endl;
             return false;
         }
     }
@@ -768,7 +830,7 @@ bool Tracker::AttemptRecovery()
     mv6CameraVelocity = Zeros;
     mbJustRecoveredSoUseCoarse = true;
     cout << "Recovering seems to be success using PTAM method." << endl;
-    trackerlog << "Recovering seems to be success using PTAM method." << endl;
+    trackerlogdebug << "Recovering seems to be success using PTAM method." << endl;
     return true;
 }
 
@@ -776,7 +838,7 @@ bool Tracker::AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_
 {
     // write access: unique lock
     boost::unique_lock< boost::shared_mutex > lock(mMap.mutex);
-    goodkf->finalizeKeyframeBackend();
+    goodkf->finalizeKeyframeGoodkf();
     boost::shared_ptr<KeyFrame> goodkftrack(new KeyFrame);
     *goodkftrack = *goodkf;
     lock.unlock();
@@ -1092,10 +1154,13 @@ void Tracker::TrackMap()
     /// only track the point in one camera
     for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
     {
+        if (mMap.vpPoints[i]->mblocked)
+            continue;
+
         boost::shared_ptr<MapPoint> p= mMap.vpPoints[i];
         TrackerData &TData = p->TData;
 
-        if (!p->nSourceCamera){
+        if (!p->nSourceCamera){ // from cam 0
             if (p->sourceKfIDtransfered && !p->refreshed){
                 p->v3Center_NC = unproject(mCamera->UnProject(p->pPatchSourceKF.lock()->mMeasurements[p].v2RootPos));
                 p->v3OneRightFromCenter_NC = unproject(mCamera->UnProject(p->pPatchSourceKF.lock()->mMeasurements[p].v2RootPos + vec(ImageRef(p->pPatchSourceKF.lock()->mMeasurements[p].nLevel,0))));
@@ -1176,13 +1241,13 @@ void Tracker::TrackMap()
                         z[0] = z[1] = 0.0; z[2] = 1.0;
                         boost::shared_ptr<KeyFrame> kf = p->pPatchSourceKF.lock();
                         if(kf.get() == NULL)
-                            break;
+                            continue;
 
                         //            cosAngle = (mCurrentKF->se3CfromW.get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
                         cosAngle = (mse3CamFromWorldsec[cn].get_rotation()*z)*(kf->se3CfromW.get_rotation()*z);
                     }
                     if (cosAngle < 0) { // |angle| > 90°
-                        break;
+                        continue;
                     }
 
                     // Calculate camera projection derivatives of this point.
@@ -1191,7 +1256,7 @@ void Tracker::TrackMap()
                     // And check what the PatchFinder (included in TrackerData) makes of the mappoint in this view..
                     TData.nSearchLevel = TData.Finder.CalcSearchLevelAndWarpMatrix(*p, mse3CamFromWorldsec[cn], TData.m2CamDerivs);
                     if(TData.nSearchLevel == -1) {
-                        break;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
+                        continue;   // a negative search pyramid level indicates an inappropriate warp for this view, so skip.
                     }
                     // Otherwise, this point is suitable to be searched in the current image! Add to the PVS.
                     TData.bSearched = false;
@@ -1632,7 +1697,7 @@ void Tracker::TrackMap()
         vNextToSearch.resize((int) nFinePatchesToUse); // Chop!
     };
     // and the second img, each chose nFinePatchesToUse/2
-    nFinePatchesToUse = *gvnMaxPatchesPerFrame/2 - numSeccam;
+    nFinePatchesToUse = *gvnMaxPatchesPerFrame - numSeccam;
     for (int cn = 0; cn < AddCamNumber; cn ++)
         if(mUsingDualImg && (int) vNextToSearchsec[cn].size() > nFinePatchesToUse)// nFinePatchesToUse/2
         {
@@ -2387,6 +2452,7 @@ void Tracker::ApplyMotionModel()
         v6Velocity[1] = 0.0;
     }
     mse3CamFromWorld = SE3<>::exp(v6Velocity) * mse3StartPos;
+    mse3CamFromWorldPub = mse3CamFromWorld;
     if (mUsingDualImg)
         for (int i = 0; i < AddCamNumber; i ++)
             mse3CamFromWorldsec[i] = SE3<>::exp(v6Velocitysec[i]) * mse3CamFromWorldsec[i];

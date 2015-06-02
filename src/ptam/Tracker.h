@@ -102,6 +102,7 @@ public:
   bool pose_ekf_get;
   bool isflying;
   std::ofstream trackerlog;
+  std::ofstream trackerlogdebug;
 
   bool tracking_map;
 
@@ -218,6 +219,8 @@ protected:
   int manMeasFound[LEVELS];
   enum {BAD, DODGY, GOOD} mTrackingQuality;
   int mnLostFrames;
+  int mnFailureFrames; // tracking failure frames after tring to recover
+  bool mbOldMaplocked; // lock the map when tracking failure occurs, until loop closing
   
   // Relocalisation functions:
   bool AttemptRecovery();         // Called by TrackFrame if tracking is lost.
