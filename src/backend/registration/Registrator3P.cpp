@@ -180,7 +180,7 @@ bool Registrator3P::solvePnP_RANSAC(const ptam::KeyFrame& kfa, const ptam::KeyFr
 
     for (int i = 0; i < matches.size(); i++) {
         int ind = i;
-        const Eigen::Vector3d& mpa = cs_geom::toEigenVec(kfa.mapPoints[matches[ind].queryIdx]->v3RelativePos);
+        const Eigen::Vector3d& mpa = cs_geom::toEigenVec(kfa.mapPointsFirstLevel[matches[ind].queryIdx]->v3RelativePos);
         mapPointsA[i]   = cv::Point3f(mpa[0], mpa[1], mpa[2]);
         int scale = 1;// << kfb.keypoints[matches[ind].trainIdx].octave;
         imagePointsB[i].x = kfb.keypoints[matches[ind].trainIdx].pt.x * scale;

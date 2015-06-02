@@ -115,14 +115,57 @@ boost::shared_ptr<ptam::Edge> RegistratorKFs::tryAndMatch(const ptam::KeyFrame& 
 bool RegistratorKFs::tryToRelocaliseRANSAC(const boost::shared_ptr<ptam::KeyFrame> kfa, const boost::shared_ptr<ptam::KeyFrame> kfb,
                                              Sophus::SE3d &result, double minInliers)
 {
+    vector<vector<cv::DMatch> > matchesvec;
     std::vector<cv::DMatch> matchesAB;
 
-    if (!kfa->mpDescriptors.rows || !kfb->kpDescriptors.rows)
+    cout << "descriptors in good and current kfs: " << kfa->mpFDescriptors.rows  << ", " << kfb->kpDescriptors.rows << endl;
+    if (!kfa->mpFDescriptors.rows || !kfb->kpDescriptors.rows)
         return false;
     // match
-    matcher_->match(kfa->mpDescriptors, kfb->kpDescriptors, matchesAB);
+    matcher_->match(kfa->mpFDescriptors, kfb->kpDescriptors, matchesAB);//matchesvec, 2);
+//    std::cout << "Matches found for relocalization using opencv: " << matchesvec.size() << std::endl;
 
-    std::cout << "Matches found for relocalization using opencv: " << matchesAB.size() << std::endl;
+//    //-- Quick calculation of max and min distances between keypoints
+//    for (int i = 0; i < matchesvec.size(); i ++){
+//        if (matchesvec[i].size()>=2){
+//            if (matchesvec[i][0].distance/matchesvec[i][1].distance < 0.8)
+//            {// ratio is important
+//                matchesAB.push_back(matchesvec[i][0]);
+//            }
+//        }
+//        else if (matchesvec[i].size() == 1)
+//            matchesAB.push_back(matchesvec[i][0]);
+//    }
+
+//    std::vector<cv::DMatch> matchesABgood;
+//    double max_dist = 0; double min_dist = 9999999999999999.9;
+//    for( int i = 0; i < kfa->mpFDescriptors.rows; i++ ){
+//        double dist = matchesAB[i].distance;
+//        cout << dist << ", " ;
+//        if( dist < min_dist ) min_dist = dist;
+//        if( dist > max_dist ) max_dist = dist;
+//    }
+//    cout << endl;
+//    cout << "-- Max dist : %f \n" <<  max_dist  << endl;
+//    cout << "-- Min dist : %f \n" << min_dist << endl;
+//    for( int i = 0; i < kfa->mpFDescriptors.rows; i++ )
+//    {
+//        if( matchesAB[i].distance <= max(2*min_dist, 0.02) )
+//            matchesABgood.push_back( matchesAB[i]);
+//    }
+//    cout << "Good matches: " << matchesABgood.size() << endl;
+    // for debug only
+//    cv::Mat imgMatches;
+//    if (!kfa->nSourceCamera && !kfb->nSourceCamera){
+//        cv::drawMatches(kfa->cvImgDebug, kfa->mpFirstKeypoints, kfb->cvImgDebug, kfb->keypoints, matchesAB, imgMatches);
+//        cv::waitKey(10);
+//        if (!imgMatches.empty())
+//            cv::imshow("debugmatch", imgMatches);
+//        else
+//            cout<< "No matching img!!" << endl;
+//        cout << "show debug image." << endl;
+//    }
+
     // RANSAC A->B:
     Sophus::SE3d relPoseAB;
     std::vector<int> inliers;
@@ -130,6 +173,7 @@ bool RegistratorKFs::tryToRelocaliseRANSAC(const boost::shared_ptr<ptam::KeyFram
         result = relPoseAB;
 
         double dis = relPoseAB.translation().norm();
+        cout << "relPoseAB.translation().norm(): " << relPoseAB.translation().norm() << endl;
         if (abs(dis) > 1.0){
             std::cout << "Too far away from the reference kf: "<< dis << std::endl;
             return false;

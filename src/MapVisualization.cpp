@@ -9,6 +9,7 @@
 #include "conversions/conversions.h"
 #include <cvd/image_convert.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 #include "ptam/CameraModel.h"
 #include "ptam/KeyFrame.h"
@@ -21,6 +22,7 @@
 
 using namespace idSLAM;
 using namespace ptam;
+using namespace std;
 
 MapVisualization::MapVisualization()
     :camera(CameraModel::CreateCamera())
@@ -29,6 +31,10 @@ MapVisualization::MapVisualization()
         std::auto_ptr<CameraModel> camera_temp (CameraModel::CreateCamera(i + 1));
         camerasec[i] = camera_temp;
     }
+
+}
+
+MapVisualization::~MapVisualization(){
 }
 
 void MapVisualization::publishlandingpad(const Tracker *tracker, const ros::Publisher &landingpad_pub)
@@ -213,6 +219,7 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
                                          double vis_publish_interval_, int vis_pointcloud_step_,
                                          double cellSize)
 {
+//    static boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     static ros::Time lastCloudPublished_ = ros::Time(0);
     if (vis_pointcloud_pub.getNumSubscribers() > 0 &&
             (ros::Time::now() - lastCloudPublished_).toSec() >= vis_publish_interval_)
@@ -220,7 +227,7 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
         int step = vis_pointcloud_step_;
 
         unsigned int nCams = map->vpKeyFrames.size();
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr fullCloud_long(new pcl::PointCloud<pcl::PointXYZRGB>());
+        static pcl::PointCloud<pcl::PointXYZRGB>::Ptr fullCloud_long(new pcl::PointCloud<pcl::PointXYZRGB>());
         static pcl::PointCloud<pcl::PointXYZRGB>::Ptr fullCloud(new pcl::PointCloud<pcl::PointXYZRGB>());
         static unsigned int nfullcloud = 0;// simply ignoring the dynamic changes of pointcloud during SLAM
 
@@ -261,6 +268,7 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
                 }
             }
 
+        // slow rviz visualization
         sensor_msgs::PointCloud2Ptr msg(new sensor_msgs::PointCloud2());
         if (map->didFullBA)
             pcl::toROSMsg(*fullCloud_long, *msg);
@@ -269,6 +277,27 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
         msg->header.frame_id = world_frame;//
         msg->header.stamp = ros::Time::now();
 
+        // faster pcl visualizer
+        /*if (map->didFullBA){
+            viewer->setBackgroundColor (0, 0, 0);
+            viewer->addPointCloud<pcl::PointXYZRGB> (fullCloud_long, "fulllong cloud");
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "fulllong cloud");
+            viewer->addCoordinateSystem (1.0);
+            viewer->initCameraParameters ();
+        }
+        else{
+            viewer->setBackgroundColor (0, 0, 0);
+            viewer->addPointCloud<pcl::PointXYZRGB> (fullCloud, "full cloud");
+            viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "full cloud");
+            viewer->addCoordinateSystem (1.0);
+            viewer->initCameraParameters ();
+        }
+
+        if (!viewer->wasStopped ())
+        {
+          viewer->spinOnce (100);
+        }*/
+
         vis_pointcloud_pub.publish(msg);
         lastCloudPublished_ = ros::Time::now();
     }
@@ -276,9 +305,11 @@ void MapVisualization::publishPointCloud(const Map* map, const Tracker* tracker,
 }
 
 void MapVisualization::publishCrtPointCloud(const Map* map, const Tracker* tracker, const ros::Publisher &vis_pointcloud_pub, const ros::Publisher &vis_pointcloud_pubsec, const std::string& world_frame,
-                                                double vis_publish_interval_)
+                                                double vis_publish_interval_, int vis_pointcloud_step_)
 {
-    static ros::Time lastCloudPublished_ = ros::Time(0);
+    int step = vis_pointcloud_step_;
+
+    static ros::Time lastCloudPublished_ = ros::Time::now();
     if (vis_pointcloud_pub.getNumSubscribers() > 0 &&
             (ros::Time::now() - lastCloudPublished_).toSec() >= vis_publish_interval_)
     {
@@ -289,9 +320,14 @@ void MapVisualization::publishCrtPointCloud(const Map* map, const Tracker* track
         cv::Mat depth(kf.depthImage.size().y, kf.depthImage.size().x, CV_16UC1, kf.depthImage.data());
         const CameraModel& mcCamera = tracker->GetCamera();
 
+        ros::Time begin = ros::Time::now();
         // TODO: make a list of pointclouds for each kf, only replace those have been changed in BA
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr thisCloud = geometry::PointClouds::rgbdToPointCloud(
-                    mcCamera, rgb, depth, kf.se3CfromW.inverse(), kf.rgbIsBgr_);
+                    mcCamera, rgb, depth, kf.se3CfromW.inverse(), kf.rgbIsBgr_, step);
+        ros::Time end = ros::Time::now();
+        ros::Duration circtime = end - begin;
+        double timecost = circtime.toSec();
+        cout << "circle time cost : " << timecost << endl;
 
         sensor_msgs::PointCloud2Ptr msg(new sensor_msgs::PointCloud2());
         pcl::toROSMsg(*thisCloud, *msg);
@@ -511,12 +547,23 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
     camkey_marker.type = visualization_msgs::Marker::SPHERE_LIST;
 
     // read access: shared lock
+    unsigned int npunlocked = map->vpPoints.size();
+    for (unsigned int i = 0; i < map->vpPoints.size(); i++)
+        if (map->vpPoints[i]->mblocked)
+            npunlocked --;
+
     boost::shared_lock<boost::shared_mutex> lock(map->mutex);
 
-    point_marker.points.resize(map->vpPoints.size());
-    point_marker.colors.resize(map->vpPoints.size());
+    point_marker.points.resize(npunlocked);
+    point_marker.colors.resize(npunlocked);
 
+    int unlockedNum = 0;
     for (unsigned int i = 0; i < map->vpPoints.size(); i++) {
+        if (map->vpPoints[i]->mblocked)
+            continue;
+        int j = unlockedNum;
+        unlockedNum ++;
+
         if (useDifWorldFrame){
             Matrix<3> datam = TooN::Data(0, 0, 1.0,//Rww1, because the roll and pitch angles are in
                                   -1.0, 0, 0, // a world frame which pointing downward.
@@ -524,27 +571,27 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
             TooN::Vector<3> mappointpose;
             mappointpose = datam * map->vpPoints[i]->v3WorldPos;
 
-            point_marker.points[i].x = mappointpose[0];
-            point_marker.points[i].y = mappointpose[1];
-            point_marker.points[i].z = mappointpose[2];
+            point_marker.points[j].x = mappointpose[0];
+            point_marker.points[j].y = mappointpose[1];
+            point_marker.points[j].z = mappointpose[2];
         } else {
-            point_marker.points[i].x = map->vpPoints[i]->v3WorldPos[0];
-            point_marker.points[i].y = map->vpPoints[i]->v3WorldPos[1];
-            point_marker.points[i].z = map->vpPoints[i]->v3WorldPos[2];
+            point_marker.points[j].x = map->vpPoints[i]->v3WorldPos[0];
+            point_marker.points[j].y = map->vpPoints[i]->v3WorldPos[1];
+            point_marker.points[j].z = map->vpPoints[i]->v3WorldPos[2];
         }
-        point_marker.colors[i].a = 1.0;
+        point_marker.colors[j].a = 1.0;
 
         boost::shared_ptr<KeyFrame> kf = map->vpPoints[i]->pPatchSourceKF.lock();
         int gray = kf->aLevels[map->vpPoints[i]->nSourceLevel].im[map->vpPoints[i]->irCenter];
 
         if (!map->vpPoints[i]->nSourceCamera)
         {
-            point_marker.colors[i].b = 1.0;
-            point_marker.colors[i].r = point_marker.colors[i].g = gray /255.0;
+            point_marker.colors[j].b = 1.0;
+            point_marker.colors[j].r = point_marker.colors[j].g = gray /255.0;
         }
         else{
-            point_marker.colors[i].r = 1.0;
-            point_marker.colors[i].g = point_marker.colors[i].b = gray /255.0;
+            point_marker.colors[j].r = 1.0;
+            point_marker.colors[j].g = point_marker.colors[j].b = gray /255.0;
         }
     }
 
@@ -554,6 +601,8 @@ void MapVisualization::publishMapVisualization(const Map* map, const Tracker* tr
     camkey_marker.points.resize(nCams+1);
     unsigned int ii = 0;
     for (unsigned int i = 0; i < nCams+1; i++) {
+//        if (map->vpKeyFrames[i]->mbKFlocked)
+//            continue;
 
         SE3<> camPose;
         if (i < nCams)

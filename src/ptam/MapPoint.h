@@ -51,6 +51,7 @@ struct MapPoint
     nFoundCamera = 0;
     sourceKfIDtransfered = false;
     bUpdated = false;
+    mblocked = false;
   };
   
   // Where in the world is this point? The main bit of information, really.
@@ -60,6 +61,7 @@ struct MapPoint
   bool bBad;
   bool bfixed; // used in dual cam case, trust some points very much
                // and in VO use case, where we fix it when its original source kf has been deleted
+  bool mblocked; /// blocked for localization when tracking failure occurs
   
   // What pixels should be used to search for this point?
   // we transfer this identity to a new existing keyframe of the local map which can
