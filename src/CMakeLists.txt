@@ -7,7 +7,9 @@ find_package(cmake_modules REQUIRED)
 
 include_directories(   ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/src/backend/
-    /usr/local/include/bullet)
+    /usr/local/include/bullet
+    /usr/include/vtk-5.8
+)
 
 rosbuild_add_library(nodebase BaseSLAMNode.cpp)
 rosbuild_add_library(conversions conversions/conversions.cpp)

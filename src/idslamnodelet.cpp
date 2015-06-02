@@ -195,7 +195,7 @@ public:
 
 
         vis_publish_interval_ = 5.0;
-        vis_pointcloud_step_ = 3;
+        vis_pointcloud_step_ = 4;
         cellSize = 0.02;
     }
 
@@ -506,10 +506,6 @@ public:
 
     // The image callback function for the master camera/ downward looking camera
     void imageCallback(const sensor_msgs::ImageConstPtr& img_msg, const sensor_msgs::ImageConstPtr& depth_msg = sensor_msgs::ImageConstPtr()) {
-        if (isPTAMshouldstop) {
-            cout << "SLAM SHOULD STOP ASSUMING OUTLIERS OR LANDING ALREADY!" << endl;
-            //return;
-        }
 
         // TODO: synchronise multi images, could be simply assuming that their stamps are close to each other
         // main function should start when all imgs have come.
@@ -646,6 +642,7 @@ public:
             isPTAMshouldstop = true;
             // camposelast keep still, just publish it
             camPose4pub = camPoselast;
+            cout << "TRACKING SEEMS PROBLEMATIC!" << endl;
         }
         else
             camPoselast = camPosethis;
@@ -674,7 +671,7 @@ public:
                                             vis_publish_interval_, vis_pointcloud_step_, cellSize);
             if (depth_msg && (vis_crtpointcloud_pub_.getNumSubscribers() > 0))
                 map_viz_->publishCrtPointCloud(map_.get(), tracker_.get(),
-                                               vis_crtpointcloud_pub_, vis_crtpointcloud_pub_sec, world_frame_);
+                                               vis_crtpointcloud_pub_, vis_crtpointcloud_pub_sec, world_frame_, vis_pointcloud_step_);
         }
 
         if (map_maker_->imageInputCount < 100)

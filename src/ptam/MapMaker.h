@@ -45,6 +45,7 @@ public:
   // Make a map from scratch. Called by the tracker.
   bool InitFromRGBD(KeyFrame &kf, const TooN::SE3<>& worldPos = TooN::SE3<>());
   bool InitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, const TooN::SE3<>& worldPos = TooN::SE3<>());
+  bool ReInitFromRGBD(KeyFrame &kf, boost::shared_ptr<KeyFrame>* adkfs, const TooN::SE3<>& worldPos = TooN::SE3<>());
 
   bool InitFromStereo(KeyFrame &kFirst, KeyFrame &kSecond, 
 		      std::vector<std::pair<CVD::ImageRef, CVD::ImageRef> > &vMatches,
@@ -67,6 +68,7 @@ public:
   bool ResetDone();      // Returns true if the has been done.
   int  QueueSize() { return mvpKeyFrameQueue.size() ;} // How many KFs in the queue waiting to be added?
   bool NeedNewKeyFrame(boost::shared_ptr<KeyFrame> kCurrent);            // Is it a good camera pose to add another KeyFrame?
+  bool NeedErgentKeyFrame(boost::shared_ptr<KeyFrame> kCurrent);
   bool IsDistanceToNearestKeyFrameExcessive(boost::shared_ptr<KeyFrame> kCurrent);  // Is the camera far away from the nearest KeyFrame (i.e. maybe lost?)
 
   void EnableMapping();
