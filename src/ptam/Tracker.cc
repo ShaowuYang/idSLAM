@@ -702,7 +702,7 @@ bool Tracker::trackMapDual() {
             mnFailureFrames ++;
             trackerlogdebug << "apply motion model after failed to recover!" << endl;
 
-            if (mnFailureFrames > 1){
+            if (mnFailureFrames > 2){
                 mnFailureFrames = 0;
 
                 // or we can say re-initialize the map: just more complex
@@ -710,7 +710,6 @@ bool Tracker::trackMapDual() {
                 TooN::SE3<> IniPose = mse3CamFromWorld;
                 if (mMapMaker.ReInitFromRGBD(*mCurrentKF, mCurrentKFsec, IniPose)){
                     mbOldMaplocked = true;
-                    mnLostFrames = 0;
                     trackerlogdebug << "map re-initialized!" << endl;
                 }
             }
