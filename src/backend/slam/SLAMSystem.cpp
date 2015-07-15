@@ -164,6 +164,7 @@ void SLAMSystem::addKeyframes()
         /// TODO: add locks for kfs reading! now we share the kfs with the front end!
         // Now find some loops.
         // Implicit loops:
+        bool bDetectLocalLoop = false;
         static int freelocalnum = 5;
         static int localfreekfs = freelocalnum;
         // copy the kf and the best matched kf. a bit waste of time
@@ -175,7 +176,7 @@ void SLAMSystem::addKeyframes()
 
         std::cout << "best match: " << bestMatch << std::endl;
 
-        if ((localfreekfs >= freelocalnum) && bestMatch > -1) {
+        if (bDetectLocalLoop && (localfreekfs >= freelocalnum) && bestMatch > -1) {
             lockmap.lock();
             *kfBestMatch = *keyframes_[bestMatch];
             lockmap.unlock();
