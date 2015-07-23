@@ -18,7 +18,7 @@
 // OpenCV
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
-#include <opencv2/nonfree/features2d.hpp>
+//#include <opencv2/nonfree/features2d.hpp>
 
 // DBoW2
 #include <DBoW2/DBoW2.h> // defines Surf64Vocabulary and Surf64Database
