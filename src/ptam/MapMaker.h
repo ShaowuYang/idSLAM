@@ -27,9 +27,10 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/smart_ptr.hpp>
+#include <fstream>
 
-#include <slam/SLAMSystem.h>
-#include <backend.h>
+//#include <slam/SLAMSystem.h>
+//#include <backend.h>
 
 namespace ptam{
 //typedef boost::function<void(boost::shared_ptr<KeyFrame>)> sendKfCbFunction;
@@ -39,7 +40,7 @@ namespace ptam{
 class MapMaker : protected CVD::Thread
 {
 public:
-  MapMaker(Map &m, backend::SLAMSystem &ss, backend::LoopClosing &be, bool bOffline = false);
+  MapMaker(Map &m, bool bOffline = false);
   ~MapMaker();
   
   // Make a map from scratch. Called by the tracker.
@@ -122,12 +123,12 @@ public:
 //  sendEdgesCbFunction sendEdgesCallback;
 
   bool relocaliseRegister(const boost::shared_ptr<KeyFrame> goodkf, const boost::shared_ptr<KeyFrame> kf, Sophus::SE3d &result, double minInliers = .50); // register the relocalisation module for the front-end
-  void sendKfCallback(boost::shared_ptr<const ptam::KeyFrame> kf, bool sendpoints = false);// send kf to the backend
-  void sendEdgesCallback(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs, const int maxkfsize = 5);// send all edges in BA to backend
+//  void sendKfCallback(boost::shared_ptr<const ptam::KeyFrame> kf, bool sendpoints = false);// send kf to the backend
+//  void sendEdgesCallback(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs, const int maxkfsize = 5);// send all edges in BA to backend
 //  void sendKfPoints(boost::shared_ptr<const ptam::KeyFrame> kf);// update old kf points
 //  void updateKfPoses(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs);// send all edges in BA to backend
-  void UpdateLMapByGMap();  // update the local map if the gmap is updated by pgo
-  void UpdateWaitingList(); // update the waitinglist to reflect the local map update by BA
+//  void UpdateLMapByGMap();  // update the local map if the gmap is updated by pgo
+//  void UpdateWaitingList(); // update the waitinglist to reflect the local map update by BA
   bool needMotionModelUpdate;// motion model of the tracker need to be updated if the local map is updated according to the global map of the back end
   TooN::SE3<> mse3LatestKFpose;// serve as the reference kf for updating motion model in trackerd
   int  lastKFid;// the id of the reference kf
@@ -144,9 +145,9 @@ protected:
   virtual void run();      // The MapMaker thread code lives here
 
 //  Map &mGMap;               // the global map of the slam system, handled by the backend, accessed by ptam.
-  backend::SLAMSystem &mSLAM; // the slam system, which contains the global map
+//  backend::SLAMSystem &mSLAM; // the slam system, which contains the global map
                             // mapmaker will only do read access to it
-  backend::LoopClosing &mbackend_;// the backend
+//  backend::LoopClosing &mbackend_;// the backend
 
   // Functions for starting the map from scratch:
   TooN::SE3<> CalcPlaneAligner();
@@ -262,7 +263,7 @@ protected:
 
   int nPositive;// recorde positive and negative cases
   int nNegative;
-  ofstream pos_log_;
+  std::ofstream pos_log_;
 
   TooN::SE3<> mse3Cam2FromCam1[AddCamNumber];
   bool bInputStopped; // no more image input

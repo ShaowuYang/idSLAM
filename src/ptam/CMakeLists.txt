@@ -20,5 +20,5 @@ target_link_libraries(ptam
     lapack
     GVars3
     cvd
-    cs_geometry
+#    cs_geometry
 )

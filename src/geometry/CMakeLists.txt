@@ -4,7 +4,7 @@ find_package(cmake_modules REQUIRED)
 find_package(Eigen REQUIRED)
 find_package(OpenCV 2.4 REQUIRED)
 find_package(PCL 1.6 REQUIRED COMPONENTS io)
-find_package(Sophus REQUIRED)
+#find_package(Sophus REQUIRED)
 
 include_directories(
     ${EIGEN_INCLUDE_DIR}

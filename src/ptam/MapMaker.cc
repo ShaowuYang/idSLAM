@@ -26,7 +26,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <cs_geometry/Conversions.h>
+//#include <cs_geometry/Conversions.h>
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -38,12 +38,11 @@ using namespace CVD;
 using namespace std;
 using namespace GVars3;
 using namespace ptam;
-using namespace backend;
 
 // Constructor sets up internal reference variable to Map.
 // Most of the intialisation is done by Reset()..
-MapMaker::MapMaker(Map& m, SLAMSystem &ss, LoopClosing &be, bool bOffline)
-    : mMap(m), mSLAM(ss), mbackend_(be), mCamera(CameraModel::CreateCamera()),
+MapMaker::MapMaker(Map& m, bool bOffline)
+    : mMap(m), mCamera(CameraModel::CreateCamera()),
       mbOffline(bOffline), mbMappingEnabled(true), newRecentKF(false)
 {
     for (int i = 0; i < AddCamNumber; i ++){
@@ -189,25 +188,25 @@ void MapMaker::run()
         // if the global map in the backend is updated, update the local map also
         // motion model of the tracker has to be updated correspondingly
         // read access
-        boost::unique_lock< boost::mutex > lock(mSLAM.syncMutex);
-        if (*doingfullSLAM && mSLAM.IsGMapUpdated()){
-            // write the reference kf pose, for motion model update in tracker
-            // use the second last kf as reference, since the relative pose to the last kf could be too small
-            mse3LatestKFpose = mMap.vpKeyFrames[mMap.vpKeyFrames.size()-2]->se3CfromW;
-            lastKFid = mMap.vpKeyFrames[mMap.vpKeyFrames.size()-2]->id;
+//        boost::unique_lock< boost::mutex > lock(mSLAM.syncMutex);
+//        if (*doingfullSLAM && mSLAM.IsGMapUpdated()){
+//            // write the reference kf pose, for motion model update in tracker
+//            // use the second last kf as reference, since the relative pose to the last kf could be too small
+//            mse3LatestKFpose = mMap.vpKeyFrames[mMap.vpKeyFrames.size()-2]->se3CfromW;
+//            lastKFid = mMap.vpKeyFrames[mMap.vpKeyFrames.size()-2]->id;
 
-            // write access
-            boost::unique_lock< boost::shared_mutex > lockl(mMap.mutex);
+//            // write access
+//            boost::unique_lock< boost::shared_mutex > lockl(mMap.mutex);
 
-            UpdateLMapByGMap(); // TODO adjust this when using different camera for backend
-            needMotionModelUpdate = true;
-            if (mSLAM.debugLoopDetected()) debugmarkLoopDetected = true;
+//            UpdateLMapByGMap(); // TODO adjust this when using different camera for backend
+//            needMotionModelUpdate = true;
+//            if (mSLAM.debugLoopDetected()) debugmarkLoopDetected = true;
 
-            lockl.unlock();
-            mSLAM.setGMapUpdated(false);
-        }
+//            lockl.unlock();
+//            mSLAM.setGMapUpdated(false);
+//        }
 
-        lock.unlock(); // end back-end lock
+//        lock.unlock(); // end back-end lock
 
         // Should we run local bundle adjustment?
         // yang, also Do landing object detect here, when LBA not performan this frame, or after a certatin time gap.
@@ -228,7 +227,7 @@ void MapMaker::run()
             // if the waiting list is not empty(might happen when very slow pgo), update the waitinglist
             // according to the current local map, for both kfs and edges
             // write access  removed in our new backend: the wl copy the same map keyframes as here
-            boost::unique_lock< boost::mutex > lockwl(mSLAM.mutex_wl);
+//            boost::unique_lock< boost::mutex > lockwl(mSLAM.mutex_wl);
 //            if (mSLAM.wlkf().size())
 //                UpdateWaitingList();
 
@@ -236,37 +235,37 @@ void MapMaker::run()
             // only the front camera are used in the backend,
             // which can give a wider useful view in practice.
             // convert the keyframe type first.
-            if (*doingfullSLAM){
-                if (mMap.vpKeyFrames.size() > 1)
-                    sendEdgesCallback(mMap.vpKeyFrames, *maxKeyFrames);//
+//            if (*doingfullSLAM){
+//                if (mMap.vpKeyFrames.size() > 1)
+//                    sendEdgesCallback(mMap.vpKeyFrames, *maxKeyFrames);//
 
-                // update map points of the oldest kf when the kf will be deleted in next frame comes
-//                if (mMap.vpKeyFramessec.size() >= *maxKeyFrames && !mMap.vpKeyFramessec[0]->pointSent){
-//                    sendKfPoints(mMap.vpKeyFramessec[0]);
-//                    mMap.vpKeyFramessec[0]->pointSent = true;
+//                // update map points of the oldest kf when the kf will be deleted in next frame comes
+////                if (mMap.vpKeyFramessec.size() >= *maxKeyFrames && !mMap.vpKeyFramessec[0]->pointSent){
+////                    sendKfPoints(mMap.vpKeyFramessec[0]);
+////                    mMap.vpKeyFramessec[0]->pointSent = true;
+////                }
+
+//                // TODO: consider how to adjust kf poses for back-end when the back- and front-end share kfs
+//                // only do pgo after local BA? NO problem, since the back-end will only perform pgo after kfs are sent to it after BA!
+//                // send updated kf poses of all local kfs
+////                if (mMap.vpKeyFramessec.size() >= *maxKeyFrames)
+////                    updateKfPoses(mMap.vpKeyFramessec);
+
+//                // add kfs to the waiting list, add all those newly adjusted kfs
+//                if (!mSLAM.maxkfInied)
+//                    mSLAM.IniMaxkfs(*maxKeyFrames);
+//                for (unsigned int i = 0; i < mMap.vpKeyFrames.size(); i ++){
+//                    if (mMap.vpKeyFrames[i]->SentToGMap)
+//                        continue;
+
+//                    /// TODO: Add keyframes from multiple cameras
+//                    /// edges only from one camera, while kfs from multi-cam
+//                    sendKfCallback(mMap.vpKeyFrames[i], true);
+//                    mMap.vpKeyFrames[i]->SentToGMap = true;
 //                }
+//            }
 
-                // TODO: consider how to adjust kf poses for back-end when the back- and front-end share kfs
-                // only do pgo after local BA? NO problem, since the back-end will only perform pgo after kfs are sent to it after BA!
-                // send updated kf poses of all local kfs
-//                if (mMap.vpKeyFramessec.size() >= *maxKeyFrames)
-//                    updateKfPoses(mMap.vpKeyFramessec);
-
-                // add kfs to the waiting list, add all those newly adjusted kfs
-                if (!mSLAM.maxkfInied)
-                    mSLAM.IniMaxkfs(*maxKeyFrames);
-                for (unsigned int i = 0; i < mMap.vpKeyFrames.size(); i ++){
-                    if (mMap.vpKeyFrames[i]->SentToGMap)
-                        continue;
-
-                    /// TODO: Add keyframes from multiple cameras
-                    /// edges only from one camera, while kfs from multi-cam
-                    sendKfCallback(mMap.vpKeyFrames[i], true);
-                    mMap.vpKeyFrames[i]->SentToGMap = true;
-                }
-            }
-
-            lockwl.unlock();
+//            lockwl.unlock();
 
             CHECK_RESET;
             // do object detection?
@@ -351,8 +350,8 @@ void MapMaker::run()
             pos_log_ << timemapbegin.toSec()<< " "
                      << timecost_map << "\n";
             // and kf size and size of map points in local map
-            pos_log_ << mSLAM.keyframes_.size() << " "
-                     << mMap.vpPoints.size() << "\n";
+//            pos_log_ << mSLAM.keyframes_.size() << " "
+//                     << mMap.vpPoints.size() << "\n";
         }
 
         // When image input stopped, do full BA to refine the whole map, then save the full map using database tech.
@@ -470,159 +469,160 @@ MapMaker::~MapMaker()
 }
 
 // TODO: send kf and its map points seperately, with only the oldest kf's points sent now
-void MapMaker::sendKfCallback(boost::shared_ptr<const ptam::KeyFrame> kf, bool sendpoints) {
-//    static int lastId = -1;
-    assert(kf->id == lastId++ + 1);
+//void MapMaker::sendKfCallback(boost::shared_ptr<const ptam::KeyFrame> kf, bool sendpoints)
+//{
+////    static int lastId = -1;
+//    assert(kf->id == lastId++ + 1);
+////    assert(kf->nSourceCamera == 1);// only send the second cam kf
+//    /*boost::shared_ptr<cslam::Keyframe> kfmsg(new cslam::Keyframe);
+
+//    kfmsg->id = kf->id;
+//    kfmsg->time = cslam::TimeStamp(kf->time.sec, kf->time.nsec);
+
+//    kfmsg->ptamPosewTc = cs_geom::toSophusSE3(kf->se3CfromW.inverse());
+//    kfmsg->posewTc     = kfmsg->ptamPosewTc;
+//    kfmsg->dSceneDepthMean = kf->dSceneDepthMean;
+//    kfmsg->haveGroundData = false;// never have ground measure in DCSLAM
+
+//    // copy LEVELS
+//    kfmsg->levels.resize(LEVELS);
+//    for (int i = 0; i < LEVELS; i++) {
+//        const ptam::Level& lev = kf->aLevels[i];
+//        cslam::Level& levmsg = kfmsg->levels[i];
+//        ImageRef irsize = lev.im.size();
+
+//        // Make sure image is actually copied:
+//        levmsg.image = cv::Mat(irsize[1], irsize[0], CV_8UC1,
+//                            (void*) lev.im.data(), lev.im.row_stride()).clone();
+
+//        levmsg.corners.resize(lev.vMaxCorners.size());
+
+//        for (uint c = 0; c < lev.vMaxCorners.size(); c++) {
+//            levmsg.corners[c].x = lev.vMaxCorners[c].x;
+//            levmsg.corners[c].y = lev.vMaxCorners[c].y;
+//        }
+//    }*/
+
+//    // Copy map points:
+//    /*/ by default, map points are sent only before the kf should be removed from the local map
+//    if (sendpoints){
+//        Sophus::SE3d poseInv = kfmsg->posewTc.inverse();
+//        for(ptam::const_meas_it it = kf->mMeasurements.begin(); it != kf->mMeasurements.end(); it++) {
+//            const boost::shared_ptr<ptam::MapPoint>& point = it->first;
+//            if (point->pPatchSourceKF.lock() &&// source kf not removed
+//                    !point->sourceKfIDtransfered && // avoid re-send
+//                    point->pPatchSourceKF.lock()->id == kf->id) {
+//                // point belongs to this kf
+//                cslam::MapPoint mpmsg;
+//                mpmsg.level = point->nSourceLevel;
+//                // p3d: PTAM stores global map points, we need relative map points:
+//                mpmsg.p3d = poseInv*Eigen::Vector3d(point->v3WorldPos[0], point->v3WorldPos[1], point->v3WorldPos[2]);
+//                const ptam::Measurement& meas = it->second;
+//                mpmsg.pi.x  = meas.v2RootPos[0];
+//                mpmsg.pi.y  = meas.v2RootPos[1];
+
+//                kfmsg->mapPoints.push_back(mpmsg);
+//            }
+//        }
+//    }*/
+
+////    mbackend_.addKeyframe(kf->id);
+//}
+
+///*void MapMaker::sendKfPoints(boost::shared_ptr<const ptam::KeyFrame> kf) {
 //    assert(kf->nSourceCamera == 1);// only send the second cam kf
-    /*boost::shared_ptr<cslam::Keyframe> kfmsg(new cslam::Keyframe);
+//    boost::shared_ptr<cslam::Keyframe> kfmsg(new cslam::Keyframe);
 
-    kfmsg->id = kf->id;
-    kfmsg->time = cslam::TimeStamp(kf->time.sec, kf->time.nsec);
+//    kfmsg->id = kf->id;// critical, set identity
+//    kfmsg->ptamPosewTc = cs_geom::toSophusSE3(kf->se3CfromW.inverse());
+//    kfmsg->posewTc     = kfmsg->ptamPosewTc;
 
-    kfmsg->ptamPosewTc = cs_geom::toSophusSE3(kf->se3CfromW.inverse());
-    kfmsg->posewTc     = kfmsg->ptamPosewTc;
-    kfmsg->dSceneDepthMean = kf->dSceneDepthMean;
-    kfmsg->haveGroundData = false;// never have ground measure in DCSLAM
+//    // Copy map points:
+//    // by default, map points are sent only before the kf should be removed from the local map
+//    Sophus::SE3d poseInv = kfmsg->posewTc.inverse();
+//    for(ptam::const_meas_it it = kf->mMeasurements.begin(); it != kf->mMeasurements.end(); it++) {
+//        const boost::shared_ptr<ptam::MapPoint>& point = it->first;
+//        if (point->pPatchSourceKF.lock() &&// source kf not removed
+//                !point->sourceKfIDtransfered && // avoid re-send
+//                point->pPatchSourceKF.lock()->id == kf->id) {
+//            // point belongs to this kf
+//            cslam::MapPoint mpmsg;
+//            mpmsg.level = point->nSourceLevel;
+//            // p3d: PTAM stores global map points, we need relative map points:
+//            mpmsg.p3d = poseInv*Eigen::Vector3d(point->v3WorldPos[0], point->v3WorldPos[1], point->v3WorldPos[2]);
+//            const ptam::Measurement& meas = it->second;
+//            mpmsg.pi.x  = meas.v2RootPos[0];
+//            mpmsg.pi.y  = meas.v2RootPos[1];
 
-    // copy LEVELS
-    kfmsg->levels.resize(LEVELS);
-    for (int i = 0; i < LEVELS; i++) {
-        const ptam::Level& lev = kf->aLevels[i];
-        cslam::Level& levmsg = kfmsg->levels[i];
-        ImageRef irsize = lev.im.size();
+//            kfmsg->mapPoints.push_back(mpmsg);
+//        }
+//    }
 
-        // Make sure image is actually copied:
-        levmsg.image = cv::Mat(irsize[1], irsize[0], CV_8UC1,
-                            (void*) lev.im.data(), lev.im.row_stride()).clone();
+//    mbackend_.addPoints(*kfmsg);
+//}*/
 
-        levmsg.corners.resize(lev.vMaxCorners.size());
+///*void MapMaker::updateKfPoses(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs)
+//{
+//    std::vector<boost::shared_ptr<cslam::Keyframe> > kfposes;
+//    for (unsigned int i = 0; i < kfs.size(); i ++){
+//        boost::shared_ptr<ptam::KeyFrame> kf = kfs[i];
+//        assert(kf->nSourceCamera == 1);// only send the second cam kf
 
-        for (uint c = 0; c < lev.vMaxCorners.size(); c++) {
-            levmsg.corners[c].x = lev.vMaxCorners[c].x;
-            levmsg.corners[c].y = lev.vMaxCorners[c].y;
-        }
-    }*/
+//        boost::shared_ptr<cslam::Keyframe> kfmsg(new cslam::Keyframe);
+//        kfmsg->id = kf->id;
+//        kfmsg->time = cslam::TimeStamp(kf->time.sec, kf->time.nsec);
 
-    // Copy map points:
-    /*/ by default, map points are sent only before the kf should be removed from the local map
-    if (sendpoints){
-        Sophus::SE3d poseInv = kfmsg->posewTc.inverse();
-        for(ptam::const_meas_it it = kf->mMeasurements.begin(); it != kf->mMeasurements.end(); it++) {
-            const boost::shared_ptr<ptam::MapPoint>& point = it->first;
-            if (point->pPatchSourceKF.lock() &&// source kf not removed
-                    !point->sourceKfIDtransfered && // avoid re-send
-                    point->pPatchSourceKF.lock()->id == kf->id) {
-                // point belongs to this kf
-                cslam::MapPoint mpmsg;
-                mpmsg.level = point->nSourceLevel;
-                // p3d: PTAM stores global map points, we need relative map points:
-                mpmsg.p3d = poseInv*Eigen::Vector3d(point->v3WorldPos[0], point->v3WorldPos[1], point->v3WorldPos[2]);
-                const ptam::Measurement& meas = it->second;
-                mpmsg.pi.x  = meas.v2RootPos[0];
-                mpmsg.pi.y  = meas.v2RootPos[1];
+//        kfmsg->ptamPosewTc = cs_geom::toSophusSE3(kf->se3CfromW.inverse());
+//        kfmsg->posewTc     = kfmsg->ptamPosewTc;
 
-                kfmsg->mapPoints.push_back(mpmsg);
-            }
-        }
-    }*/
+//        kfposes.push_back(kfmsg);
+//    }
+//    mbackend_.updateKfPoses(kfposes);
+//}*/
 
-    mbackend_.addKeyframe(kf->id);
-}
+//// send edges to the backend
+//// TODO: consider tracking failure, when edge between new and failed-to-track kf should be added
+//void MapMaker::sendEdgesCallback(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs, const int maxkfsize) {
+//    std::vector<ptam::Edge> edges;
+//    if (kfs.size() > 1){
+//        for (unsigned int i = 0; i < kfs.size() - 1; i++) {
+//            // aTb = aTw * wTb
+//            TooN::SE3<> aTb = kfs[i]->se3CfromW*kfs[i+1]->se3CfromW.inverse();
+//            double meanscenedepth = (kfs[i]->dSceneDepthMean + kfs[i+1]->dSceneDepthMean) / 2.0;
 
-/*void MapMaker::sendKfPoints(boost::shared_ptr<const ptam::KeyFrame> kf) {
-    assert(kf->nSourceCamera == 1);// only send the second cam kf
-    boost::shared_ptr<cslam::Keyframe> kfmsg(new cslam::Keyframe);
+//            ptam::Edge e;
+//            e.idA = kfs[i]->id;
+//            e.idB = kfs[i+1]->id;
+//            e.aTb = cs_geom::toSophusSE3(aTb);
+//            e.dSceneDepthMean = meanscenedepth;
 
-    kfmsg->id = kf->id;// critical, set identity
-    kfmsg->ptamPosewTc = cs_geom::toSophusSE3(kf->se3CfromW.inverse());
-    kfmsg->posewTc     = kfmsg->ptamPosewTc;
+//            edges.push_back(e);
+//        }
+//    }
 
-    // Copy map points:
-    // by default, map points are sent only before the kf should be removed from the local map
-    Sophus::SE3d poseInv = kfmsg->posewTc.inverse();
-    for(ptam::const_meas_it it = kf->mMeasurements.begin(); it != kf->mMeasurements.end(); it++) {
-        const boost::shared_ptr<ptam::MapPoint>& point = it->first;
-        if (point->pPatchSourceKF.lock() &&// source kf not removed
-                !point->sourceKfIDtransfered && // avoid re-send
-                point->pPatchSourceKF.lock()->id == kf->id) {
-            // point belongs to this kf
-            cslam::MapPoint mpmsg;
-            mpmsg.level = point->nSourceLevel;
-            // p3d: PTAM stores global map points, we need relative map points:
-            mpmsg.p3d = poseInv*Eigen::Vector3d(point->v3WorldPos[0], point->v3WorldPos[1], point->v3WorldPos[2]);
-            const ptam::Measurement& meas = it->second;
-            mpmsg.pi.x  = meas.v2RootPos[0];
-            mpmsg.pi.y  = meas.v2RootPos[1];
+//    /*/ add internal edges between the oldest kf in local BA and other NEW kfs
+//    if (kfs.size() >= maxkfsize){
+//        for (unsigned int i = kfs.size() - maxkfsize + 1; i < kfs.size(); i ++){
+//            TooN::SE3<> aTb = kfs[kfs.size() - maxkfsize]->se3CfromW*kfs[i]->se3CfromW.inverse();
 
-            kfmsg->mapPoints.push_back(mpmsg);
-        }
-    }
+//            ptam::Edge e;
+//            e.idA = kfs[kfs.size() - maxkfsize]->id;
+//            e.idB = kfs[i]->id;
+//            e.aTb = cs_geom::toSophusSE3(aTb);
 
-    mbackend_.addPoints(*kfmsg);
-}*/
+//            edges.push_back(e);
+//        }
+//    }*/
 
-/*void MapMaker::updateKfPoses(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs)
-{
-    std::vector<boost::shared_ptr<cslam::Keyframe> > kfposes;
-    for (unsigned int i = 0; i < kfs.size(); i ++){
-        boost::shared_ptr<ptam::KeyFrame> kf = kfs[i];
-        assert(kf->nSourceCamera == 1);// only send the second cam kf
-
-        boost::shared_ptr<cslam::Keyframe> kfmsg(new cslam::Keyframe);
-        kfmsg->id = kf->id;
-        kfmsg->time = cslam::TimeStamp(kf->time.sec, kf->time.nsec);
-
-        kfmsg->ptamPosewTc = cs_geom::toSophusSE3(kf->se3CfromW.inverse());
-        kfmsg->posewTc     = kfmsg->ptamPosewTc;
-
-        kfposes.push_back(kfmsg);
-    }
-    mbackend_.updateKfPoses(kfposes);
-}*/
-
-// send edges to the backend
-// TODO: consider tracking failure, when edge between new and failed-to-track kf should be added
-void MapMaker::sendEdgesCallback(const std::vector<boost::shared_ptr<ptam::KeyFrame> > kfs, const int maxkfsize) {
-    std::vector<ptam::Edge> edges;
-    if (kfs.size() > 1){
-        for (unsigned int i = 0; i < kfs.size() - 1; i++) {
-            // aTb = aTw * wTb
-            TooN::SE3<> aTb = kfs[i]->se3CfromW*kfs[i+1]->se3CfromW.inverse();
-            double meanscenedepth = (kfs[i]->dSceneDepthMean + kfs[i+1]->dSceneDepthMean) / 2.0;
-
-            ptam::Edge e;
-            e.idA = kfs[i]->id;
-            e.idB = kfs[i+1]->id;
-            e.aTb = cs_geom::toSophusSE3(aTb);
-            e.dSceneDepthMean = meanscenedepth;
-
-            edges.push_back(e);
-        }
-    }
-
-    /*/ add internal edges between the oldest kf in local BA and other NEW kfs
-    if (kfs.size() >= maxkfsize){
-        for (unsigned int i = kfs.size() - maxkfsize + 1; i < kfs.size(); i ++){
-            TooN::SE3<> aTb = kfs[kfs.size() - maxkfsize]->se3CfromW*kfs[i]->se3CfromW.inverse();
-
-            ptam::Edge e;
-            e.idA = kfs[kfs.size() - maxkfsize]->id;
-            e.idB = kfs[i]->id;
-            e.aTb = cs_geom::toSophusSE3(aTb);
-
-            edges.push_back(e);
-        }
-    }*/
-
-    if (edges.size())
-        mbackend_.addEdges(edges);
-}
+////    if (edges.size())
+////        mbackend_.addEdges(edges);
+//}
 
 bool MapMaker::relocaliseRegister(const boost::shared_ptr<KeyFrame> goodkf, const boost::shared_ptr<KeyFrame> kf, Sophus::SE3d &result, double minInliers)
 {
-    if ( mbackend_.relocaliseRegister(goodkf, kf, result, minInliers))
-        return true;
-    else
+//    if ( mbackend_.relocaliseRegister(goodkf, kf, result, minInliers))
+//        return true;
+//    else
         return false;
 }
 
@@ -3177,735 +3177,736 @@ void MapMaker::BundleAdjust(set<boost::shared_ptr<KeyFrame> > sAdjustSet, set<bo
 // method 2: assume the local map to be a rigid body with only possiblly scale change in pgo, then apply global transform to the local map
 // the second one should be simpler. How to justify this method?
 // and another problem is how to apply a scale correction among those local nodes?
-void MapMaker::UpdateLMapByGMap(){
-    cout << "Updating Local map by GMAP..." << "\n";
-    std::vector<SE3<> > kfspose;
-
-    // label each map point not updated
-    for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
-        boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
-        vpPoint->bUpdated = false;
-    }
-
-    // only keyframes from the second cam K2S is used in the backend and can be updated by GMAP,
-    // associated kfs from master cam are updated by corresponding K2S
-    for(unsigned int i = 0; i < mMap.vpKeyFrames.size(); i ++){
-        kfspose.push_back(mMap.vpKeyFrames[i]->se3CfromW);
-
-        mMap.vpKeyFrames[i]->updatedByGMap = false;
-        if (mMap.vpKeyFrames[i]->id > (mSLAM.keyframes_.size()-1)){// note new kfs may have been added
-            // update such kfs according to relative pose to older kf, which has been updated
-            // TODO: correct the scale of such kfs in SIM3 optimisation
-            for ( int j = i-1; j >=0; j --){
-                if (mMap.vpKeyFrames[j]->updatedByGMap){
-                    // use this kf to update kf i
-                    SE3<> relpose = mMap.vpKeyFrames[i]->se3CfromW * kfspose[j].inverse();
-                    mMap.vpKeyFrames[i]->se3CfromW = relpose * mMap.vpKeyFrames[j]->se3CfromW;
-
-                    mMap.vpKeyFrames[i]->updatedByGMap = true;
-//                    cout << mMap.vpKeyFrames[i]->se3CfromW << endl;
-                    break;
-                }
-            }
-        }
-        else{ /// most likely
-            // make sure id matched
-            assert(mMap.vpKeyFrames[i]->id == mSLAM.keyframes_[mMap.vpKeyFrames[i]->id]->id);
-            // to toon se3
-//            SE3<> se3wfc = toToonSE3(mSLAM.keyframes_[mMap.vpKeyFrames[i]->id]->posewTc);
-            SE3<> se3cfw = cs_geom::toToonSE3(mSLAM.keyframeUpdatedPoses[mMap.vpKeyFrames[i]->id]);
-            mMap.vpKeyFrames[i]->se3CfromW = se3cfw;
-            mMap.vpKeyFrames[i]->updatedByGMap = true;
-//            cout << mMap.vpKeyFramessec[i]->se3CfromW << endl;
-        }
-
-//        cout << "Keyframe pose updated by GMAP." << "\n";
-
-        // update the map point pose according to relative pose to their source kf poses
-        // update: it doesn't make sense to use the removen kf id, and a better way can be:
-        // chose the still existing oldest kf which also measure this point! We update the map point data association each time a kf is removed
-        for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
-            // TODO: if RBA, update the relative pose for full slam, careful about its source kf, which may be either fixed or adjusted.
-            // TODO: update the scale when pgo in SIM3
-            // TODO: to be more efficient: check whether a point has been updated already
-            boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
-            if(!vpPoint->bUpdated && (vpPoint->nSourceCamera==0) && (mMap.vpKeyFrames[i] == vpPoint->pPatchSourceKF.lock())){
-                Vector<3> rpos = kfspose[i] * vpPoint->v3WorldPos;
-                vpPoint->v3WorldPos = mMap.vpKeyFrames[i]->se3CfromW.inverse() * rpos;
-                vpPoint->v3RelativePos = mMap.vpKeyFrames[i]->se3CfromW * vpPoint->v3WorldPos;
-            }
-        }
-//        cout << "Keyframe points updated by GMAP." << "\n";
-
-        // Also update their associated kfs. other first cam kfs without association from the second cam (now cannot happen), should be updated according to their neighbores!
-        /// TODO: whether we want to associate additional kfs with first cam together or individually?
-        if (mMap.vpKeyFrames[i]->mAssociateKeyframe){// kfs from the second cam
-            for (int cn = 0; cn < AddCamNumber; cn ++){
-                if (mMap.vpKeyFramessec[cn].size() <= mMap.vpKeyFrames[i]->nAssociatedKf)
-                    continue;
-                SE3<> kfpos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW;
-                mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW = mse3Cam2FromCam1[cn]*mMap.vpKeyFrames[i]->se3CfromW;
-                //            cout << mMap.vpKeyFrames[i]->se3CfromW << endl;
-                //            assert(mMap.vpKeyFramessec[i]->nAssociatedKf == i);
-                // and update its map points
-                for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
-                    // TODO: if RBA, update the relative pose for full slam, careful about its source kf, which may be either fixed or adjusted.
-                    // TODO: update the scale if pgo in SIM3
-                    boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
-                    if((vpPoint->nSourceCamera == (cn + 1)) && (mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf] == vpPoint->pPatchSourceKF.lock())){
-                        Vector<3> rpos = kfpos * vpPoint->v3WorldPos;
-                        vpPoint->v3WorldPos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW.inverse() * rpos;
-                        vpPoint->v3RelativePos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW * vpPoint->v3WorldPos;
-                    }
-                }
-            }
-        }
-//        cout << "Keyframe associated updated by GMAP." << "\n";
-    }
-    cout << "Updated Local map by GMAP..." << "\n";
-}
-
-// the update of map points is naturally done, since in the backend they are represented in a relative manner
-void MapMaker::UpdateWaitingList(){
-    for (unsigned int i = 0; i < mSLAM.wlKeyFrames.size(); i ++){
-        for (unsigned int j = 0; j < mMap.vpKeyFramessec[0].size(); j ++){
-            if (mMap.vpKeyFramessec[0][j]->id == mSLAM.wlKeyFrames[i]){//->id
-//                mSLAM.wlKeyFrames[i]->ptamPosewTc = cs_geom::toSophusSE3(mMap.vpKeyFramessec[j]->se3CfromW);
-//                mSLAM.wlKeyFrames[i]->posewTc = mSLAM.wlKeyFrames[i]->ptamPosewTc;
-            }
-        }
-    }
-    // and updates those related edges, maybe not needed since they will be overwriten later
-}
-
-// Mapmaker's try-to-find-a-point-in-a-keyframe code. This is used to update
-// data association if a bad measurement was detected, or if a point
-// was never searched for in a keyframe in the first place. This operates
-// much like the tracker! So most of the code looks just like in 
-// TrackerData.h.
-bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<MapPoint> p)
-{
-    int nCam= k->nSourceCamera;
-    // abort if either a measurement is already in the map, or we've
-    // decided that this point-kf combo is beyond redemption
-    if(p->MMData.sMeasurementKFs.count(k)
-            || p->MMData.sNeverRetryKFs.count(k))
-        return false;
-
-    // this line was missing in original ptam code. if you remove it, the assertion at the bottom
-    // will fail from time to time
-    if (k->mMeasurements.count(p))
-        return false;
-
-    static PatchFinder Finder;
-    Vector<3> v3Cam = k->se3CfromW*p->v3WorldPos;
-    if(v3Cam[2] < 0.001)
-    {
-        p->MMData.sNeverRetryKFs.insert(k);
-        return false;
-    }
-    Vector<2> v2ImPlane = project(v3Cam);
-    if (nCam){
-        if( v2ImPlane* v2ImPlane > mCameraSec[nCam - 1]->LargestRadiusInImage() * mCameraSec[nCam - 1]->LargestRadiusInImage())
-        {
-            p->MMData.sNeverRetryKFs.insert(k);
-            return false;
-        }
-    }
-    else if(v2ImPlane* v2ImPlane > mCamera->LargestRadiusInImage() * mCamera->LargestRadiusInImage())
-    {
-        p->MMData.sNeverRetryKFs.insert(k);
-        return false;
-    }
-
-    Vector<2> v2Image;
-    if (nCam)
-    {
-        v2Image = mCameraSec[nCam - 1]->Project(v2ImPlane);
-        if(mCameraSec[nCam - 1]->Invalid())
-        {
-            p->MMData.sNeverRetryKFs.insert(k);
-            return false;
-        }
-    }
-    else
-    {
-        v2Image = mCamera->Project(v2ImPlane);
-        if(mCamera->Invalid())
-        {
-            p->MMData.sNeverRetryKFs.insert(k);
-            return false;
-        }
-    }
-
-    ImageRef irImageSize = k->aLevels[0].im.size();
-    if(v2Image[0] < 0 || v2Image[1] < 0 || v2Image[0] > irImageSize[0] || v2Image[1] > irImageSize[1])
-    {
-        p->MMData.sNeverRetryKFs.insert(k);
-        return false;
-    }
-
-    Matrix<2> m2CamDerivs;
-    if (nCam)
-        m2CamDerivs = mCameraSec[nCam - 1]->GetProjectionDerivs();
-    else
-        m2CamDerivs = mCamera->GetProjectionDerivs();
-    Finder.MakeTemplateCoarse(*p, k->se3CfromW, m2CamDerivs);
-
-    if(Finder.TemplateBad())
-    {
-        p->MMData.sNeverRetryKFs.insert(k);
-        return false;
-    }
-
-    bool bFound = Finder.FindPatchCoarse(ir(v2Image), *k, 4);  // Very tight search radius!
-    if(!bFound)
-    {
-        p->MMData.sNeverRetryKFs.insert(k);
-        return false;
-    }
-
-    // If we found something, generate a measurement struct and put it in the map
-    Measurement m;
-    m.nLevel = Finder.GetLevel();
-    m.dDepth = Finder.GetCoarseDepth();
-    m.Source = Measurement::SRC_REFIND;
-
-    if(Finder.GetLevel() > 0)
-    {
-        Finder.MakeSubPixTemplate();
-        Finder.IterateSubPixToConvergence(*k,8);
-        m.v2RootPos = Finder.GetSubPixPos();
-        m.bSubPix = true;
-    }
-    else
-    {
-        m.v2RootPos = Finder.GetCoarsePosAsVector();
-        m.bSubPix = false;
-    };
-
-    if(k->mMeasurements.count(p))
-    {
-        assert(0); // This should never happen, we checked for this at the start.
-    }
-    k->mMeasurements[p] = m;
-    p->MMData.sMeasurementKFs.insert(k);
-    return true;
-}
-
-// A general data-association update for a single keyframe
-// Do this on a new key-frame when it's passed in by the tracker
-int MapMaker::ReFindInSingleKeyFrame(boost::shared_ptr<KeyFrame> k)
-{
-    int nCam = k->nSourceCamera;
-    vector<boost::shared_ptr<MapPoint> > vToFind;
-    for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
-    {
-        // we treat map points from dual camera separately
-        if (mMap.vpPoints[i]->nSourceCamera == nCam)
-            vToFind.push_back(mMap.vpPoints[i]);
-    }
-
-    int nFoundNow = 0;
-    for(unsigned int i=0; i<vToFind.size(); i++)
-        if(ReFind_Common(k, vToFind[i]))
-            nFoundNow++;
-
-    return nFoundNow;
-};
-
-// When new map points are generated, they're only created from a stereo pair
-// this tries to make additional measurements in other KFs which they might
-// be in.
-void MapMaker::ReFindNewlyMade()
-{
-    if(mqNewQueue.empty())
-        return;
-    int nFound = 0;
-    int nBad = 0;
-    bool nullkfsecs = true;
-    for (int i = 0; i < AddCamNumber; i ++)
-        if (mvpKeyFrameQueueSec[i].size())
-            nullkfsecs = false;
-    while(!mqNewQueue.empty() && mvpKeyFrameQueue.size() == 0
-          && nullkfsecs)
-    {
-        boost::shared_ptr<MapPoint> pNew = mqNewQueue.front();
-        mqNewQueue.pop();
-        if(pNew->bBad)
-        {
-            nBad++;
-            continue;
-        }
-        if (!pNew->nSourceCamera){
-            for(unsigned int i=0; i<mMap.vpKeyFrames.size(); i++)
-                if(ReFind_Common(mMap.vpKeyFrames[i], pNew))
-                    nFound++;
-        }
-        else { // the second camera
-            for(unsigned int i=0; i<mMap.vpKeyFramessec[pNew->nSourceCamera - 1].size(); i++)
-                if(ReFind_Common(mMap.vpKeyFramessec[pNew->nSourceCamera - 1][i], pNew))
-                    nFound++;
-        }
-    }
-};
-
-// Dud measurements get a second chance.
-void MapMaker::ReFindFromFailureQueue()
-{
-    if(mvFailureQueue.size() == 0)
-        return;
-    sort(mvFailureQueue.begin(), mvFailureQueue.end());
-    vector<pair<boost::shared_ptr<KeyFrame>, boost::shared_ptr<MapPoint> > >::iterator it;
-    int nFound=0;
-    for(it = mvFailureQueue.begin(); it!=mvFailureQueue.end(); it++)
-        if(ReFind_Common(it->first, it->second))
-            nFound++;
-    mvFailureQueue.erase(mvFailureQueue.begin(), it);
-};
-
-// Is the tracker's camera pose in cloud-cuckoo land?
-bool MapMaker::IsDistanceToNearestKeyFrameExcessive(boost::shared_ptr<KeyFrame> kCurrent)
-{
-    return DistToNearestKeyFrame(kCurrent) > mdWiggleScale * 10.0;
-}
-
-void MapMaker::EnableMapping()
-{
-    boost::mutex::scoped_lock lock(MappingEnabledMut);
-    if (!mbMappingEnabled) {
-        mbMappingEnabled = true;
-        MappingEnabledCond.notify_one();
-    }
-}
-
-void MapMaker::DisableMapping()
-{
-    boost::mutex::scoped_lock lock(MappingEnabledMut);
-    mbMappingEnabled = false;
-}
-
-// Find a dominant plane in the map, find an SE3<> to put it as the z=0 plane
-SE3<> MapMaker::CalcPlaneAligner()
-{
-    unsigned int nPoints = mMap.vpPoints.size();
-    if(nPoints < 10)
-    {
-        cout << "  MapMaker: CalcPlane: too few points to calc plane." << endl;
-        return SE3<>();
-    };
-
-    int nRansacs = GV2.GetInt("MapMaker.PlaneAlignerRansacs", 100, HIDDEN|SILENT);
-    Vector<3> v3BestMean;
-    Vector<3> v3BestNormal;
-    double dBestDistSquared = 9999999999999999.9;
-
-    for(int i=0; i<nRansacs; i++)
-    {
-        int nA = rand()%nPoints;
-        int nB = nA;
-        int nC = nA;
-        while(nB == nA)
-            nB = rand()%nPoints;
-        while(nC == nA || nC==nB)
-            nC = rand()%nPoints;
-
-        Vector<3> v3Mean = 0.33333333 * (mMap.vpPoints[nA]->v3WorldPos +
-                                         mMap.vpPoints[nB]->v3WorldPos +
-                                         mMap.vpPoints[nC]->v3WorldPos);
-
-        Vector<3> v3CA = mMap.vpPoints[nC]->v3WorldPos  - mMap.vpPoints[nA]->v3WorldPos;
-        Vector<3> v3BA = mMap.vpPoints[nB]->v3WorldPos  - mMap.vpPoints[nA]->v3WorldPos;
-        Vector<3> v3Normal = v3CA ^ v3BA;
-        if(v3Normal * v3Normal  == 0)
-            continue;
-        normalize(v3Normal);
-
-        double dSumError = 0.0;
-        for(unsigned int i=0; i<nPoints; i++)
-        {
-            Vector<3> v3Diff = mMap.vpPoints[i]->v3WorldPos - v3Mean;
-            double dDistSq = v3Diff * v3Diff;
-            if(dDistSq == 0.0)
-                continue;
-            double dNormDist = fabs(v3Diff * v3Normal);
-
-            if(dNormDist > 0.05)
-                dNormDist = 0.05;
-            dSumError += dNormDist;
-        }
-        if(dSumError < dBestDistSquared)
-        {
-            dBestDistSquared = dSumError;
-            v3BestMean = v3Mean;
-            v3BestNormal = v3Normal;
-        }
-    }
-
-    // Done the ransacs, now collect the supposed inlier set
-    vector<Vector<3> > vv3Inliers;
-    for(unsigned int i=0; i<nPoints; i++)
-    {
-        Vector<3> v3Diff = mMap.vpPoints[i]->v3WorldPos - v3BestMean;
-        double dDistSq = v3Diff * v3Diff;
-        if(dDistSq == 0.0)
-            continue;
-        double dNormDist = fabs(v3Diff * v3BestNormal);
-        if(dNormDist < 0.05)
-            vv3Inliers.push_back(mMap.vpPoints[i]->v3WorldPos);
-    }
-
-    // With these inliers, calculate mean and cov
-    Vector<3> v3MeanOfInliers = Zeros;
-    for(unsigned int i=0; i<vv3Inliers.size(); i++)
-        v3MeanOfInliers+=vv3Inliers[i];
-    v3MeanOfInliers *= (1.0 / vv3Inliers.size());
-
-    Matrix<3> m3Cov = Zeros;
-    for(unsigned int i=0; i<vv3Inliers.size(); i++)
-    {
-        Vector<3> v3Diff = vv3Inliers[i] - v3MeanOfInliers;
-        m3Cov += v3Diff.as_col() * v3Diff.as_row();
-    };
-
-    // Find the principal component with the minimal variance: this is the plane normal
-    SymEigen<3> sym(m3Cov);
-    Vector<3> v3Normal = sym.get_evectors()[0];
-
-    // Use the version of the normal which points towards the cam center
-    if(v3Normal[2] > 0)
-        v3Normal *= -1.0;
-
-    Matrix<3> m3Rot = Identity;
-    m3Rot[2] = v3Normal;
-    m3Rot[0] = m3Rot[0] - (v3Normal * (m3Rot[0] * v3Normal));
-    normalize(m3Rot[0]);
-    m3Rot[1] = m3Rot[2] ^ m3Rot[0];
-
-    SE3<> se3Aligner;
-    se3Aligner.get_rotation() = m3Rot;
-    Vector<3> v3RMean = se3Aligner * v3MeanOfInliers;
-    se3Aligner.get_translation() = -v3RMean;
-
-    return se3Aligner;
-}
-
-// @param  bestnormal serves as initial model, also as output model
-int MapMaker::CheckInlier_Refine(std::vector<boost::shared_ptr<MapPoint> > mpadmappoints,
-                                 TooN::SE3<> &landingpadfromworld, Vector<3> &bestnormal,
-                                 Vector<3> &bestmean)
-{
-    unsigned int nPoints = mpadmappoints.size();
-
-    int nRansacs = GV2.GetInt("MapMaker.LandingpadPlaneRansacRefine", 20, HIDDEN|SILENT);
-    Vector<3> v3BestMean;
-    Vector<3> v3BestNormal;
-    double dBestDistSquared = 9999999999999999.9;
-
-    for(int i=0; i<nRansacs; i++)
-    {
-        Vector<3> v3Normal;
-        Vector<3> v3Mean;
-        if (i == 0){
-            v3Normal = bestnormal;
-            if(v3Normal * v3Normal  == 0)
-                continue;
-            normalize(v3Normal);
-            //TODO: also input v3mean!
-            v3Mean = bestmean;
-        }
-        else {
-            int nA = rand()%nPoints;
-            int nB = nA;
-            int nC = nA;
-            while(nB == nA)
-                nB = rand()%nPoints;
-            while(nC == nA || nC==nB)
-                nC = rand()%nPoints;
-
-            v3Mean = 0.33333333 * (mpadmappoints[nA]->v3WorldPos +
-                                   mpadmappoints[nB]->v3WorldPos +
-                                   mpadmappoints[nC]->v3WorldPos);
-
-            Vector<3> v3CA = mpadmappoints[nC]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
-            Vector<3> v3BA = mpadmappoints[nB]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
-            v3Normal = v3CA ^ v3BA;
-            if(v3Normal * v3Normal  == 0)
-                continue;
-            normalize(v3Normal);
-        }
-
-        double dSumError = 0.0;
-        for(unsigned int i=0; i<nPoints; i++)
-        {
-            Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3Mean;
-            double dDistSq = v3Diff * v3Diff;
-            if(dDistSq == 0.0)
-                continue;
-            double dNormDist = fabs(v3Diff * v3Normal);
-
-            if(dNormDist > 0.05)
-                dNormDist = 0.05;
-            dSumError += dNormDist;
-        }
-        if(dSumError < dBestDistSquared)
-        {
-            dBestDistSquared = dSumError;
-            v3BestMean = v3Mean;
-            v3BestNormal = v3Normal;
-        }
-    }
-
-    // Done the ransacs, now collect the supposed inlier set
-    vector<Vector<3> > vv3Inliers;
-    for(unsigned int i=0; i<nPoints; i++)
-    {
-        Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3BestMean;
-        double dDistSq = v3Diff * v3Diff;
-        if(dDistSq == 0.0)
-            continue;
-        double dNormDist = fabs(v3Diff * v3BestNormal);
-        if(dNormDist < 0.05)
-            vv3Inliers.push_back(mpadmappoints[i]->v3WorldPos);
-    }
-
-    // With these inliers, calculate mean and cov
-    Vector<3> v3MeanOfInliers = Zeros;
-    for(unsigned int i=0; i<vv3Inliers.size(); i++)
-        v3MeanOfInliers+=vv3Inliers[i];
-    v3MeanOfInliers *= (1.0 / vv3Inliers.size());
-
-    Matrix<3> m3Cov = Zeros;
-    for(unsigned int i=0; i<vv3Inliers.size(); i++)
-    {
-        Vector<3> v3Diff = vv3Inliers[i] - v3MeanOfInliers;
-        m3Cov += v3Diff.as_col() * v3Diff.as_row();
-    };
-
-    // Find the principal component with the minimal variance: this is the plane normal
-    SymEigen<3> sym(m3Cov);
-    Vector<3> v3Normal = sym.get_evectors()[0];
-
-    // Use the version of the normal which points towards upward
-    if(v3Normal[2] < 0)
-        v3Normal *= -1.0;
-
-    // check whether the estimation is sound, simply by checking the normal vector
-    // angle of the normal vector to z axis of world frame should be less than Pi/6
-    Vector<3> padnormal = v3Normal;
-    normalize(padnormal);
-    if (acos(padnormal[2]) > 3.14/6.0)
-        return false;
-
-    Matrix<3> m3Rot = Identity;
-    m3Rot[2] = v3Normal;
-    m3Rot[0] = m3Rot[0] - (v3Normal * (m3Rot[0] * v3Normal));
-    normalize(m3Rot[0]);
-    m3Rot[1] = m3Rot[2] ^ m3Rot[0];
-
-    SE3<> se3Aligner;
-    se3Aligner.get_rotation() = m3Rot;
-    Vector<3> v3RMean = se3Aligner * v3MeanOfInliers;
-    se3Aligner.get_translation() = -v3RMean;
-
-
-    landingpadfromworld = se3Aligner;
-    bestnormal = v3Normal;
-    bestmean = v3MeanOfInliers;//se3Aligner.get_translation();
-    return true;
-}
-
-bool MapMaker::CalcLandingpadPlane(std::vector<boost::shared_ptr<MapPoint> > mpadmappoints,
-                                   TooN::SE3<> &landingpadfromworld, Vector<3> &bestnormal, Vector<3> &bestmean)
-{
-    unsigned int nPoints = mpadmappoints.size();
-    //  if(nPoints < 10)
-    //    {
-    //      cout << "  MapMaker: CalcPlane: too few points to calc plane." << endl;
-    //      return SE3<>();
-    //    };
-
-    int nRansacs = GV2.GetInt("MapMaker.LandingpadPlaneRansacs", 30, HIDDEN|SILENT);
-    Vector<3> v3BestMean;
-    Vector<3> v3BestNormal;
-    //TODO: also record the second best one, this is useful for special scenarioes like landing on a box or table
-    double dBestDistSquared = 9999999999999999.9;
-
-    for(int i=0; i<nRansacs; i++)
-    {
-        int nA = rand()%nPoints;
-        int nB = nA;
-        int nC = nA;
-        while(nB == nA)
-            nB = rand()%nPoints;
-        while(nC == nA || nC==nB)
-            nC = rand()%nPoints;
-
-        Vector<3> v3Mean = 0.33333333 * (mpadmappoints[nA]->v3WorldPos +
-                                         mpadmappoints[nB]->v3WorldPos +
-                                         mpadmappoints[nC]->v3WorldPos);
-
-        Vector<3> v3CA = mpadmappoints[nC]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
-        Vector<3> v3BA = mpadmappoints[nB]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
-        Vector<3> v3Normal = v3CA ^ v3BA;
-        if(v3Normal * v3Normal  == 0)
-            continue;
-        normalize(v3Normal);
-
-        double dSumError = 0.0;
-        for(unsigned int i=0; i<nPoints; i++)
-        {
-            Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3Mean;
-            double dDistSq = v3Diff * v3Diff;
-            if(dDistSq == 0.0)
-                continue;
-            double dNormDist = fabs(v3Diff * v3Normal);
-
-            if(dNormDist > 0.05)
-                dNormDist = 0.05;
-            dSumError += dNormDist;
-        }
-        if(dSumError < dBestDistSquared)
-        {
-            dBestDistSquared = dSumError;
-            v3BestMean = v3Mean;
-            v3BestNormal = v3Normal;
-        }
-    }
-
-    // Done the ransacs, now collect the supposed inlier set
-    vector<Vector<3> > vv3Inliers;
-    for(unsigned int i=0; i<nPoints; i++)
-    {
-        Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3BestMean;
-        double dDistSq = v3Diff * v3Diff;
-        if(dDistSq == 0.0)
-            continue;
-        double dNormDist = fabs(v3Diff * v3BestNormal);
-        if(dNormDist < 0.05)
-            vv3Inliers.push_back(mpadmappoints[i]->v3WorldPos);
-    }
-
-    // With these inliers, calculate mean and cov
-    Vector<3> v3MeanOfInliers = Zeros;
-    for(unsigned int i=0; i<vv3Inliers.size(); i++)
-        v3MeanOfInliers+=vv3Inliers[i];
-    v3MeanOfInliers *= (1.0 / vv3Inliers.size());
-
-    Matrix<3> m3Cov = Zeros;
-    for(unsigned int i=0; i<vv3Inliers.size(); i++)
-    {
-        Vector<3> v3Diff = vv3Inliers[i] - v3MeanOfInliers;
-        m3Cov += v3Diff.as_col() * v3Diff.as_row();
-    };
-
-    // Find the principal component with the minimal variance: this is the plane normal
-    SymEigen<3> sym(m3Cov);
-    Vector<3> v3Normal = sym.get_evectors()[0];
-
-    // Use the version of the normal which points towards upward
-    if(v3Normal[2] < 0)
-        v3Normal *= -1.0;
-
-    // check whether the estimation is sound, simply by checking the normal vector
-    // angle of the normal vector to z axis of world frame should be less than Pi/6
-    Vector<3> padnormal = v3Normal;
-    normalize(padnormal);
-    if (acos(padnormal[2]) > 3.14/6.0)
-        return false;
-
-    Matrix<3> m3Rot = Identity;
-    m3Rot[2] = v3Normal;
-    m3Rot[0] = m3Rot[0] - (v3Normal * (m3Rot[0] * v3Normal));
-    normalize(m3Rot[0]);
-    m3Rot[1] = m3Rot[2] ^ m3Rot[0];
-
-    SE3<> se3Aligner;
-    se3Aligner.get_rotation() = m3Rot;
-    Vector<3> v3RMean = se3Aligner * v3MeanOfInliers;
-    se3Aligner.get_translation() = -v3RMean;// this is T21, 1:world frame, 2: pad plane
-
-
-    landingpadfromworld = se3Aligner;
-    bestnormal = v3Normal;
-    bestmean = v3MeanOfInliers;//se3Aligner.get_translation();
-    return true;
-
-}
-
-// Calculates the depth(z-) distribution of map points visible in a keyframe
-// This function is only used for the first two keyframes - all others
-// get this filled in by the tracker
-void MapMaker::RefreshSceneDepth(boost::shared_ptr<KeyFrame> pKF)
-{
-    double dSumDepth = 0.0;
-    double dSumDepthSquared = 0.0;
-    int nMeas = 0;
-    for(meas_it it = pKF->mMeasurements.begin(); it!=pKF->mMeasurements.end(); it++)
-    {
-        MapPoint &point = *it->first;
-        Vector<3> v3PosK = pKF->se3CfromW * point.v3WorldPos;
-        dSumDepth += v3PosK[2];
-        dSumDepthSquared += v3PosK[2] * v3PosK[2];
-        nMeas++;
-    }
-
-    assert(nMeas > 2); // If not then something is seriously wrong with this KF!!
-    pKF->dSceneDepthMean = dSumDepth / nMeas;
-    pKF->dSceneDepthSigma = sqrt((dSumDepthSquared / nMeas) - (pKF->dSceneDepthMean) * (pKF->dSceneDepthMean));
-}
-
-void MapMaker::GUICommandCallBack(void* ptr, string sCommand, string sParams)
-{
-    Command c;
-    c.sCommand = sCommand;
-    c.sParams = sParams;
-    ((MapMaker*) ptr)->mvQueuedCommands.push_back(c);
-}
-
-void MapMaker::GUICommandHandler(string sCommand, string sParams)  // Called by the callback func..
-{
-    if(sCommand=="SaveMap")
-    {
-        cout << "  MapMaker: Saving the map.... " << endl;
-        ofstream ofs("map.dump");
-        for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
-        {
-            ofs << mMap.vpPoints[i]->v3WorldPos << "  ";
-            ofs << mMap.vpPoints[i]->nSourceLevel << endl;
-        }
-        ofs.close();
-
-        for(unsigned int i=0; i<mMap.vpKeyFrames.size(); i++)
-        {
-            ostringstream ost1;
-            ost1 << "keyframes/" << i << ".jpg";
-            //	  img_save(mMap.vpKeyFrames[i]->aLevels[0].im, ost1.str());
-
-            ostringstream ost2;
-            ost2 << "keyframes/" << i << ".info";
-            ofstream ofs2;
-            ofs2.open(ost2.str().c_str());
-            ofs2 << mMap.vpKeyFrames[i]->se3CfromW << endl;
-            ofs2.close();
-        }
-        cout << "  ... done saving map." << endl;
-        return;
-    }
-
-    cout << "! MapMaker::GUICommandHandler: unhandled command "<< sCommand << endl;
-    exit(1);
-}
-
-void MapMaker::WriteFrames(const char* fname)
-{
-    ofstream ofs("frames.csv");
-    for(unsigned int i=0; i<mMap.vpKeyFrames.size(); i++)
-    {
-        ofs << mMap.vpKeyFrames[i]->se3CfromW << endl;
-    }
-    ofs.close();
-}
+//void MapMaker::UpdateLMapByGMap()
+//{
+//    cout << "Updating Local map by GMAP..." << "\n";
+//    std::vector<SE3<> > kfspose;
+
+//    // label each map point not updated
+//    for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
+//        boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
+//        vpPoint->bUpdated = false;
+//    }
+
+//    // only keyframes from the second cam K2S is used in the backend and can be updated by GMAP,
+//    // associated kfs from master cam are updated by corresponding K2S
+//    for(unsigned int i = 0; i < mMap.vpKeyFrames.size(); i ++){
+//        kfspose.push_back(mMap.vpKeyFrames[i]->se3CfromW);
+
+//        mMap.vpKeyFrames[i]->updatedByGMap = false;
+//        if (mMap.vpKeyFrames[i]->id > (mSLAM.keyframes_.size()-1)){// note new kfs may have been added
+//            // update such kfs according to relative pose to older kf, which has been updated
+//            // TODO: correct the scale of such kfs in SIM3 optimisation
+//            for ( int j = i-1; j >=0; j --){
+//                if (mMap.vpKeyFrames[j]->updatedByGMap){
+//                    // use this kf to update kf i
+//                    SE3<> relpose = mMap.vpKeyFrames[i]->se3CfromW * kfspose[j].inverse();
+//                    mMap.vpKeyFrames[i]->se3CfromW = relpose * mMap.vpKeyFrames[j]->se3CfromW;
+
+//                    mMap.vpKeyFrames[i]->updatedByGMap = true;
+////                    cout << mMap.vpKeyFrames[i]->se3CfromW << endl;
+//                    break;
+//                }
+//            }
+//        }
+//        else{ /// most likely
+//            // make sure id matched
+//            assert(mMap.vpKeyFrames[i]->id == mSLAM.keyframes_[mMap.vpKeyFrames[i]->id]->id);
+//            // to toon se3
+////            SE3<> se3wfc = toToonSE3(mSLAM.keyframes_[mMap.vpKeyFrames[i]->id]->posewTc);
+//            SE3<> se3cfw = cs_geom::toToonSE3(mSLAM.keyframeUpdatedPoses[mMap.vpKeyFrames[i]->id]);
+//            mMap.vpKeyFrames[i]->se3CfromW = se3cfw;
+//            mMap.vpKeyFrames[i]->updatedByGMap = true;
+////            cout << mMap.vpKeyFramessec[i]->se3CfromW << endl;
+//        }
+
+////        cout << "Keyframe pose updated by GMAP." << "\n";
+
+//        // update the map point pose according to relative pose to their source kf poses
+//        // update: it doesn't make sense to use the removen kf id, and a better way can be:
+//        // chose the still existing oldest kf which also measure this point! We update the map point data association each time a kf is removed
+//        for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
+//            // TODO: if RBA, update the relative pose for full slam, careful about its source kf, which may be either fixed or adjusted.
+//            // TODO: update the scale when pgo in SIM3
+//            // TODO: to be more efficient: check whether a point has been updated already
+//            boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
+//            if(!vpPoint->bUpdated && (vpPoint->nSourceCamera==0) && (mMap.vpKeyFrames[i] == vpPoint->pPatchSourceKF.lock())){
+//                Vector<3> rpos = kfspose[i] * vpPoint->v3WorldPos;
+//                vpPoint->v3WorldPos = mMap.vpKeyFrames[i]->se3CfromW.inverse() * rpos;
+//                vpPoint->v3RelativePos = mMap.vpKeyFrames[i]->se3CfromW * vpPoint->v3WorldPos;
+//            }
+//        }
+////        cout << "Keyframe points updated by GMAP." << "\n";
+
+//        // Also update their associated kfs. other first cam kfs without association from the second cam (now cannot happen), should be updated according to their neighbores!
+//        /// TODO: whether we want to associate additional kfs with first cam together or individually?
+//        if (mMap.vpKeyFrames[i]->mAssociateKeyframe){// kfs from the second cam
+//            for (int cn = 0; cn < AddCamNumber; cn ++){
+//                if (mMap.vpKeyFramessec[cn].size() <= mMap.vpKeyFrames[i]->nAssociatedKf)
+//                    continue;
+//                SE3<> kfpos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW;
+//                mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW = mse3Cam2FromCam1[cn]*mMap.vpKeyFrames[i]->se3CfromW;
+//                //            cout << mMap.vpKeyFrames[i]->se3CfromW << endl;
+//                //            assert(mMap.vpKeyFramessec[i]->nAssociatedKf == i);
+//                // and update its map points
+//                for(unsigned int j = 0; j < mMap.vpPoints.size(); j ++){
+//                    // TODO: if RBA, update the relative pose for full slam, careful about its source kf, which may be either fixed or adjusted.
+//                    // TODO: update the scale if pgo in SIM3
+//                    boost::shared_ptr<MapPoint> vpPoint = mMap.vpPoints[j];
+//                    if((vpPoint->nSourceCamera == (cn + 1)) && (mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf] == vpPoint->pPatchSourceKF.lock())){
+//                        Vector<3> rpos = kfpos * vpPoint->v3WorldPos;
+//                        vpPoint->v3WorldPos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW.inverse() * rpos;
+//                        vpPoint->v3RelativePos = mMap.vpKeyFramessec[cn][mMap.vpKeyFrames[i]->nAssociatedKf]->se3CfromW * vpPoint->v3WorldPos;
+//                    }
+//                }
+//            }
+//        }
+////        cout << "Keyframe associated updated by GMAP." << "\n";
+//    }
+//    cout << "Updated Local map by GMAP..." << "\n";
+//}
+
+//// the update of map points is naturally done, since in the backend they are represented in a relative manner
+//void MapMaker::UpdateWaitingList(){
+//    for (unsigned int i = 0; i < mSLAM.wlKeyFrames.size(); i ++){
+//        for (unsigned int j = 0; j < mMap.vpKeyFramessec[0].size(); j ++){
+//            if (mMap.vpKeyFramessec[0][j]->id == mSLAM.wlKeyFrames[i]){//->id
+////                mSLAM.wlKeyFrames[i]->ptamPosewTc = cs_geom::toSophusSE3(mMap.vpKeyFramessec[j]->se3CfromW);
+////                mSLAM.wlKeyFrames[i]->posewTc = mSLAM.wlKeyFrames[i]->ptamPosewTc;
+//            }
+//        }
+//    }
+//    // and updates those related edges, maybe not needed since they will be overwriten later
+//}
+
+//// Mapmaker's try-to-find-a-point-in-a-keyframe code. This is used to update
+//// data association if a bad measurement was detected, or if a point
+//// was never searched for in a keyframe in the first place. This operates
+//// much like the tracker! So most of the code looks just like in
+//// TrackerData.h.
+//bool MapMaker::ReFind_Common(boost::shared_ptr<KeyFrame> k, boost::shared_ptr<MapPoint> p)
+//{
+//    int nCam= k->nSourceCamera;
+//    // abort if either a measurement is already in the map, or we've
+//    // decided that this point-kf combo is beyond redemption
+//    if(p->MMData.sMeasurementKFs.count(k)
+//            || p->MMData.sNeverRetryKFs.count(k))
+//        return false;
+
+//    // this line was missing in original ptam code. if you remove it, the assertion at the bottom
+//    // will fail from time to time
+//    if (k->mMeasurements.count(p))
+//        return false;
+
+//    static PatchFinder Finder;
+//    Vector<3> v3Cam = k->se3CfromW*p->v3WorldPos;
+//    if(v3Cam[2] < 0.001)
+//    {
+//        p->MMData.sNeverRetryKFs.insert(k);
+//        return false;
+//    }
+//    Vector<2> v2ImPlane = project(v3Cam);
+//    if (nCam){
+//        if( v2ImPlane* v2ImPlane > mCameraSec[nCam - 1]->LargestRadiusInImage() * mCameraSec[nCam - 1]->LargestRadiusInImage())
+//        {
+//            p->MMData.sNeverRetryKFs.insert(k);
+//            return false;
+//        }
+//    }
+//    else if(v2ImPlane* v2ImPlane > mCamera->LargestRadiusInImage() * mCamera->LargestRadiusInImage())
+//    {
+//        p->MMData.sNeverRetryKFs.insert(k);
+//        return false;
+//    }
+
+//    Vector<2> v2Image;
+//    if (nCam)
+//    {
+//        v2Image = mCameraSec[nCam - 1]->Project(v2ImPlane);
+//        if(mCameraSec[nCam - 1]->Invalid())
+//        {
+//            p->MMData.sNeverRetryKFs.insert(k);
+//            return false;
+//        }
+//    }
+//    else
+//    {
+//        v2Image = mCamera->Project(v2ImPlane);
+//        if(mCamera->Invalid())
+//        {
+//            p->MMData.sNeverRetryKFs.insert(k);
+//            return false;
+//        }
+//    }
+
+//    ImageRef irImageSize = k->aLevels[0].im.size();
+//    if(v2Image[0] < 0 || v2Image[1] < 0 || v2Image[0] > irImageSize[0] || v2Image[1] > irImageSize[1])
+//    {
+//        p->MMData.sNeverRetryKFs.insert(k);
+//        return false;
+//    }
+
+//    Matrix<2> m2CamDerivs;
+//    if (nCam)
+//        m2CamDerivs = mCameraSec[nCam - 1]->GetProjectionDerivs();
+//    else
+//        m2CamDerivs = mCamera->GetProjectionDerivs();
+//    Finder.MakeTemplateCoarse(*p, k->se3CfromW, m2CamDerivs);
+
+//    if(Finder.TemplateBad())
+//    {
+//        p->MMData.sNeverRetryKFs.insert(k);
+//        return false;
+//    }
+
+//    bool bFound = Finder.FindPatchCoarse(ir(v2Image), *k, 4);  // Very tight search radius!
+//    if(!bFound)
+//    {
+//        p->MMData.sNeverRetryKFs.insert(k);
+//        return false;
+//    }
+
+//    // If we found something, generate a measurement struct and put it in the map
+//    Measurement m;
+//    m.nLevel = Finder.GetLevel();
+//    m.dDepth = Finder.GetCoarseDepth();
+//    m.Source = Measurement::SRC_REFIND;
+
+//    if(Finder.GetLevel() > 0)
+//    {
+//        Finder.MakeSubPixTemplate();
+//        Finder.IterateSubPixToConvergence(*k,8);
+//        m.v2RootPos = Finder.GetSubPixPos();
+//        m.bSubPix = true;
+//    }
+//    else
+//    {
+//        m.v2RootPos = Finder.GetCoarsePosAsVector();
+//        m.bSubPix = false;
+//    };
+
+//    if(k->mMeasurements.count(p))
+//    {
+//        assert(0); // This should never happen, we checked for this at the start.
+//    }
+//    k->mMeasurements[p] = m;
+//    p->MMData.sMeasurementKFs.insert(k);
+//    return true;
+//}
+
+//// A general data-association update for a single keyframe
+//// Do this on a new key-frame when it's passed in by the tracker
+//int MapMaker::ReFindInSingleKeyFrame(boost::shared_ptr<KeyFrame> k)
+//{
+//    int nCam = k->nSourceCamera;
+//    vector<boost::shared_ptr<MapPoint> > vToFind;
+//    for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
+//    {
+//        // we treat map points from dual camera separately
+//        if (mMap.vpPoints[i]->nSourceCamera == nCam)
+//            vToFind.push_back(mMap.vpPoints[i]);
+//    }
+
+//    int nFoundNow = 0;
+//    for(unsigned int i=0; i<vToFind.size(); i++)
+//        if(ReFind_Common(k, vToFind[i]))
+//            nFoundNow++;
+
+//    return nFoundNow;
+//};
+
+//// When new map points are generated, they're only created from a stereo pair
+//// this tries to make additional measurements in other KFs which they might
+//// be in.
+//void MapMaker::ReFindNewlyMade()
+//{
+//    if(mqNewQueue.empty())
+//        return;
+//    int nFound = 0;
+//    int nBad = 0;
+//    bool nullkfsecs = true;
+//    for (int i = 0; i < AddCamNumber; i ++)
+//        if (mvpKeyFrameQueueSec[i].size())
+//            nullkfsecs = false;
+//    while(!mqNewQueue.empty() && mvpKeyFrameQueue.size() == 0
+//          && nullkfsecs)
+//    {
+//        boost::shared_ptr<MapPoint> pNew = mqNewQueue.front();
+//        mqNewQueue.pop();
+//        if(pNew->bBad)
+//        {
+//            nBad++;
+//            continue;
+//        }
+//        if (!pNew->nSourceCamera){
+//            for(unsigned int i=0; i<mMap.vpKeyFrames.size(); i++)
+//                if(ReFind_Common(mMap.vpKeyFrames[i], pNew))
+//                    nFound++;
+//        }
+//        else { // the second camera
+//            for(unsigned int i=0; i<mMap.vpKeyFramessec[pNew->nSourceCamera - 1].size(); i++)
+//                if(ReFind_Common(mMap.vpKeyFramessec[pNew->nSourceCamera - 1][i], pNew))
+//                    nFound++;
+//        }
+//    }
+//};
+
+//// Dud measurements get a second chance.
+//void MapMaker::ReFindFromFailureQueue()
+//{
+//    if(mvFailureQueue.size() == 0)
+//        return;
+//    sort(mvFailureQueue.begin(), mvFailureQueue.end());
+//    vector<pair<boost::shared_ptr<KeyFrame>, boost::shared_ptr<MapPoint> > >::iterator it;
+//    int nFound=0;
+//    for(it = mvFailureQueue.begin(); it!=mvFailureQueue.end(); it++)
+//        if(ReFind_Common(it->first, it->second))
+//            nFound++;
+//    mvFailureQueue.erase(mvFailureQueue.begin(), it);
+//};
+
+//// Is the tracker's camera pose in cloud-cuckoo land?
+//bool MapMaker::IsDistanceToNearestKeyFrameExcessive(boost::shared_ptr<KeyFrame> kCurrent)
+//{
+//    return DistToNearestKeyFrame(kCurrent) > mdWiggleScale * 10.0;
+//}
+
+//void MapMaker::EnableMapping()
+//{
+//    boost::mutex::scoped_lock lock(MappingEnabledMut);
+//    if (!mbMappingEnabled) {
+//        mbMappingEnabled = true;
+//        MappingEnabledCond.notify_one();
+//    }
+//}
+
+//void MapMaker::DisableMapping()
+//{
+//    boost::mutex::scoped_lock lock(MappingEnabledMut);
+//    mbMappingEnabled = false;
+//}
+
+//// Find a dominant plane in the map, find an SE3<> to put it as the z=0 plane
+//SE3<> MapMaker::CalcPlaneAligner()
+//{
+//    unsigned int nPoints = mMap.vpPoints.size();
+//    if(nPoints < 10)
+//    {
+//        cout << "  MapMaker: CalcPlane: too few points to calc plane." << endl;
+//        return SE3<>();
+//    };
+
+//    int nRansacs = GV2.GetInt("MapMaker.PlaneAlignerRansacs", 100, HIDDEN|SILENT);
+//    Vector<3> v3BestMean;
+//    Vector<3> v3BestNormal;
+//    double dBestDistSquared = 9999999999999999.9;
+
+//    for(int i=0; i<nRansacs; i++)
+//    {
+//        int nA = rand()%nPoints;
+//        int nB = nA;
+//        int nC = nA;
+//        while(nB == nA)
+//            nB = rand()%nPoints;
+//        while(nC == nA || nC==nB)
+//            nC = rand()%nPoints;
+
+//        Vector<3> v3Mean = 0.33333333 * (mMap.vpPoints[nA]->v3WorldPos +
+//                                         mMap.vpPoints[nB]->v3WorldPos +
+//                                         mMap.vpPoints[nC]->v3WorldPos);
+
+//        Vector<3> v3CA = mMap.vpPoints[nC]->v3WorldPos  - mMap.vpPoints[nA]->v3WorldPos;
+//        Vector<3> v3BA = mMap.vpPoints[nB]->v3WorldPos  - mMap.vpPoints[nA]->v3WorldPos;
+//        Vector<3> v3Normal = v3CA ^ v3BA;
+//        if(v3Normal * v3Normal  == 0)
+//            continue;
+//        normalize(v3Normal);
+
+//        double dSumError = 0.0;
+//        for(unsigned int i=0; i<nPoints; i++)
+//        {
+//            Vector<3> v3Diff = mMap.vpPoints[i]->v3WorldPos - v3Mean;
+//            double dDistSq = v3Diff * v3Diff;
+//            if(dDistSq == 0.0)
+//                continue;
+//            double dNormDist = fabs(v3Diff * v3Normal);
+
+//            if(dNormDist > 0.05)
+//                dNormDist = 0.05;
+//            dSumError += dNormDist;
+//        }
+//        if(dSumError < dBestDistSquared)
+//        {
+//            dBestDistSquared = dSumError;
+//            v3BestMean = v3Mean;
+//            v3BestNormal = v3Normal;
+//        }
+//    }
+
+//    // Done the ransacs, now collect the supposed inlier set
+//    vector<Vector<3> > vv3Inliers;
+//    for(unsigned int i=0; i<nPoints; i++)
+//    {
+//        Vector<3> v3Diff = mMap.vpPoints[i]->v3WorldPos - v3BestMean;
+//        double dDistSq = v3Diff * v3Diff;
+//        if(dDistSq == 0.0)
+//            continue;
+//        double dNormDist = fabs(v3Diff * v3BestNormal);
+//        if(dNormDist < 0.05)
+//            vv3Inliers.push_back(mMap.vpPoints[i]->v3WorldPos);
+//    }
+
+//    // With these inliers, calculate mean and cov
+//    Vector<3> v3MeanOfInliers = Zeros;
+//    for(unsigned int i=0; i<vv3Inliers.size(); i++)
+//        v3MeanOfInliers+=vv3Inliers[i];
+//    v3MeanOfInliers *= (1.0 / vv3Inliers.size());
+
+//    Matrix<3> m3Cov = Zeros;
+//    for(unsigned int i=0; i<vv3Inliers.size(); i++)
+//    {
+//        Vector<3> v3Diff = vv3Inliers[i] - v3MeanOfInliers;
+//        m3Cov += v3Diff.as_col() * v3Diff.as_row();
+//    };
+
+//    // Find the principal component with the minimal variance: this is the plane normal
+//    SymEigen<3> sym(m3Cov);
+//    Vector<3> v3Normal = sym.get_evectors()[0];
+
+//    // Use the version of the normal which points towards the cam center
+//    if(v3Normal[2] > 0)
+//        v3Normal *= -1.0;
+
+//    Matrix<3> m3Rot = Identity;
+//    m3Rot[2] = v3Normal;
+//    m3Rot[0] = m3Rot[0] - (v3Normal * (m3Rot[0] * v3Normal));
+//    normalize(m3Rot[0]);
+//    m3Rot[1] = m3Rot[2] ^ m3Rot[0];
+
+//    SE3<> se3Aligner;
+//    se3Aligner.get_rotation() = m3Rot;
+//    Vector<3> v3RMean = se3Aligner * v3MeanOfInliers;
+//    se3Aligner.get_translation() = -v3RMean;
+
+//    return se3Aligner;
+//}
+
+//// @param  bestnormal serves as initial model, also as output model
+//int MapMaker::CheckInlier_Refine(std::vector<boost::shared_ptr<MapPoint> > mpadmappoints,
+//                                 TooN::SE3<> &landingpadfromworld, Vector<3> &bestnormal,
+//                                 Vector<3> &bestmean)
+//{
+//    unsigned int nPoints = mpadmappoints.size();
+
+//    int nRansacs = GV2.GetInt("MapMaker.LandingpadPlaneRansacRefine", 20, HIDDEN|SILENT);
+//    Vector<3> v3BestMean;
+//    Vector<3> v3BestNormal;
+//    double dBestDistSquared = 9999999999999999.9;
+
+//    for(int i=0; i<nRansacs; i++)
+//    {
+//        Vector<3> v3Normal;
+//        Vector<3> v3Mean;
+//        if (i == 0){
+//            v3Normal = bestnormal;
+//            if(v3Normal * v3Normal  == 0)
+//                continue;
+//            normalize(v3Normal);
+//            //TODO: also input v3mean!
+//            v3Mean = bestmean;
+//        }
+//        else {
+//            int nA = rand()%nPoints;
+//            int nB = nA;
+//            int nC = nA;
+//            while(nB == nA)
+//                nB = rand()%nPoints;
+//            while(nC == nA || nC==nB)
+//                nC = rand()%nPoints;
+
+//            v3Mean = 0.33333333 * (mpadmappoints[nA]->v3WorldPos +
+//                                   mpadmappoints[nB]->v3WorldPos +
+//                                   mpadmappoints[nC]->v3WorldPos);
+
+//            Vector<3> v3CA = mpadmappoints[nC]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
+//            Vector<3> v3BA = mpadmappoints[nB]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
+//            v3Normal = v3CA ^ v3BA;
+//            if(v3Normal * v3Normal  == 0)
+//                continue;
+//            normalize(v3Normal);
+//        }
+
+//        double dSumError = 0.0;
+//        for(unsigned int i=0; i<nPoints; i++)
+//        {
+//            Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3Mean;
+//            double dDistSq = v3Diff * v3Diff;
+//            if(dDistSq == 0.0)
+//                continue;
+//            double dNormDist = fabs(v3Diff * v3Normal);
+
+//            if(dNormDist > 0.05)
+//                dNormDist = 0.05;
+//            dSumError += dNormDist;
+//        }
+//        if(dSumError < dBestDistSquared)
+//        {
+//            dBestDistSquared = dSumError;
+//            v3BestMean = v3Mean;
+//            v3BestNormal = v3Normal;
+//        }
+//    }
+
+//    // Done the ransacs, now collect the supposed inlier set
+//    vector<Vector<3> > vv3Inliers;
+//    for(unsigned int i=0; i<nPoints; i++)
+//    {
+//        Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3BestMean;
+//        double dDistSq = v3Diff * v3Diff;
+//        if(dDistSq == 0.0)
+//            continue;
+//        double dNormDist = fabs(v3Diff * v3BestNormal);
+//        if(dNormDist < 0.05)
+//            vv3Inliers.push_back(mpadmappoints[i]->v3WorldPos);
+//    }
+
+//    // With these inliers, calculate mean and cov
+//    Vector<3> v3MeanOfInliers = Zeros;
+//    for(unsigned int i=0; i<vv3Inliers.size(); i++)
+//        v3MeanOfInliers+=vv3Inliers[i];
+//    v3MeanOfInliers *= (1.0 / vv3Inliers.size());
+
+//    Matrix<3> m3Cov = Zeros;
+//    for(unsigned int i=0; i<vv3Inliers.size(); i++)
+//    {
+//        Vector<3> v3Diff = vv3Inliers[i] - v3MeanOfInliers;
+//        m3Cov += v3Diff.as_col() * v3Diff.as_row();
+//    };
+
+//    // Find the principal component with the minimal variance: this is the plane normal
+//    SymEigen<3> sym(m3Cov);
+//    Vector<3> v3Normal = sym.get_evectors()[0];
+
+//    // Use the version of the normal which points towards upward
+//    if(v3Normal[2] < 0)
+//        v3Normal *= -1.0;
+
+//    // check whether the estimation is sound, simply by checking the normal vector
+//    // angle of the normal vector to z axis of world frame should be less than Pi/6
+//    Vector<3> padnormal = v3Normal;
+//    normalize(padnormal);
+//    if (acos(padnormal[2]) > 3.14/6.0)
+//        return false;
+
+//    Matrix<3> m3Rot = Identity;
+//    m3Rot[2] = v3Normal;
+//    m3Rot[0] = m3Rot[0] - (v3Normal * (m3Rot[0] * v3Normal));
+//    normalize(m3Rot[0]);
+//    m3Rot[1] = m3Rot[2] ^ m3Rot[0];
+
+//    SE3<> se3Aligner;
+//    se3Aligner.get_rotation() = m3Rot;
+//    Vector<3> v3RMean = se3Aligner * v3MeanOfInliers;
+//    se3Aligner.get_translation() = -v3RMean;
+
+
+//    landingpadfromworld = se3Aligner;
+//    bestnormal = v3Normal;
+//    bestmean = v3MeanOfInliers;//se3Aligner.get_translation();
+//    return true;
+//}
+
+//bool MapMaker::CalcLandingpadPlane(std::vector<boost::shared_ptr<MapPoint> > mpadmappoints,
+//                                   TooN::SE3<> &landingpadfromworld, Vector<3> &bestnormal, Vector<3> &bestmean)
+//{
+//    unsigned int nPoints = mpadmappoints.size();
+//    //  if(nPoints < 10)
+//    //    {
+//    //      cout << "  MapMaker: CalcPlane: too few points to calc plane." << endl;
+//    //      return SE3<>();
+//    //    };
+
+//    int nRansacs = GV2.GetInt("MapMaker.LandingpadPlaneRansacs", 30, HIDDEN|SILENT);
+//    Vector<3> v3BestMean;
+//    Vector<3> v3BestNormal;
+//    //TODO: also record the second best one, this is useful for special scenarioes like landing on a box or table
+//    double dBestDistSquared = 9999999999999999.9;
+
+//    for(int i=0; i<nRansacs; i++)
+//    {
+//        int nA = rand()%nPoints;
+//        int nB = nA;
+//        int nC = nA;
+//        while(nB == nA)
+//            nB = rand()%nPoints;
+//        while(nC == nA || nC==nB)
+//            nC = rand()%nPoints;
+
+//        Vector<3> v3Mean = 0.33333333 * (mpadmappoints[nA]->v3WorldPos +
+//                                         mpadmappoints[nB]->v3WorldPos +
+//                                         mpadmappoints[nC]->v3WorldPos);
+
+//        Vector<3> v3CA = mpadmappoints[nC]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
+//        Vector<3> v3BA = mpadmappoints[nB]->v3WorldPos  - mpadmappoints[nA]->v3WorldPos;
+//        Vector<3> v3Normal = v3CA ^ v3BA;
+//        if(v3Normal * v3Normal  == 0)
+//            continue;
+//        normalize(v3Normal);
+
+//        double dSumError = 0.0;
+//        for(unsigned int i=0; i<nPoints; i++)
+//        {
+//            Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3Mean;
+//            double dDistSq = v3Diff * v3Diff;
+//            if(dDistSq == 0.0)
+//                continue;
+//            double dNormDist = fabs(v3Diff * v3Normal);
+
+//            if(dNormDist > 0.05)
+//                dNormDist = 0.05;
+//            dSumError += dNormDist;
+//        }
+//        if(dSumError < dBestDistSquared)
+//        {
+//            dBestDistSquared = dSumError;
+//            v3BestMean = v3Mean;
+//            v3BestNormal = v3Normal;
+//        }
+//    }
+
+//    // Done the ransacs, now collect the supposed inlier set
+//    vector<Vector<3> > vv3Inliers;
+//    for(unsigned int i=0; i<nPoints; i++)
+//    {
+//        Vector<3> v3Diff = mpadmappoints[i]->v3WorldPos - v3BestMean;
+//        double dDistSq = v3Diff * v3Diff;
+//        if(dDistSq == 0.0)
+//            continue;
+//        double dNormDist = fabs(v3Diff * v3BestNormal);
+//        if(dNormDist < 0.05)
+//            vv3Inliers.push_back(mpadmappoints[i]->v3WorldPos);
+//    }
+
+//    // With these inliers, calculate mean and cov
+//    Vector<3> v3MeanOfInliers = Zeros;
+//    for(unsigned int i=0; i<vv3Inliers.size(); i++)
+//        v3MeanOfInliers+=vv3Inliers[i];
+//    v3MeanOfInliers *= (1.0 / vv3Inliers.size());
+
+//    Matrix<3> m3Cov = Zeros;
+//    for(unsigned int i=0; i<vv3Inliers.size(); i++)
+//    {
+//        Vector<3> v3Diff = vv3Inliers[i] - v3MeanOfInliers;
+//        m3Cov += v3Diff.as_col() * v3Diff.as_row();
+//    };
+
+//    // Find the principal component with the minimal variance: this is the plane normal
+//    SymEigen<3> sym(m3Cov);
+//    Vector<3> v3Normal = sym.get_evectors()[0];
+
+//    // Use the version of the normal which points towards upward
+//    if(v3Normal[2] < 0)
+//        v3Normal *= -1.0;
+
+//    // check whether the estimation is sound, simply by checking the normal vector
+//    // angle of the normal vector to z axis of world frame should be less than Pi/6
+//    Vector<3> padnormal = v3Normal;
+//    normalize(padnormal);
+//    if (acos(padnormal[2]) > 3.14/6.0)
+//        return false;
+
+//    Matrix<3> m3Rot = Identity;
+//    m3Rot[2] = v3Normal;
+//    m3Rot[0] = m3Rot[0] - (v3Normal * (m3Rot[0] * v3Normal));
+//    normalize(m3Rot[0]);
+//    m3Rot[1] = m3Rot[2] ^ m3Rot[0];
+
+//    SE3<> se3Aligner;
+//    se3Aligner.get_rotation() = m3Rot;
+//    Vector<3> v3RMean = se3Aligner * v3MeanOfInliers;
+//    se3Aligner.get_translation() = -v3RMean;// this is T21, 1:world frame, 2: pad plane
+
+
+//    landingpadfromworld = se3Aligner;
+//    bestnormal = v3Normal;
+//    bestmean = v3MeanOfInliers;//se3Aligner.get_translation();
+//    return true;
+
+//}
+
+//// Calculates the depth(z-) distribution of map points visible in a keyframe
+//// This function is only used for the first two keyframes - all others
+//// get this filled in by the tracker
+//void MapMaker::RefreshSceneDepth(boost::shared_ptr<KeyFrame> pKF)
+//{
+//    double dSumDepth = 0.0;
+//    double dSumDepthSquared = 0.0;
+//    int nMeas = 0;
+//    for(meas_it it = pKF->mMeasurements.begin(); it!=pKF->mMeasurements.end(); it++)
+//    {
+//        MapPoint &point = *it->first;
+//        Vector<3> v3PosK = pKF->se3CfromW * point.v3WorldPos;
+//        dSumDepth += v3PosK[2];
+//        dSumDepthSquared += v3PosK[2] * v3PosK[2];
+//        nMeas++;
+//    }
+
+//    assert(nMeas > 2); // If not then something is seriously wrong with this KF!!
+//    pKF->dSceneDepthMean = dSumDepth / nMeas;
+//    pKF->dSceneDepthSigma = sqrt((dSumDepthSquared / nMeas) - (pKF->dSceneDepthMean) * (pKF->dSceneDepthMean));
+//}
+
+//void MapMaker::GUICommandCallBack(void* ptr, string sCommand, string sParams)
+//{
+//    Command c;
+//    c.sCommand = sCommand;
+//    c.sParams = sParams;
+//    ((MapMaker*) ptr)->mvQueuedCommands.push_back(c);
+//}
+
+//void MapMaker::GUICommandHandler(string sCommand, string sParams)  // Called by the callback func..
+//{
+//    if(sCommand=="SaveMap")
+//    {
+//        cout << "  MapMaker: Saving the map.... " << endl;
+//        ofstream ofs("map.dump");
+//        for(unsigned int i=0; i<mMap.vpPoints.size(); i++)
+//        {
+//            ofs << mMap.vpPoints[i]->v3WorldPos << "  ";
+//            ofs << mMap.vpPoints[i]->nSourceLevel << endl;
+//        }
+//        ofs.close();
+
+//        for(unsigned int i=0; i<mMap.vpKeyFrames.size(); i++)
+//        {
+//            ostringstream ost1;
+//            ost1 << "keyframes/" << i << ".jpg";
+//            //	  img_save(mMap.vpKeyFrames[i]->aLevels[0].im, ost1.str());
+
+//            ostringstream ost2;
+//            ost2 << "keyframes/" << i << ".info";
+//            ofstream ofs2;
+//            ofs2.open(ost2.str().c_str());
+//            ofs2 << mMap.vpKeyFrames[i]->se3CfromW << endl;
+//            ofs2.close();
+//        }
+//        cout << "  ... done saving map." << endl;
+//        return;
+//    }
+
+//    cout << "! MapMaker::GUICommandHandler: unhandled command "<< sCommand << endl;
+//    exit(1);
+//}
+
+//void MapMaker::WriteFrames(const char* fname)
+//{
+//    ofstream ofs("frames.csv");
+//    for(unsigned int i=0; i<mMap.vpKeyFrames.size(); i++)
+//    {
+//        ofs << mMap.vpKeyFrames[i]->se3CfromW << endl;
+//    }
+//    ofs.close();
+//}
 
 
 

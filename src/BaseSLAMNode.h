@@ -21,10 +21,7 @@ class Map;
 class MapMaker;
 class Tracker;
 }
-namespace backend{
-class SLAMSystem;
-class LoopClosing;
-}
+
 namespace cs_geom{
 class Camera;
 }
@@ -39,7 +36,7 @@ public:
     ~BaseSLAMNode();
 protected:
     virtual void onInit();
-    void InitBackend();
+//    void InitBackend();
     void publishPose(ros::Time stamp = ros::Time::now());
     void postProcessFrame();
 
@@ -60,9 +57,9 @@ protected:
     boost::scoped_ptr<MapVisualization> map_viz_;
 
     //backend objects
-    boost::scoped_ptr<cs_geom::Camera> cam_[AddCamNumber + 1];
-    boost::scoped_ptr<backend::SLAMSystem> ss_;
-    boost::scoped_ptr<backend::LoopClosing> backend_;
+//    boost::scoped_ptr<cs_geom::Camera> cam_[AddCamNumber + 1];
+//    boost::scoped_ptr<backend::SLAMSystem> ss_;
+//    boost::scoped_ptr<backend::LoopClosing> backend_;
 
     // ROS Publishers
     ros::Publisher cam_marker_pub_;

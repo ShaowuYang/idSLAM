@@ -17,7 +17,7 @@
 #include "MapVisualization.h"
 using namespace ptam;
 using namespace idSLAM;
-using namespace backend;
+using namespace std;
 
 BaseSLAMNode::BaseSLAMNode()
 //    : nh_private_("~")
@@ -64,8 +64,8 @@ void BaseSLAMNode::onInit()
         GVars3::GV3::set_var("Camerasec1.File", std::string("\"") + calib_file + "\"");
 
     map_.reset(new Map);
-    InitBackend();// setup slam system, and init the backend
-    map_maker_.reset(new MapMaker(*map_, *ss_, *backend_));
+//    InitBackend();// setup slam system, and init the backend
+    map_maker_.reset(new MapMaker(*map_));
 
     tracker_.reset(new Tracker(*map_, *map_maker_));
     map_viz_.reset(new MapVisualization());
@@ -89,39 +89,6 @@ void BaseSLAMNode::onInit()
 BaseSLAMNode::~BaseSLAMNode()
 {
     map_maker_.reset(); // blocks until mapmaker thread is done
-}
-
-void BaseSLAMNode::InitBackend()
-{
-    std::string calib_file, voc_file;
-
-    if (!nh_private_.getParam("vocabulary_file", voc_file)) {
-        cerr << "You did not give me a vocabulary file!!" << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    if (!nh_private_.getParam("calib_file", calib_file)) {
-        cerr << "You did not give me a calib file." << endl;
-        exit(EXIT_FAILURE);
-    }
-
-//    nh_private_.param("body_frame",      body_frame_,    std::string("/base_link"));
-//    nh_private_.param("camera_frame",    camera_frame_,  std::string("/camera_rgb_optical_frame"));
-
-    bool saveKeyframes, close_loops_;
-    bool pubmap_;
-    nh_private_.param("save_keyframes",  saveKeyframes, false);
-    nh_private_.param("close_loops",     close_loops_, true);
-    nh_private_.param("pub_backend_map", pubmap_, true);
-
-//    world_frame_ = "/idslam_world";
-
-    cam_[0].reset(new cs_geom::Camera(calib_file, 0));
-    for (int i = 0; i < AddCamNumber; i ++)
-        cam_[i+1].reset(new cs_geom::Camera(calib_file, i+1));
-    ss_.reset(new SLAMSystem(*map_,cam_,voc_file, close_loops_, saveKeyframes, pubmap_));
-    //ini the backend
-    backend_.reset(new backend::LoopClosing(nh_, nh_private_, *ss_));
 }
 
 void BaseSLAMNode::publishPose(ros::Time stamp)

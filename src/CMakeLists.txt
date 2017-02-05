@@ -6,7 +6,7 @@ find_package(cmake_modules REQUIRED)
 #find_package(bullet REQUIRED)
 
 include_directories(   ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/backend/
+#    ${PROJECT_SOURCE_DIR}/src/backend/
     /usr/local/include/bullet
     /usr/include/vtk-5.8
 )
@@ -15,9 +15,8 @@ rosbuild_add_library(nodebase BaseSLAMNode.cpp)
 rosbuild_add_library(conversions conversions/conversions.cpp)
 rosbuild_add_library(mapvis MapVisualization.cpp geometry/PointClouds.cpp)
 
-set(COMMON_LIBRARIES nodebase mapvis ptam backend conversions GVars3 cvd toontag)
+set(COMMON_LIBRARIES nodebase mapvis ptam conversions GVars3 cvd toontag)
 
-add_subdirectory(backend)
 add_subdirectory(ptam)
 add_subdirectory(tools)
 #add_subdirectory(cs_ptam_msgs)

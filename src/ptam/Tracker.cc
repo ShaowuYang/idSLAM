@@ -6,7 +6,7 @@
 #include "PatchFinder.h"
 #include "MapPoint.h"
 #include "TrackerData.h"
-#include <cs_geometry/Conversions.h>
+//#include <cs_geometry/Conversions.h>
 
 #include <cvd/utility.h>
 #include <cvd/fast_corner.h>
@@ -846,11 +846,11 @@ bool Tracker::AttemptRecovery(boost::shared_ptr<KeyFrame> goodkf, boost::shared_
     kf->finalizeKeyframekpts();
     Sophus::SE3d relPoseAB;
 
-    if (mMapMaker.relocaliseRegister(goodkftrack, kf, relPoseAB, minInliers)){
-        mse3Best = cs_geom::toToonSE3(relPoseAB);
-        return true;
-    }
-    else
+//    if (mMapMaker.relocaliseRegister(goodkftrack, kf, relPoseAB, minInliers)){
+//        mse3Best = toToonSE3(relPoseAB);
+//        return true;
+//    }
+//    else
         return false;
 }
 

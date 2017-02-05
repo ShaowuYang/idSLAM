@@ -107,7 +107,7 @@ public:
   bool tracking_map;
 
   //////////// for landing pad detection////////////
-  void load_reflandingpad(string &path);
+  void load_reflandingpad(std::string &path);
   const KeyFrame& GetRefFrame() const { return mReflandingpadFrame; }
   bool istrackPad;
   TooN::Vector<3> mPadCenterWorld;// world coordinate of the landing pad center

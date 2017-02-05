@@ -4,7 +4,7 @@
 #include "KeyFrame.h"
 #include <cvd/utility.h>
 #include <gvars3/instances.h>
-#include <cs_geometry/Conversions.h>
+//#include <cs_geometry/Conversions.h>
 
 using namespace CVD;
 using namespace GVars3;
